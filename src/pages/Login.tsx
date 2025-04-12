@@ -22,14 +22,14 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // In a real app, you would validate the credentials against a backend
+      // En un caso real, validarías las credenciales contra un backend
       console.log(`Logging in as ${role} with email: ${email}`);
 
-      // Simulating API call
+      // Simulando llamada a API
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Normally, you would check the response from your API
-      if (email && password) {
+      // Verificamos si las credenciales son "admin"
+      if (email === "admin" && password === "admin") {
         toast.success(`¡Bienvenido ${role === "trainer" ? "entrenador" : "cliente"}!`);
         navigate("/dashboard");
       } else {
@@ -72,7 +72,7 @@ const Login = () => {
                     <Label htmlFor="email-trainer">Email</Label>
                     <Input
                       id="email-trainer"
-                      type="email"
+                      type="text"
                       placeholder="entrenador@gimnasio.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -132,7 +132,7 @@ const Login = () => {
                     <Label htmlFor="email-client">Email</Label>
                     <Input
                       id="email-client"
-                      type="email"
+                      type="text"
                       placeholder="cliente@ejemplo.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
