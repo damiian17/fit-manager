@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -52,6 +53,30 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				fitBlue: {
+					50: '#e6f7ff', 
+					100: '#b3e5fc',
+					200: '#81d4fa',
+					300: '#4fc3f7',
+					400: '#29b6f6',
+					500: '#0ea5e9',
+					600: '#039be5',
+					700: '#0288d1',
+					800: '#0277bd',
+					900: '#01579b',
+				},
+				fitGreen: {
+					50: '#e8f5e9',
+					100: '#c8e6c9',
+					200: '#a5d6a7',
+					300: '#81c784',
+					400: '#66bb6a',
+					500: '#4caf50',
+					600: '#43a047',
+					700: '#388e3c',
+					800: '#2e7d32',
+					900: '#1b5e20',
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -84,11 +109,29 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+					},
+					'100%': {
+						opacity: '1',
+					},
+				},
+				'pulse-scale': {
+					'0%, 100%': {
+						transform: 'scale(1)',
+					},
+					'50%': {
+						transform: 'scale(1.05)',
+					},
+				},
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.5s ease-out',
+				'pulse-scale': 'pulse-scale 2s infinite ease-in-out',
 			}
 		}
 	},
