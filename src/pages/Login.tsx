@@ -14,6 +14,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"trainer" | "client">("trainer");
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent, role: "trainer" | "client") => {
@@ -59,7 +60,7 @@ const Login = () => {
               Ingresa tus credenciales para acceder al sistema
             </CardDescription>
           </CardHeader>
-          <Tabs defaultValue="trainer" className="w-full">
+          <Tabs defaultValue="trainer" className="w-full" value={activeTab} onValueChange={(value) => setActiveTab(value as "trainer" | "client")}>
             <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="trainer">Entrenador</TabsTrigger>
               <TabsTrigger value="client">Cliente</TabsTrigger>
@@ -180,7 +181,7 @@ const Login = () => {
                     <button
                       type="button"
                       className="text-fitBlue-600 hover:text-fitBlue-700 font-medium"
-                      onClick={() => document.querySelector('[data-state="inactive"][data-value="trainer"]')?.click()}
+                      onClick={() => setActiveTab("trainer")}
                     >
                       Ingresa como entrenador
                     </button>
