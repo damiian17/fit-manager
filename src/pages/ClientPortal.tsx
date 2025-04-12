@@ -1,10 +1,12 @@
 
-import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dumbbell, Salad, Calendar, Clock, Activity, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dumbbell, Salad, Calendar, Clock, Activity, Info, User } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ProfileButton } from "@/components/ui/profile-button";
 
 // Datos de ejemplo para demostración - en una aplicación real, estos vendrían de una base de datos
 const mockWorkouts = [
@@ -150,7 +152,24 @@ const dietDetails = {
 const ClientPortal = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Navigation />
+      {/* Simplified header for client portal */}
+      <header className="bg-white shadow-sm border-b dark:bg-gray-900 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              <div className="flex-shrink-0 flex items-center">
+                <Link to="/client-portal" className="flex items-center">
+                  <Dumbbell className="h-8 w-8 text-fitBlue-600" />
+                  <span className="ml-2 text-xl font-bold text-fitBlue-800">Portal del Cliente</span>
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <ProfileButton />
+            </div>
+          </div>
+        </div>
+      </header>
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
