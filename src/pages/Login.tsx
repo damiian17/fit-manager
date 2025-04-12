@@ -31,7 +31,13 @@ const Login = () => {
       // Verificamos si las credenciales son "admin"
       if (email === "admin" && password === "admin") {
         toast.success(`¡Bienvenido ${role === "trainer" ? "entrenador" : "cliente"}!`);
-        navigate("/dashboard");
+        
+        // Redirigimos según el rol
+        if (role === "trainer") {
+          navigate("/dashboard");
+        } else {
+          navigate("/client-portal");
+        }
       } else {
         toast.error("Credenciales inválidas");
       }
