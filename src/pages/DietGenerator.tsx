@@ -265,6 +265,7 @@ const DietGenerator = () => {
                           <SelectContent>
                             <SelectItem value="male">Masculino</SelectItem>
                             <SelectItem value="female">Femenino</SelectItem>
+                            <SelectItem value="otro">Otro? No, solo existen 2 generos, perroflautadas 0</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -280,6 +281,7 @@ const DietGenerator = () => {
                             <SelectValue placeholder="Selecciona cantidad" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="2">2 comidas</SelectItem>
                             <SelectItem value="3">3 comidas</SelectItem>
                             <SelectItem value="4">4 comidas</SelectItem>
                             <SelectItem value="5">5 comidas</SelectItem>
@@ -361,12 +363,8 @@ const DietGenerator = () => {
                             <SelectValue placeholder="Selecciona un tipo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="standard">Estándar</SelectItem>
-                            <SelectItem value="vegetarian">Vegetariana</SelectItem>
-                            <SelectItem value="vegan">Vegana</SelectItem>
-                            <SelectItem value="paleo">Paleo</SelectItem>
-                            <SelectItem value="keto">Keto</SelectItem>
-                            <SelectItem value="mediterranean">Mediterránea</SelectItem>
+                            <SelectItem value="Bulk">Bulk</SelectItem>
+                            <SelectItem value="Defi">Defi</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
