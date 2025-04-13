@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -96,8 +97,21 @@ const DietGenerator = () => {
     setIsGenerating(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Send data to webhook
+      const response = await fetch("https://primary-production-d78e.up.railway.app/webhook-test/23e2526a-6cb2-439e-a5ae-cd9e3db98365", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      // Simulate API response processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setDietGenerated(true);
       toast.success("Plan dietético generado correctamente");
     } catch (error) {
