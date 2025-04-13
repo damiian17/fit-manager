@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -41,10 +40,30 @@ const DietGenerator = () => {
     dietType: "",
   });
 
-  // Sample allergies/forbidden foods
-  const allergiesOptions = [
-    "Gluten", "Lácteos", "Frutos secos", "Mariscos", "Huevo", 
-    "Soja", "Pescado", "Maní", "Azúcar refinada"
+  // Lista de alimentos prohibidos/alergias actualizada
+  const foodOptions = [
+    "Aceite de oliva",
+    "Carne roja",
+    "Carne blanca",
+    "Pescado blanco",
+    "Pescado azul",
+    "Procesados veganos",
+    "Pan",
+    "Mermelada",
+    "Bebida vegetal",
+    "Cereales",
+    "Lácteos",
+    "Aguacate",
+    "Conservas de pescado",
+    "Huevo",
+    "Miel",
+    "Legumbre",
+    "Frutos secos",
+    "Mantequilla",
+    "Boniato",
+    "Encuertidos",
+    "Patata",
+    "Fiambres"
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -313,23 +332,40 @@ const DietGenerator = () => {
                     
                     <div className="space-y-2">
                       <Label>Alimentos prohibidos/alergias (opcional)</Label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {allergiesOptions.map((allergy) => (
-                          <div key={allergy} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`allergy-${allergy}`}
-                              checked={formData.allergies.includes(allergy)}
-                              onCheckedChange={() => toggleAllergy(allergy)}
-                            />
-                            <label
-                              htmlFor={`allergy-${allergy}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      <Select 
+                        onValueChange={(value) => toggleAllergy(value)}
+                        value=""
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona alimentos prohibidos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {foodOptions.map((food) => (
+                            <SelectItem key={food} value={food}>{food}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      {/* Lista de alimentos seleccionados */}
+                      {formData.allergies.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {formData.allergies.map((allergy) => (
+                            <div 
+                              key={allergy} 
+                              className="bg-fitGreen-100 text-fitGreen-800 text-xs font-medium px-2 py-1 rounded-md flex items-center"
                             >
                               {allergy}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
+                              <button 
+                                type="button"
+                                onClick={() => toggleAllergy(allergy)}
+                                className="ml-1 text-fitGreen-600 hover:text-fitGreen-900"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
