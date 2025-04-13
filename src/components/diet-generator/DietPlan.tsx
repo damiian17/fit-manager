@@ -7,15 +7,44 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { FileDown, Mail, Salad } from "lucide-react";
-import { GeneratedDiet } from "@/types/diet";
+import { FileDown, Mail, Salad, Utensils, Calendar, PieChart, BarChart3 } from "lucide-react";
+import { WebhookResponse, DietOption, DietSummary } from "@/types/diet";
 
 interface DietPlanProps {
-  generatedDiet: GeneratedDiet;
+  webhookResponse: WebhookResponse | null;
+  selectedOption: string;
+  onOptionChange: (option: string) => void;
   onReset: () => void;
 }
 
-export const DietPlan = ({ generatedDiet, onReset }: DietPlanProps) => {
+export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onReset }: DietPlanProps) => {
+  if (!webhookResponse) {
+    return <div>No hay datos disponibles</div>;
+  }
+
+  // Get diet options (exclude the summary)
+  const dietOptions = webhookResponse.filter(item => 'opcion' in item) as DietOption[];
+  
+  // Get the selected diet option
+  const selectedDietOption = dietOptions.find(item => item.opcion === selectedOption);
+  
+  // Get the summary data
+  const summaryData = webhookResponse.find(item => 'tipo' in item && item.tipo === "Resumen") as DietSummary | undefined;
+
+  if (!selectedDietOption) {
+    return <div>Opción de dieta no encontrada</div>;
+  }
+
+  // Convert the selected diet option's recipes to an array for easier rendering
+  const mealsArray = Object.entries(selectedDietOption.recetasSeleccionadas).map(([key, recipe]) => ({
+    id: key,
+    name: recipe.nombre,
+    ingredients: recipe.ingredientes,
+    calories: recipe.kcals,
+    foodGroups: recipe.gruposAlimentos,
+    type: recipe.tipo,
+  }));
+
   return (
     <div className="space-y-6">
       <Card>
@@ -23,7 +52,7 @@ export const DietPlan = ({ generatedDiet, onReset }: DietPlanProps) => {
           <div>
             <CardTitle>Plan Dietético Personalizado</CardTitle>
             <CardDescription>
-              Basado en los parámetros proporcionados
+              {summaryData && `Calorías diarias objetivo: ${summaryData.caloriasTotalesDiarias} kcal`}
             </CardDescription>
           </div>
           <div className="flex space-x-2">
@@ -40,109 +69,102 @@ export const DietPlan = ({ generatedDiet, onReset }: DietPlanProps) => {
         <CardContent>
           <div className="mb-6 p-4 bg-fitGreen-50 border border-fitGreen-100 rounded-lg">
             <h3 className="font-semibold text-fitGreen-800 mb-2">Resumen Nutricional</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{generatedDiet.totalMacros.calories}</div>
-                <div className="text-xs text-gray-500">Calorías</div>
+                <div className="text-xl font-bold text-fitGreen-600">{selectedDietOption.caloriasTotalesDia}</div>
+                <div className="text-xs text-gray-500">Calorías Totales</div>
               </div>
               <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{generatedDiet.totalMacros.protein}g</div>
-                <div className="text-xs text-gray-500">Proteínas</div>
+                <div className="text-xl font-bold text-fitGreen-600">{selectedDietOption.caloriasDiariasObjetivo}</div>
+                <div className="text-xs text-gray-500">Calorías Objetivo</div>
               </div>
               <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{generatedDiet.totalMacros.carbs}g</div>
-                <div className="text-xs text-gray-500">Carbohidratos</div>
+                <div className="text-xl font-bold text-fitGreen-600">{selectedDietOption.variacionCalorica}</div>
+                <div className="text-xs text-gray-500">Variación</div>
               </div>
               <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{generatedDiet.totalMacros.fat}g</div>
-                <div className="text-xs text-gray-500">Grasas</div>
+                <div className="text-xl font-bold text-fitGreen-600">{Object.keys(selectedDietOption.recetasSeleccionadas).length}</div>
+                <div className="text-xs text-gray-500">Comidas</div>
               </div>
             </div>
           </div>
           
-          <Tabs defaultValue="day-0" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-4">
-              {generatedDiet.days.map((day, index) => (
-                <TabsTrigger key={index} value={`day-${index}`}>{day.name}</TabsTrigger>
-              ))}
-            </TabsList>
-            
-            {generatedDiet.days.map((day, dayIndex) => (
-              <TabsContent key={dayIndex} value={`day-${dayIndex}`} className="space-y-6">
-                {day.meals.map((meal, mealIndex) => (
-                  <Card key={mealIndex}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center">
-                        <Salad className="h-5 w-5 text-fitGreen-600 mr-2" />
-                        <CardTitle className="text-lg">{meal.name}</CardTitle>
-                      </div>
-                      <CardDescription className="flex space-x-4 text-xs mt-1">
-                        <span>Calorías: {meal.macros.calories}</span>
-                        <span>P: {meal.macros.protein}g</span>
-                        <span>C: {meal.macros.carbs}g</span>
-                        <span>G: {meal.macros.fat}g</span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="list-disc list-inside space-y-1">
-                        {meal.foods.map((food, foodIndex) => (
-                          <li key={foodIndex} className="text-sm">{food}</li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
+          {/* Opciones de dieta */}
+          <div className="mb-6">
+            <h3 className="font-semibold mb-3">Opciones de Dieta</h3>
+            <Tabs value={selectedOption} onValueChange={onOptionChange} className="w-full">
+              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 mb-4">
+                {dietOptions.map((option) => (
+                  <TabsTrigger key={option.opcion} value={option.opcion}>
+                    {option.opcion}
+                  </TabsTrigger>
                 ))}
-              </TabsContent>
+              </TabsList>
+            </Tabs>
+          </div>
+          
+          {/* Comidas del día */}
+          <div className="space-y-6">
+            <h3 className="font-semibold mb-3">Plan Alimentario</h3>
+            {mealsArray.map((meal, index) => (
+              <Card key={meal.id} className="overflow-hidden">
+                <CardHeader className="bg-fitGreen-50 pb-2">
+                  <div className="flex items-center">
+                    <Utensils className="h-5 w-5 text-fitGreen-600 mr-2" />
+                    <CardTitle className="text-lg">{meal.name}</CardTitle>
+                  </div>
+                  <CardDescription className="flex flex-wrap gap-4 text-xs mt-1">
+                    <span className="font-medium">Tipo: {meal.type}</span>
+                    <span>Calorías: {meal.calories}</span>
+                    <span>Grupos: {meal.foodGroups}</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <h4 className="text-sm font-medium mb-2">Ingredientes:</h4>
+                  <div className="whitespace-pre-line text-sm text-gray-600">
+                    {meal.ingredients}
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-          </Tabs>
+          </div>
           
           <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold mb-2">Recomendaciones generales</h3>
-            <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
-              <li>Mantén una buena hidratación. Se recomienda beber al menos 2 litros de agua al día.</li>
-              <li>Intenta establecer horarios regulares para tus comidas.</li>
-              <li>Mastica lentamente para mejorar la digestión y favorecer la sensación de saciedad.</li>
-              <li>Limita el consumo de alimentos procesados y bebidas azucaradas.</li>
-              <li>Si tienes cualquier duda o malestar, consulta con tu nutricionista.</li>
-            </ul>
-          </div>
-          
-          <div className="mt-6 p-4 bg-fitGreen-50 border border-fitGreen-100 rounded-lg">
-            <h3 className="font-semibold text-fitGreen-800 mb-2">Lista de compra</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <div>
-                <h4 className="font-medium mb-1">Proteínas</h4>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                  <li>Pechuga de pollo (300g)</li>
-                  <li>Salmón (300g)</li>
-                  <li>Atún en conserva</li>
-                  <li>Carne magra (300g)</li>
-                  <li>Huevos (1 docena)</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium mb-1">Carbohidratos</h4>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                  <li>Pan integral</li>
-                  <li>Arroz integral</li>
-                  <li>Quinoa</li>
-                  <li>Batatas</li>
-                  <li>Plátanos</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium mb-1">Frutas y Verduras</h4>
-                <ul className="list-disc list-inside text-sm space-y-1">
-                  <li>Espinacas</li>
-                  <li>Brócoli</li>
-                  <li>Tomates</li>
-                  <li>Aguacates</li>
-                  <li>Manzanas</li>
-                  <li>Espárragos</li>
-                </ul>
-              </div>
+            <h3 className="font-semibold mb-2">Distribución Calórica</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              {Object.entries(selectedDietOption.caloriasObjetivo).map(([mealKey, calories]) => (
+                <div key={mealKey} className="text-center p-2 bg-gray-50 rounded border">
+                  <div className="text-sm font-medium">{mealKey}</div>
+                  <div className="text-lg font-bold text-fitGreen-600">{calories} kcal</div>
+                </div>
+              ))}
             </div>
           </div>
+          
+          {summaryData && (
+            <div className="mt-6 p-4 bg-fitGreen-50 border border-fitGreen-100 rounded-lg">
+              <h3 className="font-semibold text-fitGreen-800 mb-2">Información Nutricional</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-1">Información General</h4>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>Recetas usadas: {summaryData.recetasUsadasTotal}</li>
+                    <li>Recetas disponibles: {summaryData.recetasDisponiblesTotal}</li>
+                    <li>Calorías diarias: {summaryData.caloriasTotalesDiarias}</li>
+                    <li>Ingestas configuradas: {summaryData.ingestasConfiguradas.join(", ")}</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">Distribución Calórica</h4>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    {Object.entries(summaryData.distribucionCalorias).map(([meal, calories]) => (
+                      <li key={meal}>{meal}: {calories} kcal</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       

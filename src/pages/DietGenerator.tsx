@@ -8,18 +8,32 @@ import { DietForm } from "@/components/diet-generator/DietForm";
 import { DietPlan } from "@/components/diet-generator/DietPlan";
 import { NutritionalTips } from "@/components/diet-generator/NutritionalTips";
 import { generatedDietData } from "@/data/mockDiet";
+import { WebhookResponse, DietOption } from "@/types/diet";
 
 const DietGenerator = () => {
   const navigate = useNavigate();
   const [dietGenerated, setDietGenerated] = useState(false);
+  const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string>("Opcion1");
 
-  const handleDietGenerated = () => {
+  const handleDietGenerated = (response: WebhookResponse) => {
+    setWebhookResponse(response);
     setDietGenerated(true);
   };
 
   const handleResetForm = () => {
     setDietGenerated(false);
+    setWebhookResponse(null);
   };
+
+  const handleOptionChange = (option: string) => {
+    setSelectedOption(option);
+  };
+
+  // Get the selected diet option
+  const selectedDietOption = webhookResponse?.find(
+    (item) => 'opcion' in item && item.opcion === selectedOption
+  ) as DietOption | undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -43,7 +57,9 @@ const DietGenerator = () => {
               <DietForm onDietGenerated={handleDietGenerated} />
             ) : (
               <DietPlan 
-                generatedDiet={generatedDietData}
+                webhookResponse={webhookResponse}
+                selectedOption={selectedOption}
+                onOptionChange={handleOptionChange}
                 onReset={handleResetForm}
               />
             )}
