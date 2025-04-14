@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { ChevronLeft, Save, User, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { saveClient } from "@/utils/clientStorage";
 
 const NewClient = () => {
   const navigate = useNavigate();
@@ -52,8 +53,18 @@ const NewClient = () => {
         return;
       }
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Generate a unique ID
+      const newClient = {
+        ...formData,
+        id: Date.now(),
+        status: "active",
+        age: formData.birthdate ? calculateAge(formData.birthdate) : 0,
+        diets: [],
+        workouts: []
+      };
+
+      // Save client
+      saveClient(newClient);
 
       // On success
       toast.success("Cliente añadido correctamente");
@@ -64,6 +75,17 @@ const NewClient = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const calculateAge = (birthdate: string) => {
+    const today = new Date();
+    const birthDate = new Date(birthdate);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   };
 
   return (

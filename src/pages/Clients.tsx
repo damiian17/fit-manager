@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
 import { Input } from "@/components/ui/input";
@@ -36,116 +36,42 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-
-// Sample client data
-const sampleClients = [
-  { 
-    id: 1, 
-    name: "Ana García", 
-    email: "ana.garcia@ejemplo.com", 
-    phone: "+34 612 345 678", 
-    age: 28, 
-    level: "Principiante", 
-    goal: "Pérdida de peso", 
-    status: "active" 
-  },
-  { 
-    id: 2, 
-    name: "Carlos Pérez", 
-    email: "carlos.perez@ejemplo.com", 
-    phone: "+34 623 456 789", 
-    age: 35, 
-    level: "Intermedio", 
-    goal: "Ganancia muscular", 
-    status: "active" 
-  },
-  { 
-    id: 3, 
-    name: "Laura Sánchez", 
-    email: "laura.sanchez@ejemplo.com", 
-    phone: "+34 634 567 890", 
-    age: 42, 
-    level: "Avanzado", 
-    goal: "Tonificación", 
-    status: "inactive" 
-  },
-  { 
-    id: 4, 
-    name: "Javier Rodríguez", 
-    email: "javier.rodriguez@ejemplo.com", 
-    phone: "+34 645 678 901", 
-    age: 30, 
-    level: "Intermedio", 
-    goal: "Rendimiento", 
-    status: "active" 
-  },
-  { 
-    id: 5, 
-    name: "Marina López", 
-    email: "marina.lopez@ejemplo.com", 
-    phone: "+34 656 789 012", 
-    age: 25, 
-    level: "Principiante", 
-    goal: "Salud general", 
-    status: "active" 
-  },
-  { 
-    id: 6, 
-    name: "Roberto Fernández", 
-    email: "roberto.fernandez@ejemplo.com", 
-    phone: "+34 667 890 123", 
-    age: 45, 
-    level: "Avanzado", 
-    goal: "Recuperación lesión", 
-    status: "inactive" 
-  },
-  { 
-    id: 7, 
-    name: "Elena Martín", 
-    email: "elena.martin@ejemplo.com", 
-    phone: "+34 678 901 234", 
-    age: 33, 
-    level: "Intermedio", 
-    goal: "Pérdida de peso", 
-    status: "active" 
-  },
-  { 
-    id: 8, 
-    name: "Pablo Díaz", 
-    email: "pablo.diaz@ejemplo.com", 
-    phone: "+34 689 012 345", 
-    age: 27, 
-    level: "Principiante", 
-    goal: "Ganancia muscular", 
-    status: "active" 
-  },
-];
+import { getClients, deleteClient } from "@/utils/clientStorage";
 
 const Clients = () => {
-  const [clients, setClients] = useState(sampleClients);
+  const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Load clients from storage
+    const loadedClients = getClients();
+    setClients(loadedClients);
+  }, []);
 
   // Filter clients based on search term and status
   const filteredClients = clients
     .filter((client) => 
       client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.goal.toLowerCase().includes(searchTerm.toLowerCase())
+      (client.goals && client.goals.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     .filter((client) => 
       filterStatus === "all" ? true : client.status === filterStatus
     );
 
   const handleDelete = (clientId: number) => {
-    // In a real app, you would call your API to delete the client
+    // Delete client from storage
+    deleteClient(clientId);
+    
+    // Update state
     setClients(clients.filter(client => client.id !== clientId));
     toast.success("Cliente eliminado correctamente");
   };
 
   const getBadgeColor = (level: string) => {
-    switch (level.toLowerCase()) {
+    switch (level?.toLowerCase()) {
       case "principiante":
         return "bg-green-100 text-green-800 hover:bg-green-100";
       case "intermedio":
@@ -253,11 +179,11 @@ const Clients = () => {
                         </TableCell>
                         <TableCell>{client.age}</TableCell>
                         <TableCell>
-                          <Badge className={getBadgeColor(client.level)}>
-                            {client.level}
+                          <Badge className={getBadgeColor(client.fitnessLevel)}>
+                            {client.fitnessLevel || "No especificado"}
                           </Badge>
                         </TableCell>
-                        <TableCell>{client.goal}</TableCell>
+                        <TableCell>{client.goals || "No especificado"}</TableCell>
                         <TableCell>{getStatusBadge(client.status)}</TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -292,7 +218,7 @@ const Clients = () => {
                       <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                         <div className="flex flex-col items-center justify-center">
                           <User className="h-12 w-12 text-gray-300 mb-2" />
-                          <p>No se encontraron clientes que coincidan con la búsqueda</p>
+                          <p>No hay clientes registrados. ¡Añade tu primer cliente!</p>
                         </div>
                       </TableCell>
                     </TableRow>
