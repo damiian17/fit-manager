@@ -11,12 +11,18 @@ import { WebhookResponse, DietOption } from "@/types/diet";
 import { toast } from "sonner";
 import { saveDiet, getClientById } from "@/utils/clientStorage";
 
+interface ClientInfo {
+  id: string;
+  name: string;
+  dietName: string;
+}
+
 const DietGenerator = () => {
   const navigate = useNavigate();
   const [dietGenerated, setDietGenerated] = useState(false);
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("Opcion1");
-  const [clientInfo, setClientInfo] = useState({
+  const [clientInfo, setClientInfo] = useState<ClientInfo>({
     id: "",
     name: "",
     dietName: ""
@@ -27,9 +33,9 @@ const DietGenerator = () => {
     const firstItem = response[0];
     if (firstItem && 'clientId' in firstItem && 'clientName' in firstItem && 'dietName' in firstItem) {
       setClientInfo({
-        id: firstItem.clientId,
-        name: firstItem.clientName,
-        dietName: firstItem.dietName
+        id: String(firstItem.clientId || ""),
+        name: String(firstItem.clientName || ""),
+        dietName: String(firstItem.dietName || "")
       });
     }
     

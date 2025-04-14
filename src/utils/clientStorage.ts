@@ -1,3 +1,4 @@
+
 // Type definitions
 interface Client {
   id: number;
@@ -12,6 +13,7 @@ interface Client {
   medicalHistory?: string;
   status: string;
   age?: number;
+  sex?: string;
   diets: Diet[];
   workouts: Workout[];
 }
