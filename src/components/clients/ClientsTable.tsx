@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { deleteClient } from "@/utils/clientStorage";
 
 interface Client {
-  id: number | string;
+  id: string;
   name: string;
   email: string;
   phone: string;
@@ -43,9 +43,9 @@ interface ClientsTableProps {
 
 export const ClientsTable = ({ clients, setClients }: ClientsTableProps) => {
   const navigate = useNavigate();
-  const [deletingId, setDeletingId] = useState<number | string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const handleDelete = async (clientId: number | string) => {
+  const handleDelete = async (clientId: string) => {
     try {
       setDeletingId(clientId);
       

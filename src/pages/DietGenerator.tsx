@@ -90,22 +90,7 @@ const DietGenerator = () => {
           return;
         }
         
-        // Create a new client in localStorage for backward compatibility
-        const localClientId = Date.now();
-        const newLocalClient = {
-          id: localClientId,
-          name: clientInfo.name,
-          email: "",
-          phone: "",
-          status: "active",
-          diets: [],
-          workouts: []
-        };
-        
-        // Save the new client to localStorage
-        saveClient(newLocalClient);
-        
-        // Create a client in Supabase
+        // Create a new client in Supabase
         try {
           const { data, error } = await supabase.from('clients').insert({
             name: clientInfo.name,
@@ -113,7 +98,7 @@ const DietGenerator = () => {
           }).select().single();
           
           if (error) throw error;
-          clientId = data.id;
+          clientId = data.id.toString();
         } catch (error) {
           console.error("Error creating client in Supabase:", error);
           toast.error("Error al crear el cliente en la base de datos");
@@ -125,9 +110,9 @@ const DietGenerator = () => {
         // Use existing client ID
         clientId = clientInfo.id;
         
-        // Check if client exists in localStorage (for backward compatibility)
-        const localClient = getClientById(parseInt(clientId));
-        if (!localClient) {
+        // Verify the client exists
+        const existingClient = await getClientById(clientId);
+        if (!existingClient) {
           toast.error("No se encontró el cliente seleccionado");
           return;
         }
