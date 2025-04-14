@@ -16,6 +16,7 @@ import {
   signInWithPassword,
   signInWithGoogle
 } from "@/utils/authUtils";
+import LoginForm from "@/components/auth/LoginForm";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -61,26 +62,31 @@ const Login = () => {
     checkSession();
   }, [navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent, role: "trainer" | "client" = activeTab) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       // Verificamos credenciales de administrador (para entrenadores)
-      if (activeTab === "trainer" && email === "admin" && password === "admin") {
+      if (role === "trainer" && email === "admin" && password === "admin") {
         toast.success("¡Bienvenido entrenador!");
         navigate("/dashboard");
         return;
       }
       
       // Para clientes, usamos autenticación de Supabase
-      if (activeTab === "client") {
+      if (role === "client") {
         console.log("Intentando iniciar sesión con:", { email, password });
         
         const { user, session } = await signInWithPassword(email, password);
 
         if (user) {
           toast.success("¡Inicio de sesión exitoso!");
+          
+          // Guardar datos en localStorage
+          localStorage.setItem('clientEmail', user.email || '');
+          localStorage.setItem('clientLoggedIn', 'true');
+          localStorage.setItem('clientUserId', user.id);
           
           // Verificar si el usuario tiene perfil
           const hasProfile = await hasClientProfile(user.id);
@@ -145,15 +151,15 @@ const Login = () => {
 
       console.log("Usuario registrado:", { user, session });
 
-      // Manejar el caso de registration_confirmed y registration_sent de manera diferente
       if (user) {
-        // Guardar el email para el registro del perfil
+        // Guardar el email para el registro del perfil y el ID para facilitar el registro
         localStorage.setItem('clientEmail', registerEmail);
         localStorage.setItem('clientLoggedIn', 'true');
+        localStorage.setItem('clientUserId', user.id);
         
-        // Si hay una sesión activa, usarla directamente
+        // Manejar el caso de registration_confirmed y registration_sent
         if (session) {
-          // Redirigir al formulario de registro de perfil
+          // Si hay una sesión activa, usarla directamente
           toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
           setRegisterDialogOpen(false);
           navigate("/client-register");
@@ -201,7 +207,7 @@ const Login = () => {
             
             <TabsContent value="trainer">
               <CardContent className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={(e) => handleLogin(e, "trainer")} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="trainer-email">Usuario</Label>
                     <Input
@@ -236,7 +242,7 @@ const Login = () => {
             
             <TabsContent value="client">
               <CardContent className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form onSubmit={(e) => handleLogin(e, "client")} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="client-email">Email</Label>
                     <Input
