@@ -9,7 +9,142 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          age: number | null
+          birthdate: string | null
+          created_at: string | null
+          email: string | null
+          fitness_level: string | null
+          goals: string | null
+          height: string | null
+          id: string
+          medical_history: string | null
+          name: string
+          phone: string | null
+          sex: string | null
+          status: string | null
+          updated_at: string | null
+          weight: string | null
+        }
+        Insert: {
+          age?: number | null
+          birthdate?: string | null
+          created_at?: string | null
+          email?: string | null
+          fitness_level?: string | null
+          goals?: string | null
+          height?: string | null
+          id?: string
+          medical_history?: string | null
+          name: string
+          phone?: string | null
+          sex?: string | null
+          status?: string | null
+          updated_at?: string | null
+          weight?: string | null
+        }
+        Update: {
+          age?: number | null
+          birthdate?: string | null
+          created_at?: string | null
+          email?: string | null
+          fitness_level?: string | null
+          goals?: string | null
+          height?: string | null
+          id?: string
+          medical_history?: string | null
+          name?: string
+          phone?: string | null
+          sex?: string | null
+          status?: string | null
+          updated_at?: string | null
+          weight?: string | null
+        }
+        Relationships: []
+      }
+      diets: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          created_at: string | null
+          diet_data: Json
+          form_data: Json
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          created_at?: string | null
+          diet_data: Json
+          form_data: Json
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string | null
+          diet_data?: Json
+          form_data?: Json
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workouts: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          created_at: string | null
+          form_data: Json
+          id: string
+          name: string
+          updated_at: string | null
+          workout_data: Json
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          created_at?: string | null
+          form_data: Json
+          id?: string
+          name: string
+          updated_at?: string | null
+          workout_data: Json
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          created_at?: string | null
+          form_data?: Json
+          id?: string
+          name?: string
+          updated_at?: string | null
+          workout_data?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workouts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -9,10 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getClients } from "@/utils/clientStorage";
 
 interface Client {
-  id: number;
+  id: string | number;
   name: string;
 }
 
@@ -23,6 +22,7 @@ interface ClientSelectorProps {
   onClientChange: (value: string) => void;
   onClientNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDietNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  clients?: Client[];
 }
 
 export const ClientSelector = ({ 
@@ -31,16 +31,9 @@ export const ClientSelector = ({
   dietName,
   onClientChange, 
   onClientNameChange,
-  onDietNameChange
+  onDietNameChange,
+  clients = []
 }: ClientSelectorProps) => {
-  const [clients, setClients] = useState<Client[]>([]);
-
-  useEffect(() => {
-    // Load registered clients from local storage
-    const registeredClients = getClients();
-    setClients(registeredClients);
-  }, []);
-  
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -52,7 +45,7 @@ export const ClientSelector = ({
           <SelectContent>
             <SelectItem value="nuevo">Crear nuevo cliente</SelectItem>
             {clients.map((client) => (
-              <SelectItem key={client.id} value={client.id.toString()}>
+              <SelectItem key={client.id.toString()} value={client.id.toString()}>
                 {client.name}
               </SelectItem>
             ))}

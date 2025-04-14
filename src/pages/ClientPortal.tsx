@@ -5,12 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Dumbbell, Salad, ArrowRight, LogIn, UserPlus, LogOut } from "lucide-react";
-import { getClients } from "@/utils/clientStorage";
 import { toast } from "sonner";
+import { getClientByEmail, getClientDiets, getClientWorkouts, type Diet, type Workout } from "@/services/supabaseService";
+import { DietCard } from "@/components/client-portal/DietCard";
+import { WorkoutCard } from "@/components/client-portal/WorkoutCard";
+import { DietDetailView } from "@/components/client-portal/DietDetailView";
+import { WorkoutDetailView } from "@/components/client-portal/WorkoutDetailView";
 
 const ClientPortal = () => {
   const [isNewUser, setIsNewUser] = useState(true);
   const [clientData, setClientData] = useState<any>(null);
+  const [diets, setDiets] = useState<Diet[]>([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("workouts");
+  const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
+  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
+  
   const navigate = useNavigate();
   
   // Check if user exists in client storage
@@ -18,21 +29,39 @@ const ClientPortal = () => {
     const hasLoggedIn = localStorage.getItem('clientLoggedIn') === 'true';
     const clientEmail = localStorage.getItem('clientEmail');
     
-    if (hasLoggedIn && clientEmail) {
-      // Find client data
-      const clients = getClients();
-      const client = clients.find(c => c.email === clientEmail);
-      
-      if (client) {
-        setClientData(client);
-        setIsNewUser(false);
+    const fetchClientData = async () => {
+      setIsLoading(true);
+      if (hasLoggedIn && clientEmail) {
+        try {
+          // Fetch client data from Supabase
+          const client = await getClientByEmail(clientEmail);
+          
+          if (client) {
+            setClientData(client);
+            setIsNewUser(false);
+            
+            // Fetch client diets
+            const clientDiets = await getClientDiets(client.id);
+            setDiets(clientDiets);
+            
+            // Fetch client workouts
+            const clientWorkouts = await getClientWorkouts(client.id);
+            setWorkouts(clientWorkouts);
+          } else {
+            // No client found in Supabase, redirect to registration
+            navigate('/client-register');
+          }
+        } catch (error) {
+          console.error("Error fetching client data:", error);
+          toast.error("Error al cargar los datos del cliente");
+        }
       } else {
-        // If we have login status but no client data, they need to complete registration
-        navigate('/client-register');
+        setIsNewUser(true);
       }
-    } else {
-      setIsNewUser(true);
-    }
+      setIsLoading(false);
+    };
+    
+    fetchClientData();
   }, [navigate]);
   
   const handleLogout = () => {
@@ -40,6 +69,79 @@ const ClientPortal = () => {
     localStorage.removeItem('clientEmail');
     toast.success("Sesión cerrada correctamente");
     navigate('/login');
+  };
+  
+  const handleViewDietDetails = (diet: Diet) => {
+    setSelectedDiet(diet);
+  };
+  
+  const handleViewWorkoutDetails = (workout: Workout) => {
+    setSelectedWorkout(workout);
+  };
+  
+  const handleBackToList = () => {
+    setSelectedDiet(null);
+    setSelectedWorkout(null);
+  };
+  
+  const renderDietContent = () => {
+    if (selectedDiet) {
+      return <DietDetailView diet={selectedDiet} onBack={handleBackToList} />;
+    }
+    
+    if (diets.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Salad className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium">No tienes dietas asignadas</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Tu entrenador te asignará dietas personalizadas pronto
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {diets.map((diet) => (
+          <DietCard 
+            key={diet.id} 
+            diet={diet} 
+            onViewDetails={handleViewDietDetails} 
+          />
+        ))}
+      </div>
+    );
+  };
+  
+  const renderWorkoutContent = () => {
+    if (selectedWorkout) {
+      return <WorkoutDetailView workout={selectedWorkout} onBack={handleBackToList} />;
+    }
+    
+    if (workouts.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Dumbbell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium">No tienes rutinas asignadas</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Tu entrenador te asignará rutinas personalizadas pronto
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {workouts.map((workout) => (
+          <WorkoutCard 
+            key={workout.id} 
+            workout={workout} 
+            onViewDetails={handleViewWorkoutDetails} 
+          />
+        ))}
+      </div>
+    );
   };
   
   return (
@@ -50,7 +152,13 @@ const ClientPortal = () => {
           <p className="text-gray-600 mt-2">Accede a tus rutinas y dietas personalizadas</p>
         </div>
         
-        {isNewUser ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <p>Cargando datos...</p>
+            </CardContent>
+          </Card>
+        ) : isNewUser ? (
           <Card>
             <CardHeader className="text-center">
               <CardTitle>¡Bienvenido al Portal de Clientes!</CardTitle>
@@ -89,28 +197,20 @@ const ClientPortal = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="workouts">
+              <Tabs 
+                defaultValue={activeTab} 
+                value={activeTab}
+                onValueChange={setActiveTab}
+              >
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="workouts">Mis Rutinas</TabsTrigger>
                   <TabsTrigger value="diets">Mis Dietas</TabsTrigger>
                 </TabsList>
                 <TabsContent value="workouts" className="mt-4">
-                  <div className="text-center py-8">
-                    <Dumbbell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium">No tienes rutinas asignadas</h3>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Tu entrenador te asignará rutinas personalizadas pronto
-                    </p>
-                  </div>
+                  {renderWorkoutContent()}
                 </TabsContent>
                 <TabsContent value="diets" className="mt-4">
-                  <div className="text-center py-8">
-                    <Salad className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium">No tienes dietas asignadas</h3>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Tu entrenador te asignará dietas personalizadas pronto
-                    </p>
-                  </div>
+                  {renderDietContent()}
                 </TabsContent>
               </Tabs>
             </CardContent>

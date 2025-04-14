@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -9,7 +8,9 @@ import { DietPlan } from "@/components/diet-generator/DietPlan";
 import { NutritionalTips } from "@/components/diet-generator/NutritionalTips";
 import { WebhookResponse, DietOption } from "@/types/diet";
 import { toast } from "sonner";
-import { saveDiet, getClientById, saveClient } from "@/utils/clientStorage";
+import { saveClient, getClientById } from "@/utils/clientStorage";
+import { saveDiet } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClientInfo {
   id: string;
@@ -63,7 +64,7 @@ const DietGenerator = () => {
     setSelectedOption(option);
   };
 
-  const handleSaveDiet = () => {
+  const handleSaveDiet = async () => {
     if (!webhookResponse) {
       toast.error("No hay datos de dieta para guardar");
       return;
@@ -80,7 +81,7 @@ const DietGenerator = () => {
     }
     
     try {
-      let clientId: number;
+      let clientId: string;
       
       // Check if we need to create a new client or use an existing one
       if (clientInfo.id === "nuevo") {
@@ -89,9 +90,10 @@ const DietGenerator = () => {
           return;
         }
         
-        // Create a new client
-        const newClient = {
-          id: Date.now(),
+        // Create a new client in localStorage for backward compatibility
+        const localClientId = Date.now();
+        const newLocalClient = {
+          id: localClientId,
           name: clientInfo.name,
           email: "",
           phone: "",
@@ -100,34 +102,53 @@ const DietGenerator = () => {
           workouts: []
         };
         
-        // Save the new client
-        saveClient(newClient);
-        clientId = newClient.id;
+        // Save the new client to localStorage
+        saveClient(newLocalClient);
+        
+        // Create a client in Supabase
+        try {
+          const { data, error } = await supabase.from('clients').insert({
+            name: clientInfo.name,
+            status: 'active'
+          }).select().single();
+          
+          if (error) throw error;
+          clientId = data.id;
+        } catch (error) {
+          console.error("Error creating client in Supabase:", error);
+          toast.error("Error al crear el cliente en la base de datos");
+          return;
+        }
+        
         toast.success(`Nuevo cliente "${clientInfo.name}" creado`);
       } else {
-        // Use existing client
-        clientId = parseInt(clientInfo.id);
+        // Use existing client ID
+        clientId = clientInfo.id;
         
-        // Check if client exists
-        const client = getClientById(clientId);
-        if (!client) {
+        // Check if client exists in localStorage (for backward compatibility)
+        const localClient = getClientById(parseInt(clientId));
+        if (!localClient) {
           toast.error("No se encontró el cliente seleccionado");
           return;
         }
       }
       
-      // Create and save diet
-      const newDiet = {
-        id: Date.now(),
+      // Create and save diet to Supabase
+      const dietToSave = {
         name: clientInfo.dietName,
-        clientId: clientId,
-        clientName: clientInfo.name,
-        createdAt: new Date().toISOString(),
-        content: selectedDietOption,
-        status: "Activa"
+        client_id: clientId,
+        client_name: clientInfo.name,
+        diet_data: webhookResponse,
+        form_data: { selectedOption }
       };
       
-      saveDiet(newDiet);
+      const savedDiet = await saveDiet(dietToSave);
+      
+      if (!savedDiet) {
+        toast.error("Error al guardar la dieta en la base de datos");
+        return;
+      }
+      
       toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${clientInfo.name}`);
       navigate("/diets");
     } catch (error) {

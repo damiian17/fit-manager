@@ -9,7 +9,7 @@ import { DietaryPreferences } from "./DietaryPreferences";
 import { AllergySelector } from "./AllergySelector";
 import { SubmitButton } from "./SubmitButton";
 import { foodOptions } from "./dietConstants";
-import { getClientById } from "@/utils/clientStorage";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DietFormProps {
   onDietGenerated: (response: WebhookResponse, formData: DietFormData) => void;
@@ -17,6 +17,7 @@ interface DietFormProps {
 
 export const DietForm = ({ onDietGenerated }: DietFormProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
   const [formData, setFormData] = useState<DietFormData>({
     clientId: "",
     clientName: "",
@@ -32,6 +33,28 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
     dietType: "",
   });
 
+  // Fetch clients from Supabase
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .order('name');
+        
+        if (error) throw error;
+        setClients(data || []);
+      } catch (error) {
+        console.error("Error fetching clients:", error);
+        // Fallback to local storage
+        const storedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+        setClients(storedClients);
+      }
+    };
+    
+    fetchClients();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -39,8 +62,9 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
 
   const handleSelectChange = (name: string, value: string) => {
     if (name === "clientId" && value !== "nuevo") {
-      // Load client data when an existing client is selected
-      const selectedClient = getClientById(parseInt(value));
+      // Find client in Supabase clients
+      const selectedClient = clients.find(client => client.id === value);
+      
       if (selectedClient) {
         setFormData(prev => ({
           ...prev,
@@ -49,7 +73,6 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
           age: selectedClient.age?.toString() || "",
           weight: selectedClient.weight || "",
           height: selectedClient.height || "",
-          // Only set sex if it's available and valid
           sex: selectedClient.sex || "",
         }));
       }
@@ -129,6 +152,7 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
             onClientChange={(value) => handleSelectChange("clientId", value)}
             onClientNameChange={handleChange}
             onDietNameChange={handleChange}
+            clients={clients}
           />
           
           <PhysicalInfoInputs 
