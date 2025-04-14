@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { deleteClient } from "@/utils/clientStorage";
 
 interface Client {
-  id: number;
+  id: number | string;
   name: string;
   email: string;
   phone: string;
@@ -43,14 +43,24 @@ interface ClientsTableProps {
 
 export const ClientsTable = ({ clients, setClients }: ClientsTableProps) => {
   const navigate = useNavigate();
+  const [deletingId, setDeletingId] = useState<number | string | null>(null);
 
-  const handleDelete = (clientId: number) => {
-    // Delete client from storage
-    deleteClient(clientId);
-    
-    // Update state
-    setClients(clients.filter(client => client.id !== clientId));
-    toast.success("Cliente eliminado correctamente");
+  const handleDelete = async (clientId: number | string) => {
+    try {
+      setDeletingId(clientId);
+      
+      // Delete client from Supabase
+      await deleteClient(clientId);
+      
+      // Update state
+      setClients(clients.filter(client => client.id !== clientId));
+      toast.success("Cliente eliminado correctamente");
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast.error("Error al eliminar el cliente");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (

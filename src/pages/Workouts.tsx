@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dumbbell, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getWorkouts, getClientById } from "@/utils/clientStorage";
+import { toast } from "sonner";
 
 // Empty state for when there are no workout routines yet
 const EmptyState = () => (
@@ -30,38 +31,56 @@ const EmptyState = () => (
 );
 
 interface GroupedWorkouts {
-  id: number;
+  id: number | string;
   name: string;
   workouts: any[];
 }
 
 const Workouts = () => {
   const [clientWorkouts, setClientWorkouts] = useState<GroupedWorkouts[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load workouts from storage
-    const workouts = getWorkouts();
-    
-    // Group workouts by client
-    const groupedWorkouts: { [key: number]: GroupedWorkouts } = {};
-    
-    workouts.forEach((workout) => {
-      const { clientId } = workout;
-      
-      if (!groupedWorkouts[clientId]) {
-        const client = getClientById(clientId);
-        groupedWorkouts[clientId] = {
-          id: clientId,
-          name: client ? client.name : `Cliente ${clientId}`,
-          workouts: []
-        };
+    // Load workouts from Supabase
+    const loadWorkouts = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get all workouts
+        const workouts = await getWorkouts();
+        
+        // Group workouts by client
+        const groupedWorkouts: { [key: string]: GroupedWorkouts } = {};
+        
+        // Process each workout
+        for (const workout of workouts) {
+          const clientId = workout.clientId.toString();
+          
+          if (!groupedWorkouts[clientId]) {
+            // Fetch client information
+            const client = await getClientById(clientId);
+            
+            groupedWorkouts[clientId] = {
+              id: clientId,
+              name: client ? client.name : `Cliente ${clientId}`,
+              workouts: []
+            };
+          }
+          
+          groupedWorkouts[clientId].workouts.push(workout);
+        }
+        
+        // Convert grouped workouts object to array
+        setClientWorkouts(Object.values(groupedWorkouts));
+      } catch (error) {
+        console.error("Error loading workouts:", error);
+        toast.error("Error al cargar las rutinas de entrenamiento");
+      } finally {
+        setIsLoading(false);
       }
-      
-      groupedWorkouts[clientId].workouts.push(workout);
-    });
+    };
     
-    // Convert grouped workouts object to array
-    setClientWorkouts(Object.values(groupedWorkouts));
+    loadWorkouts();
   }, []);
 
   return (

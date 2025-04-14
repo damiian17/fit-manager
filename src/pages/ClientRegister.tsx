@@ -66,18 +66,18 @@ const ClientRegister = () => {
         return;
       }
 
-      // Generate a unique ID
+      // Create new client object
       const newClient = {
         ...formData,
-        id: Date.now(),
+        id: Date.now(), // This will be replaced by Supabase's UUID
         status: "active",
         age: formData.birthdate ? calculateAge(formData.birthdate) : 0,
         diets: [],
         workouts: []
       };
 
-      // Save client
-      saveClient(newClient);
+      // Save client to Supabase
+      await saveClient(newClient);
 
       // Mark client as logged in
       localStorage.setItem('clientLoggedIn', 'true');

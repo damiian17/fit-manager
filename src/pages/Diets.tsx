@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Salad, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getDiets, getClientById } from "@/utils/clientStorage";
+import { toast } from "sonner";
 
 // Empty state for when there are no diet plans yet
 const EmptyState = () => (
@@ -30,38 +31,56 @@ const EmptyState = () => (
 );
 
 interface GroupedDiets {
-  id: number;
+  id: number | string;
   name: string;
   diets: any[];
 }
 
 const Diets = () => {
   const [clientDiets, setClientDiets] = useState<GroupedDiets[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load diets from storage
-    const diets = getDiets();
-    
-    // Group diets by client
-    const groupedDiets: { [key: number]: GroupedDiets } = {};
-    
-    diets.forEach((diet) => {
-      const { clientId } = diet;
-      
-      if (!groupedDiets[clientId]) {
-        const client = getClientById(clientId);
-        groupedDiets[clientId] = {
-          id: clientId,
-          name: client ? client.name : `Cliente ${clientId}`,
-          diets: []
-        };
+    // Load diets from Supabase
+    const loadDiets = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get all diets
+        const diets = await getDiets();
+        
+        // Group diets by client
+        const groupedDiets: { [key: string]: GroupedDiets } = {};
+        
+        // Process each diet
+        for (const diet of diets) {
+          const clientId = diet.clientId.toString();
+          
+          if (!groupedDiets[clientId]) {
+            // Fetch client information
+            const client = await getClientById(clientId);
+            
+            groupedDiets[clientId] = {
+              id: clientId,
+              name: client ? client.name : `Cliente ${clientId}`,
+              diets: []
+            };
+          }
+          
+          groupedDiets[clientId].diets.push(diet);
+        }
+        
+        // Convert grouped diets object to array
+        setClientDiets(Object.values(groupedDiets));
+      } catch (error) {
+        console.error("Error loading diets:", error);
+        toast.error("Error al cargar los planes dietéticos");
+      } finally {
+        setIsLoading(false);
       }
-      
-      groupedDiets[clientId].diets.push(diet);
-    });
+    };
     
-    // Convert grouped diets object to array
-    setClientDiets(Object.values(groupedDiets));
+    loadDiets();
   }, []);
 
   return (

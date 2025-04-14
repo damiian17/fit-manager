@@ -8,7 +8,7 @@ import { ChevronLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 import { saveClient } from "@/utils/clientStorage";
 
-// Import the newly created components
+// Import the components
 import PersonalInfoInputs from "@/components/clients/PersonalInfoInputs";
 import PhysicalAttributesInputs from "@/components/clients/PhysicalAttributesInputs";
 import GoalsAndMedicalInputs from "@/components/clients/GoalsAndMedicalInputs";
@@ -50,18 +50,18 @@ const NewClient = () => {
         return;
       }
 
-      // Generate a unique ID
+      // Create new client object
       const newClient = {
         ...formData,
-        id: Date.now(),
+        id: Date.now(), // This will be replaced by Supabase's UUID
         status: "active",
         age: formData.birthdate ? calculateAge(formData.birthdate) : 0,
         diets: [],
         workouts: []
       };
 
-      // Save client
-      saveClient(newClient);
+      // Save client to Supabase
+      await saveClient(newClient);
 
       // On success
       toast.success("Cliente añadido correctamente");

@@ -6,16 +6,30 @@ import { getClients } from "@/utils/clientStorage";
 import { ClientsHeader } from "@/components/clients/ClientsHeader";
 import { SearchBar } from "@/components/clients/SearchBar";
 import { ClientsTable } from "@/components/clients/ClientsTable";
+import { toast } from "sonner";
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load clients from storage
-    const loadedClients = getClients();
-    setClients(loadedClients);
+    // Load clients from Supabase
+    const loadClients = async () => {
+      try {
+        setIsLoading(true);
+        const loadedClients = await getClients();
+        setClients(loadedClients);
+      } catch (error) {
+        console.error("Error loading clients:", error);
+        toast.error("Error al cargar los clientes");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadClients();
   }, []);
 
   // Filter clients based on search term and status
@@ -46,10 +60,16 @@ const Clients = () => {
         
         <Card>
           <CardContent className="p-0">
-            <ClientsTable 
-              clients={filteredClients} 
-              setClients={setClients} 
-            />
+            {isLoading ? (
+              <div className="p-6 text-center">
+                <p>Cargando clientes...</p>
+              </div>
+            ) : (
+              <ClientsTable 
+                clients={filteredClients} 
+                setClients={setClients} 
+              />
+            )}
           </CardContent>
         </Card>
       </main>

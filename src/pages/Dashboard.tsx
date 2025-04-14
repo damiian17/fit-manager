@@ -7,10 +7,11 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { StatsCardGrid } from "@/components/dashboard/StatsCardGrid";
 import { RecentClients } from "@/components/dashboard/RecentClients";
 import { getClients, getStats } from "@/utils/clientStorage";
+import { toast } from "sonner";
 
 // Type for client data
 interface ClientData {
-  id: number;
+  id: number | string;
   name: string;
   goal: string;
   level: string;
@@ -25,25 +26,40 @@ const Dashboard = () => {
     activeDiets: 0,
     completedSessions: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load clients from storage
-    const loadedClients = getClients();
+    // Load clients and stats from Supabase
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Load clients
+        const loadedClients = await getClients();
+        
+        // Transform to the expected format for RecentClients
+        const recentClients = loadedClients.slice(0, 5).map(client => ({
+          id: client.id,
+          name: client.name,
+          goal: client.goals || "No especificado",
+          level: client.fitnessLevel || "No especificado",
+          lastVisit: "Nuevo cliente"
+        }));
+        
+        setClients(recentClients);
+        
+        // Load stats
+        const appStats = await getStats();
+        setStats(appStats);
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+        toast.error("Error al cargar los datos del dashboard");
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Transform to the expected format for RecentClients
-    const recentClients = loadedClients.slice(0, 5).map(client => ({
-      id: client.id,
-      name: client.name,
-      goal: client.goals || "No especificado",
-      level: client.fitnessLevel || "No especificado",
-      lastVisit: "Nuevo cliente"
-    }));
-    
-    setClients(recentClients);
-    
-    // Load stats
-    const appStats = getStats();
-    setStats(appStats);
+    loadData();
   }, []);
 
   return (
@@ -66,11 +82,21 @@ const Dashboard = () => {
         </Card>
         
         {/* Stats Cards */}
-        <StatsCardGrid stats={stats} />
+        {isLoading ? (
+          <Card className="mb-8 p-6 text-center">
+            <p>Cargando estadísticas...</p>
+          </Card>
+        ) : (
+          <StatsCardGrid stats={stats} />
+        )}
         
         <QuickActions />
         
-        {clients.length > 0 ? (
+        {isLoading ? (
+          <Card className="mb-8 p-6 text-center">
+            <p>Cargando clientes recientes...</p>
+          </Card>
+        ) : clients.length > 0 ? (
           <RecentClients clients={clients} />
         ) : (
           <Card className="text-center p-6 mb-8">
