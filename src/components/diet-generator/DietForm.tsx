@@ -12,7 +12,7 @@ import { foodOptions } from "./dietConstants";
 import { getClientById } from "@/utils/clientStorage";
 
 interface DietFormProps {
-  onDietGenerated: (response: WebhookResponse) => void;
+  onDietGenerated: (response: WebhookResponse, formData: DietFormData) => void;
 }
 
 export const DietForm = ({ onDietGenerated }: DietFormProps) => {
@@ -101,8 +101,8 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
       // Get webhook response data
       const webhookResponse = await response.json();
       
-      // Pass the response to the parent component
-      onDietGenerated(webhookResponse);
+      // Pass the response and form data to the parent component
+      onDietGenerated(webhookResponse, formData);
       toast.success("Plan dietético generado correctamente");
     } catch (error) {
       console.error("Error generating diet plan:", error);

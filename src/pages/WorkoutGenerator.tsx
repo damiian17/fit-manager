@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Sparkles, FileDown, Mail, Dumbbell, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { getClients, saveClient, saveWorkout, getClientById } from "@/utils/clientStorage";
 
 const WorkoutGenerator = () => {
   const navigate = useNavigate();
@@ -54,13 +55,35 @@ const WorkoutGenerator = () => {
     "Kettlebells", "TRX/Suspensión", "Balón medicinal", "Step", "Ninguno"
   ];
 
+  // Load available clients
+  const [clients, setClients] = useState<any[]>([]);
+  
+  useState(() => {
+    setClients(getClients());
+  });
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === "clientId" && value !== "nuevo") {
+      // Load client data when an existing client is selected
+      const selectedClient = getClientById(parseInt(value));
+      if (selectedClient) {
+        setFormData(prev => ({
+          ...prev,
+          clientId: value,
+          clientName: selectedClient.name,
+          age: selectedClient.age?.toString() || "",
+          weight: selectedClient.weight || "",
+          height: selectedClient.height || "",
+        }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const toggleDay = (day: string) => {
@@ -112,10 +135,72 @@ const WorkoutGenerator = () => {
   };
 
   const handleSaveWorkout = () => {
-    // In the future, we'll implement actual saving to a database
-    // For now, we'll just show a success message
-    toast.success(`Rutina "${formData.workoutName}" guardada para ${formData.clientName || "el cliente"}`);
-    navigate("/workouts");
+    try {
+      let clientId: number;
+      
+      // Check if we need to create a new client or use an existing one
+      if (formData.clientId === "nuevo") {
+        if (!formData.clientName) {
+          toast.error("Es necesario proporcionar un nombre para el nuevo cliente");
+          return;
+        }
+        
+        // Create a new client
+        const newClient = {
+          id: Date.now(),
+          name: formData.clientName,
+          email: "",
+          phone: "",
+          status: "active",
+          diets: [],
+          workouts: []
+        };
+        
+        // Save the new client
+        saveClient(newClient);
+        clientId = newClient.id;
+        toast.success(`Nuevo cliente "${formData.clientName}" creado`);
+      } else if (formData.clientId) {
+        // Use existing client
+        clientId = parseInt(formData.clientId);
+        
+        // Check if client exists
+        const client = getClientById(clientId);
+        if (!client) {
+          toast.error("No se encontró el cliente seleccionado");
+          return;
+        }
+      } else {
+        toast.error("Es necesario seleccionar o crear un cliente");
+        return;
+      }
+      
+      // Create and save workout
+      const newWorkout = {
+        id: Date.now(),
+        name: formData.workoutName,
+        clientId: clientId,
+        clientName: formData.clientName,
+        createdAt: new Date().toISOString(),
+        content: {
+          days: generatedWorkout.days,
+          type: formData.workoutType,
+          fitnessLevel: formData.fitnessLevel,
+          daysPerWeek: formData.daysPerWeek,
+          equipment: formData.equipment,
+          duration: formData.duration
+        },
+        status: "Activa",
+        startDate: new Date().toISOString()
+      };
+      
+      saveWorkout(newWorkout);
+      toast.success(`Rutina "${formData.workoutName}" guardada para ${formData.clientName || "el cliente"}`);
+      navigate("/workouts");
+    } catch (error) {
+      console.error("Error al guardar la rutina:", error);
+      toast.error("Hubo un error al guardar la rutina");
+    }
   };
 
   // Example generated workout data
@@ -191,7 +276,11 @@ const WorkoutGenerator = () => {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="nuevo">Crear nuevo cliente</SelectItem>
-                            {/* Client list will be populated here in the future */}
+                            {clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id.toString()}>
+                                {client.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

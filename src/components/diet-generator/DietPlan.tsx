@@ -1,223 +1,165 @@
 
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { FileDown, Mail, Salad, Utensils, Calendar, PieChart, BarChart3 } from "lucide-react";
-import { WebhookResponse, DietOption, SummaryItem, DietSummary } from "@/types/diet";
-import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WebhookResponse, DietOption, DietSummary } from "@/types/diet";
+import { ArrowCounterClockwise, FloppyDisk } from "lucide-react";
 
 interface DietPlanProps {
-  webhookResponse: WebhookResponse | null;
+  webhookResponse: WebhookResponse;
   selectedOption: string;
+  clientInfo: {
+    id: string;
+    name: string;
+    dietName: string;
+  };
   onOptionChange: (option: string) => void;
   onReset: () => void;
   onSave: () => void;
 }
 
-export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onReset, onSave }: DietPlanProps) => {
-  // Debug logging
-  useEffect(() => {
-    console.log("DietPlan component received webhookResponse:", webhookResponse);
-    console.log("Selected option:", selectedOption);
-  }, [webhookResponse, selectedOption]);
-
-  if (!webhookResponse || webhookResponse.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <div>No hay datos disponibles para mostrar</div>
-          <Button variant="outline" onClick={onReset} className="mt-4">
-            Volver al formulario
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Get diet options (exclude the summary)
+export const DietPlan = ({ 
+  webhookResponse, 
+  selectedOption, 
+  clientInfo,
+  onOptionChange, 
+  onReset, 
+  onSave 
+}: DietPlanProps) => {
+  const [activeTab, setActiveTab] = useState(selectedOption);
+  
+  // Find the summary item in the response
+  const summaryItem = webhookResponse.find(item => 'tipo' in item && item.tipo === 'Resumen') as DietSummary | undefined;
+  
+  // Get diet options (filter out the summary)
   const dietOptions = webhookResponse.filter(item => 'opcion' in item) as DietOption[];
   
-  // Get the selected diet option
-  const selectedDietOption = dietOptions.find(item => item.opcion === selectedOption);
-  
-  // Get the summary data
-  const summaryData = webhookResponse.find(item => 'tipo' in item && item.tipo === "Resumen") as DietSummary | undefined;
+  // Handle option change
+  const handleOptionChange = (value: string) => {
+    setActiveTab(value);
+    onOptionChange(value);
+  };
 
-  if (!selectedDietOption) {
+  // Get the selected diet option
+  const selectedDiet = dietOptions.find(option => option.opcion === selectedOption);
+
+  if (!selectedDiet || !summaryItem) {
     return (
       <Card>
-        <CardContent className="p-8 text-center">
-          <div>Opción de dieta no encontrada. Por favor, seleccione otra opción.</div>
-          <div className="mt-4">
-            <Tabs value={dietOptions[0]?.opcion || ""} onValueChange={onOptionChange} className="w-full">
-              <TabsList className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 mb-4">
-                {dietOptions.map((option) => (
-                  <TabsTrigger key={option.opcion} value={option.opcion}>
-                    {option.opcion}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+        <CardContent className="p-6">
+          <div className="text-center">
+            <h3 className="text-xl font-medium text-red-600">Error en los datos</h3>
+            <p className="mt-2 text-gray-500">No se pudo procesar correctamente la información de la dieta.</p>
+            <Button variant="outline" onClick={onReset} className="mt-4">
+              <ArrowCounterClockwise className="mr-2 h-4 w-4" />
+              Volver al formulario
+            </Button>
           </div>
-          <Button variant="outline" onClick={onReset} className="mt-4">
-            Volver al formulario
-          </Button>
         </CardContent>
       </Card>
     );
   }
-
-  // Convert the selected diet option's recipes to an array for easier rendering
-  const mealsArray = Object.entries(selectedDietOption.recetasSeleccionadas).map(([key, recipe]) => ({
-    id: key,
-    name: recipe.nombre,
-    ingredients: recipe.ingredientes,
-    calories: recipe.kcals,
-    foodGroups: recipe.gruposAlimentos,
-    type: recipe.tipo,
-  }));
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Plan Dietético Personalizado</CardTitle>
-            <CardDescription>
-              {summaryData ? `Calorías diarias objetivo: ${summaryData.caloriasTotalesDiariasObjetivo} kcal` : 
-                `Calorías diarias objetivo: ${selectedDietOption.caloriasDiariasObjetivo} kcal`}
-            </CardDescription>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" size="sm">
-              <FileDown className="mr-2 h-4 w-4" />
-              PDF
-            </Button>
-            <Button variant="outline" size="sm">
-              <Mail className="mr-2 h-4 w-4" />
-              Email
-            </Button>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle>Plan Dietético: {clientInfo.dietName}</CardTitle>
+              <CardDescription>
+                {clientInfo.name ? `Cliente: ${clientInfo.name}` : "Cliente sin nombre"} | 
+                Calorías objetivo: {summaryItem.caloriasTotalesDiariasObjetivo} kcal
+              </CardDescription>
+            </div>
+            <div className="flex space-x-2">
+              <Button variant="outline" size="sm" onClick={onReset}>
+                <ArrowCounterClockwise className="mr-2 h-4 w-4" />
+                Reiniciar
+              </Button>
+              <Button size="sm" onClick={onSave}>
+                <FloppyDisk className="mr-2 h-4 w-4" />
+                Guardar
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 p-4 bg-fitGreen-50 border border-fitGreen-100 rounded-lg">
-            <h3 className="font-semibold text-fitGreen-800 mb-2">Resumen Nutricional</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{selectedDietOption.caloriasTotalesDia}</div>
-                <div className="text-xs text-gray-500">Calorías Totales</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{selectedDietOption.caloriasDiariasObjetivo}</div>
-                <div className="text-xs text-gray-500">Calorías Objetivo</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{selectedDietOption.variacionCalorica}</div>
-                <div className="text-xs text-gray-500">Variación</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded-lg shadow-sm">
-                <div className="text-xl font-bold text-fitGreen-600">{Object.keys(selectedDietOption.recetasSeleccionadas).length}</div>
-                <div className="text-xs text-gray-500">Comidas</div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Opciones de dieta */}
-          <div className="mb-6">
-            <h3 className="font-semibold mb-3">Opciones de Dieta</h3>
-            <Tabs value={selectedOption} onValueChange={onOptionChange} className="w-full">
-              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 mb-4">
+          <div className="space-y-6">
+            <Tabs value={activeTab} onValueChange={handleOptionChange}>
+              <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
                 {dietOptions.map((option) => (
                   <TabsTrigger key={option.opcion} value={option.opcion}>
                     {option.opcion}
                   </TabsTrigger>
                 ))}
               </TabsList>
+              
+              {dietOptions.map((option) => (
+                <TabsContent key={option.opcion} value={option.opcion} className="space-y-6">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="font-medium">Calorías totales:</span> {option.caloriasTotalesDia} kcal
+                      </div>
+                      <div>
+                        <span className="font-medium">Objetivo diario:</span> {option.caloriasDiariasObjetivo} kcal
+                      </div>
+                      <div className="col-span-2">
+                        <span className="font-medium">Variación calórica:</span> {option.variacionCalorica}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {Object.keys(option.recetasSeleccionadas).map((mealKey) => {
+                      const meal = option.recetasSeleccionadas[mealKey];
+                      return (
+                        <Card key={mealKey}>
+                          <CardHeader className="py-3">
+                            <div className="flex justify-between items-center">
+                              <CardTitle className="text-lg">{meal.nombre}</CardTitle>
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
+                                {meal.kcals} kcal
+                              </span>
+                            </div>
+                            <CardDescription>{meal.tipo}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="py-3">
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="font-medium text-sm mb-1">Ingredientes:</h4>
+                                <div className="text-sm whitespace-pre-line">
+                                  {meal.ingredientes}
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <h4 className="font-medium text-sm mb-1">Grupos de alimentos:</h4>
+                                <div className="flex flex-wrap gap-1">
+                                  {meal.gruposAlimentos.split(', ').map((grupo, index) => (
+                                    <span 
+                                      key={index}
+                                      className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded dark:bg-gray-800 dark:text-gray-200"
+                                    >
+                                      {grupo}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </TabsContent>
+              ))}
             </Tabs>
           </div>
-          
-          {/* Comidas del día */}
-          <div className="space-y-6">
-            <h3 className="font-semibold mb-3">Plan Alimentario</h3>
-            {mealsArray.map((meal) => (
-              <Card key={meal.id} className="overflow-hidden">
-                <CardHeader className="bg-fitGreen-50 pb-2">
-                  <div className="flex items-center">
-                    <Utensils className="h-5 w-5 text-fitGreen-600 mr-2" />
-                    <CardTitle className="text-lg">{meal.name}</CardTitle>
-                  </div>
-                  <CardDescription className="flex flex-wrap gap-4 text-xs mt-1">
-                    <span className="font-medium">Tipo: {meal.type}</span>
-                    <span>Calorías: {meal.calories}</span>
-                    <span>Grupos: {meal.foodGroups}</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <h4 className="text-sm font-medium mb-2">Ingredientes:</h4>
-                  <div className="whitespace-pre-line text-sm text-gray-600">
-                    {meal.ingredients}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          
-          <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-            <h3 className="font-semibold mb-2">Distribución Calórica</h3>
-            {selectedDietOption.caloriasObjetivo ? (
-              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                {Object.entries(selectedDietOption.caloriasObjetivo).map(([mealKey, calories]) => (
-                  <div key={mealKey} className="text-center p-2 bg-gray-50 rounded border">
-                    <div className="text-sm font-medium">{mealKey}</div>
-                    <div className="text-lg font-bold text-fitGreen-600">{calories} kcal</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">Información de distribución calórica no disponible</p>
-            )}
-          </div>
-          
-          {summaryData && (
-            <div className="mt-6 p-4 bg-fitGreen-50 border border-fitGreen-100 rounded-lg">
-              <h3 className="font-semibold text-fitGreen-800 mb-2">Información Nutricional</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium mb-1">Información General</h4>
-                  <ul className="list-disc list-inside text-sm space-y-1">
-                    <li>Recetas usadas: {summaryData.recetasUsadasTotal}</li>
-                    <li>Recetas disponibles: {summaryData.recetasDisponiblesTotal}</li>
-                    <li>Calorías diarias: {summaryData.caloriasTotalesDiariasObjetivo}</li>
-                    <li>Ingestas configuradas: {summaryData.ingestasConfiguradas.join(", ")}</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-1">Distribución Calórica</h4>
-                  <ul className="list-disc list-inside text-sm space-y-1">
-                    {summaryData.distribucionCaloriasBase && Object.entries(summaryData.distribucionCaloriasBase).map(([meal, calories]) => (
-                      <li key={meal}>{meal}: {calories} kcal</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
-      
-      <div className="flex gap-4">
-        <Button variant="outline" className="flex-1" onClick={onReset}>
-          Modificar parámetros
-        </Button>
-        <Button className="flex-1 bg-fitGreen-600 hover:bg-fitGreen-700" onClick={onSave}>
-          Guardar plan dietético
-        </Button>
-      </div>
     </div>
   );
 };

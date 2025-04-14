@@ -1,9 +1,11 @@
 
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dumbbell, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { getWorkouts, getClientById } from "@/utils/clientStorage";
 
 // Empty state for when there are no workout routines yet
 const EmptyState = () => (
@@ -27,9 +29,40 @@ const EmptyState = () => (
   </Card>
 );
 
+interface GroupedWorkouts {
+  id: number;
+  name: string;
+  workouts: any[];
+}
+
 const Workouts = () => {
-  // We'll replace this with real data in the future
-  const clientWorkouts = [];
+  const [clientWorkouts, setClientWorkouts] = useState<GroupedWorkouts[]>([]);
+
+  useEffect(() => {
+    // Load workouts from storage
+    const workouts = getWorkouts();
+    
+    // Group workouts by client
+    const groupedWorkouts: { [key: number]: GroupedWorkouts } = {};
+    
+    workouts.forEach((workout) => {
+      const { clientId } = workout;
+      
+      if (!groupedWorkouts[clientId]) {
+        const client = getClientById(clientId);
+        groupedWorkouts[clientId] = {
+          id: clientId,
+          name: client ? client.name : `Cliente ${clientId}`,
+          workouts: []
+        };
+      }
+      
+      groupedWorkouts[clientId].workouts.push(workout);
+    });
+    
+    // Convert grouped workouts object to array
+    setClientWorkouts(Object.values(groupedWorkouts));
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -72,7 +105,7 @@ const Workouts = () => {
                         <div className="flex flex-col">
                           <span className="font-medium">{workout.name}</span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            Desde: {workout.startDate}
+                            Desde: {new Date(workout.startDate || workout.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center">

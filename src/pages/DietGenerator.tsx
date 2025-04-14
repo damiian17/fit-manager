@@ -9,7 +9,7 @@ import { DietPlan } from "@/components/diet-generator/DietPlan";
 import { NutritionalTips } from "@/components/diet-generator/NutritionalTips";
 import { WebhookResponse, DietOption } from "@/types/diet";
 import { toast } from "sonner";
-import { saveDiet, getClientById } from "@/utils/clientStorage";
+import { saveDiet, getClientById, saveClient } from "@/utils/clientStorage";
 
 interface ClientInfo {
   id: string;
@@ -28,7 +28,7 @@ const DietGenerator = () => {
     dietName: ""
   });
 
-  const handleDietGenerated = (response: WebhookResponse) => {
+  const handleDietGenerated = (response: WebhookResponse, formData: any) => {
     console.log("Webhook response received:", response);
     
     // Check if response is valid
@@ -38,15 +38,12 @@ const DietGenerator = () => {
       return;
     }
     
-    // Extract client information from the first item in the response or use default values
-    const firstItem = response[0];
-    if (firstItem && 'clientId' in firstItem && 'clientName' in firstItem && 'dietName' in firstItem) {
-      setClientInfo({
-        id: String(firstItem.clientId || ""),
-        name: String(firstItem.clientName || ""),
-        dietName: String(firstItem.dietName || "")
-      });
-    }
+    // Set client information from form data
+    setClientInfo({
+      id: formData.clientId,
+      name: formData.clientName || "",
+      dietName: formData.dietName
+    });
     
     // Set the webhook response in state
     setWebhookResponse(response);
@@ -83,20 +80,40 @@ const DietGenerator = () => {
     }
     
     try {
-      // Create a diet object
-      const clientId = clientInfo.id !== "nuevo" ? parseInt(clientInfo.id) : null;
+      let clientId: number;
       
-      // If no valid client ID, show an error
-      if (!clientId) {
-        toast.error("Es necesario seleccionar un cliente existente para guardar la dieta");
-        return;
-      }
-      
-      // Check if client exists
-      const client = getClientById(clientId);
-      if (!client) {
-        toast.error("No se encontró el cliente seleccionado");
-        return;
+      // Check if we need to create a new client or use an existing one
+      if (clientInfo.id === "nuevo") {
+        if (!clientInfo.name) {
+          toast.error("Es necesario proporcionar un nombre para el nuevo cliente");
+          return;
+        }
+        
+        // Create a new client
+        const newClient = {
+          id: Date.now(),
+          name: clientInfo.name,
+          email: "",
+          phone: "",
+          status: "active",
+          diets: [],
+          workouts: []
+        };
+        
+        // Save the new client
+        saveClient(newClient);
+        clientId = newClient.id;
+        toast.success(`Nuevo cliente "${clientInfo.name}" creado`);
+      } else {
+        // Use existing client
+        clientId = parseInt(clientInfo.id);
+        
+        // Check if client exists
+        const client = getClientById(clientId);
+        if (!client) {
+          toast.error("No se encontró el cliente seleccionado");
+          return;
+        }
       }
       
       // Create and save diet
@@ -104,14 +121,14 @@ const DietGenerator = () => {
         id: Date.now(),
         name: clientInfo.dietName,
         clientId: clientId,
-        clientName: client.name,
+        clientName: clientInfo.name,
         createdAt: new Date().toISOString(),
         content: selectedDietOption,
         status: "Activa"
       };
       
       saveDiet(newDiet);
-      toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${client.name}`);
+      toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${clientInfo.name}`);
       navigate("/diets");
     } catch (error) {
       console.error("Error al guardar la dieta:", error);
@@ -125,9 +142,10 @@ const DietGenerator = () => {
       dietGenerated,
       webhookResponseExists: !!webhookResponse,
       webhookResponseLength: webhookResponse ? webhookResponse.length : 0,
-      selectedOption
+      selectedOption,
+      clientInfo
     });
-  }, [dietGenerated, webhookResponse, selectedOption]);
+  }, [dietGenerated, webhookResponse, selectedOption, clientInfo]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -156,6 +174,7 @@ const DietGenerator = () => {
                 onOptionChange={handleOptionChange}
                 onReset={handleResetForm}
                 onSave={handleSaveDiet}
+                clientInfo={clientInfo}
               />
             ) : (
               <div className="p-8 text-center">

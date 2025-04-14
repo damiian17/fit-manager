@@ -1,9 +1,11 @@
 
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Salad, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { getDiets, getClientById } from "@/utils/clientStorage";
 
 // Empty state for when there are no diet plans yet
 const EmptyState = () => (
@@ -27,9 +29,40 @@ const EmptyState = () => (
   </Card>
 );
 
+interface GroupedDiets {
+  id: number;
+  name: string;
+  diets: any[];
+}
+
 const Diets = () => {
-  // We'll replace this with real data in the future
-  const clientDiets = [];
+  const [clientDiets, setClientDiets] = useState<GroupedDiets[]>([]);
+
+  useEffect(() => {
+    // Load diets from storage
+    const diets = getDiets();
+    
+    // Group diets by client
+    const groupedDiets: { [key: number]: GroupedDiets } = {};
+    
+    diets.forEach((diet) => {
+      const { clientId } = diet;
+      
+      if (!groupedDiets[clientId]) {
+        const client = getClientById(clientId);
+        groupedDiets[clientId] = {
+          id: clientId,
+          name: client ? client.name : `Cliente ${clientId}`,
+          diets: []
+        };
+      }
+      
+      groupedDiets[clientId].diets.push(diet);
+    });
+    
+    // Convert grouped diets object to array
+    setClientDiets(Object.values(groupedDiets));
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -72,7 +105,7 @@ const Diets = () => {
                         <div className="flex flex-col">
                           <span className="font-medium">{diet.name}</span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            Desde: {diet.startDate}
+                            Desde: {new Date(diet.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center">
