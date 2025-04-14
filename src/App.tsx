@@ -12,6 +12,7 @@ import NewClient from "./pages/NewClient";
 import WorkoutGenerator from "./pages/WorkoutGenerator";
 import DietGenerator from "./pages/DietGenerator";
 import ClientPortal from "./pages/ClientPortal";
+import Trainer from "./pages/Trainer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/workouts/new" element={<WorkoutGenerator />} />
           <Route path="/diets/new" element={<DietGenerator />} />
           <Route path="/client-portal" element={<ClientPortal />} />
+          <Route path="/trainer" element={<Trainer />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

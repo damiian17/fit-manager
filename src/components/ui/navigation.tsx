@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ChevronDown, User, Dumbbell, Salad, Users, BarChart3, Settings, LogOut, Home } from "lucide-react";
+import { Menu, X, ChevronDown, User, Dumbbell, Salad, Users, BarChart3, Settings, LogOut, Home, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +24,7 @@ const mainNavItems: NavItem[] = [
   { label: "Clientes", href: "/clients", icon: Users },
   { label: "Rutinas", href: "/workouts", icon: Dumbbell },
   { label: "Dietas", href: "/diets", icon: Salad },
-  { label: "Estadísticas", href: "/stats", icon: BarChart3 },
+  { label: "Entrenador", href: "/trainer", icon: UserCheck },
 ];
 
 export function Navigation() {
