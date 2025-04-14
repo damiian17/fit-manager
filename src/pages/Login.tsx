@@ -38,8 +38,11 @@ const Login = () => {
         
         if (session) {
           console.log("Sesión activa encontrada:", session);
+          
+          // Guardar datos en localStorage
           localStorage.setItem('clientEmail', session.user.email || '');
           localStorage.setItem('clientLoggedIn', 'true');
+          localStorage.setItem('clientUserId', session.user.id);
           
           // Verificar si el usuario tiene perfil
           const hasProfile = await hasClientProfile(session.user.id);
@@ -88,8 +91,14 @@ const Login = () => {
           localStorage.setItem('clientLoggedIn', 'true');
           localStorage.setItem('clientUserId', user.id);
           
+          console.log("Información de usuario guardada en localStorage:", {
+            email: user.email,
+            id: user.id
+          });
+          
           // Verificar si el usuario tiene perfil
           const hasProfile = await hasClientProfile(user.id);
+          console.log("¿El usuario tiene perfil?", hasProfile);
             
           // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
           if (!hasProfile) {
@@ -156,6 +165,11 @@ const Login = () => {
         localStorage.setItem('clientEmail', registerEmail);
         localStorage.setItem('clientLoggedIn', 'true');
         localStorage.setItem('clientUserId', user.id);
+        
+        console.log("Información de usuario guardada en localStorage:", {
+          email: registerEmail,
+          id: user.id
+        });
         
         // Manejar el caso de registration_confirmed y registration_sent
         if (session) {

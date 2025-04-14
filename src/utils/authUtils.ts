@@ -27,6 +27,11 @@ export const hasClientProfile = async (userId: string) => {
   try {
     console.log("Verificando perfil para el usuario ID:", userId);
     
+    if (!userId) {
+      console.error("No se proporcionó ID de usuario para verificar perfil");
+      return false;
+    }
+    
     const { data, error } = await supabase
       .from('clients')
       .select('id')
