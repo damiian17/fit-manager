@@ -20,7 +20,6 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"trainer" | "client">("trainer");
-  const [isRegistering, setIsRegistering] = useState(false);
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -32,7 +31,20 @@ const Login = () => {
         // Si ya hay una sesión activa, redirigir según el rol
         localStorage.setItem('clientEmail', session.user.email || '');
         localStorage.setItem('clientLoggedIn', 'true');
-        navigate("/client-portal");
+        
+        // Verificar si el usuario tiene perfil y redirigir adecuadamente
+        const { data: clientProfile } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+          
+        // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
+        if (!clientProfile) {
+          navigate("/client-register");
+        } else {
+          navigate("/client-portal");
+        }
       }
     };
     
@@ -70,7 +82,20 @@ const Login = () => {
           toast.success("¡Inicio de sesión exitoso!");
           localStorage.setItem('clientLoggedIn', 'true');
           localStorage.setItem('clientEmail', email);
-          navigate("/client-portal");
+          
+          // Verificar si el usuario tiene perfil
+          const { data: clientProfile } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('id', data.user.id)
+            .maybeSingle();
+            
+          // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
+          if (!clientProfile) {
+            navigate("/client-register");
+          } else {
+            navigate("/client-portal");
+          }
           return;
         }
       } else {
@@ -124,7 +149,7 @@ const Login = () => {
 
       console.log("Usuario registrado:", data);
 
-      // Si el usuario se ha registrado correctamente, iniciar sesión automáticamente
+      // Si el usuario se ha registrado correctamente, preparar para el siguiente paso
       if (data.user) {
         // Guardar el email para el registro del perfil
         localStorage.setItem('clientEmail', registerEmail);
@@ -135,7 +160,7 @@ const Login = () => {
         setRegisterDialogOpen(false);
         navigate("/client-register");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
       toast.error("Error al registrar. Inténtalo de nuevo.");
     } finally {

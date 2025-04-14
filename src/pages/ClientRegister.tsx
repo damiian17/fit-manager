@@ -58,20 +58,19 @@ const ClientRegister = () => {
         setClientEmail(storedEmail);
         setFormData(prev => ({...prev, email: storedEmail}));
         console.log("Usando email del localStorage:", storedEmail);
-        return;
-      }
-      
-      // Si hay sesión, usar los datos del usuario autenticado
-      const userEmail = session.user.email;
-      const userId = session.user.id;
-      console.log("Sesión activa encontrada:", { userEmail, userId });
-      
-      if (userEmail) {
-        setClientEmail(userEmail);
-        setUserId(userId);
-        setFormData(prev => ({...prev, email: userEmail}));
-        localStorage.setItem('clientEmail', userEmail);
-        localStorage.setItem('clientLoggedIn', 'true');
+      } else {
+        // Si hay sesión, usar los datos del usuario autenticado
+        const userEmail = session.user.email;
+        const userId = session.user.id;
+        console.log("Sesión activa encontrada:", { userEmail, userId });
+        
+        if (userEmail) {
+          setClientEmail(userEmail);
+          setUserId(userId);
+          setFormData(prev => ({...prev, email: userEmail}));
+          localStorage.setItem('clientEmail', userEmail);
+          localStorage.setItem('clientLoggedIn', 'true');
+        }
       }
     };
     
@@ -99,43 +98,58 @@ const ClientRegister = () => {
         return;
       }
 
-      // Obtener el usuario autenticado o verificar el email
-      let userIdToUse = userId;
+      // Obtener la sesión actual
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (!userIdToUse) {
-        // Si no tenemos ID de usuario de la sesión, intentar buscar por email
-        console.log("Buscando usuario por email:", formData.email);
-        const { data: userData, error: userError } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('email', formData.email)
-          .single();
-          
-        if (userError && userError.code !== 'PGRST116') {
-          // Error distinto a "no se encontró el registro"
-          console.error("Error al buscar usuario:", userError);
-          toast.error("Error al verificar usuario");
+      // Si no hay sesión, intentar obtener el ID de usuario de la autenticación
+      if (!session) {
+        console.log("No hay sesión activa, intentando obtener user ID de la autenticación...");
+        
+        // Intentar iniciar sesión con el email almacenado
+        const storedEmail = localStorage.getItem('clientEmail');
+        
+        if (!storedEmail) {
+          console.error("No hay email almacenado, imposible continuar");
+          toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
+          navigate("/login");
           setIsSubmitting(false);
           return;
         }
         
-        if (userData) {
-          userIdToUse = userData.id;
-          console.log("Usuario encontrado por email:", userIdToUse);
-        } else {
-          // Intentar obtener ID de la sesión actual
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session && session.user) {
-            userIdToUse = session.user.id;
-            console.log("Usando ID de la sesión actual:", userIdToUse);
-          } else {
-            console.error("No se pudo determinar el ID de usuario");
-            toast.error("Error de autenticación. Por favor, inicia sesión nuevamente.");
-            navigate("/login");
-            return;
-          }
+        // Obtener el user ID realizando una consulta para encontrar el user ID asociado al email
+        const { data: userData, error: userError } = await supabase
+          .from('auth')
+          .select('id')
+          .eq('email', storedEmail)
+          .single();
+        
+        if (userError) {
+          console.error("Error al buscar usuario:", userError);
+          toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
+          navigate("/login");
+          setIsSubmitting(false);
+          return;
         }
+        
+        // Si no se encontró el usuario, redireccionar al login
+        if (!userData) {
+          console.error("No se encontró el usuario");
+          toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
+          navigate("/login");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      // Usar el userId de la sesión o el establecido previamente
+      const userIdToUse = session?.user?.id || userId;
+      
+      if (!userIdToUse) {
+        console.error("No se pudo determinar el ID de usuario");
+        toast.error("Error de autenticación. Por favor, regístrate nuevamente.");
+        navigate("/login");
+        setIsSubmitting(false);
+        return;
       }
 
       console.log("Registrando cliente con ID:", userIdToUse);
@@ -143,69 +157,31 @@ const ClientRegister = () => {
       // Calcular edad si hay fecha de nacimiento
       const age = formData.birthdate ? calculateAge(formData.birthdate) : undefined;
 
-      // Verificar si ya existe un perfil para este usuario
-      const { data: existingProfile } = await supabase
+      // Guardar perfil del cliente
+      const { data: clientData, error: clientError } = await supabase
         .from('clients')
-        .select('id')
-        .eq('id', userIdToUse)
-        .single();
+        .upsert({
+          id: userIdToUse,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone || null,
+          birthdate: formData.birthdate || null,
+          height: formData.height || null,
+          weight: formData.weight || null,
+          fitness_level: formData.fitnessLevel || null,
+          goals: formData.goals || null,
+          medical_history: formData.medicalHistory || null,
+          status: "active",
+          age: age,
+          sex: formData.sex || null
+        })
+        .select();
 
-      let clientData;
-      
-      if (existingProfile) {
-        // Actualizar el perfil existente
-        console.log("Actualizando perfil existente para:", userIdToUse);
-        const { data, error } = await supabase
-          .from('clients')
-          .update({
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone || null,
-            birthdate: formData.birthdate || null,
-            height: formData.height || null,
-            weight: formData.weight || null,
-            fitness_level: formData.fitnessLevel || null,
-            goals: formData.goals || null,
-            medical_history: formData.medicalHistory || null,
-            status: "active",
-            age: age,
-            sex: formData.sex || null
-          })
-          .eq('id', userIdToUse)
-          .select();
-          
-        if (error) {
-          console.error("Error al actualizar:", error);
-          throw error;
-        }
-        clientData = data;
-      } else {
-        // Crear un nuevo perfil de cliente
-        console.log("Creando nuevo perfil para:", userIdToUse);
-        const { data, error } = await supabase
-          .from('clients')
-          .insert({
-            id: userIdToUse, // Usar el ID de autenticación como ID de cliente
-            name: formData.name,
-            email: formData.email,
-            phone: formData.phone || null,
-            birthdate: formData.birthdate || null,
-            height: formData.height || null,
-            weight: formData.weight || null,
-            fitness_level: formData.fitnessLevel || null,
-            goals: formData.goals || null,
-            medical_history: formData.medicalHistory || null,
-            status: "active",
-            age: age,
-            sex: formData.sex || null
-          })
-          .select();
-
-        if (error) {
-          console.error("Error al insertar:", error);
-          throw error;
-        }
-        clientData = data;
+      if (clientError) {
+        console.error("Error al guardar perfil:", clientError);
+        toast.error(`Error al guardar perfil: ${clientError.message}`);
+        setIsSubmitting(false);
+        return;
       }
 
       console.log("Perfil de cliente guardado:", clientData);
@@ -346,6 +322,23 @@ const ClientRegister = () => {
                     <SelectItem value="intermedio">Intermedio</SelectItem>
                     <SelectItem value="avanzado">Avanzado</SelectItem>
                     <SelectItem value="elite">Elite</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="sex">Sexo</Label>
+                <Select 
+                  onValueChange={(value) => handleSelectChange("sex", value)}
+                  value={formData.sex}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona tu sexo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="femenino">Femenino</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
