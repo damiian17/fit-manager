@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
-import { saveClient } from "@/utils/clientStorage";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClientRegister = () => {
   const navigate = useNavigate();
@@ -30,19 +30,33 @@ const ClientRegister = () => {
     fitnessLevel: "",
     goals: "",
     medicalHistory: "",
+    sex: "",
   });
 
-  // Get client email from localStorage
+  // Obtener el email del cliente del localStorage
   useEffect(() => {
     const email = localStorage.getItem('clientEmail');
     if (email) {
       setClientEmail(email);
       setFormData(prev => ({...prev, email}));
     } else {
-      // If no email is found, redirect to login
+      // Si no hay email, redirigir al login
       navigate("/login");
       toast.error("Por favor registra una cuenta primero");
     }
+  }, [navigate]);
+
+  // Verificar si el usuario está autenticado
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        navigate("/login");
+        toast.error("Por favor inicia sesión primero");
+      }
+    };
+    
+    checkSession();
   }, [navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -59,26 +73,54 @@ const ClientRegister = () => {
     setIsSubmitting(true);
 
     try {
-      // Validate form
+      // Validar formulario
       if (!formData.name || !formData.email) {
         toast.error("Por favor completa los campos obligatorios");
+        setIsSubmitting(false);
         return;
       }
 
-      // Create new client object
-      const newClient = {
-        ...formData,
+      // Obtener el usuario autenticado
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session || !session.user) {
+        toast.error("No hay sesión activa");
+        navigate("/login");
+        return;
+      }
+
+      const userId = session.user.id;
+
+      // Calcular edad si hay fecha de nacimiento
+      const age = formData.birthdate ? calculateAge(formData.birthdate) : undefined;
+
+      // Crear cliente en Supabase
+      const { data, error } = await supabase.from('clients').insert({
+        id: userId, // Usar el ID de autenticación como ID de cliente
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        birthdate: formData.birthdate || null,
+        height: formData.height || null,
+        weight: formData.weight || null,
+        fitness_level: formData.fitnessLevel || null,
+        goals: formData.goals || null,
+        medical_history: formData.medicalHistory || null,
         status: "active",
-        age: formData.birthdate ? calculateAge(formData.birthdate) : undefined,
-      };
+        age: age,
+        sex: formData.sex || null
+      }).select();
 
-      // Save client to Supabase
-      await saveClient(newClient);
+      if (error) {
+        console.error("Error registering client:", error);
+        toast.error("Error al registrar el cliente: " + error.message);
+        return;
+      }
 
-      // Mark client as logged in
+      // Marcar al cliente como conectado
       localStorage.setItem('clientLoggedIn', 'true');
 
-      // On success
+      // Éxito
       toast.success("¡Registro completado con éxito! Tu entrenador podrá ver tu perfil y asignarte rutinas y dietas.");
       navigate("/client-portal");
     } catch (error) {

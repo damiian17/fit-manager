@@ -40,7 +40,7 @@ const LoginForm = ({
           <Label htmlFor={`email-${role}`}>Email</Label>
           <Input
             id={`email-${role}`}
-            type="text"
+            type="email"
             placeholder={role === "trainer" ? "entrenador@gimnasio.com" : "cliente@ejemplo.com"}
             value={email}
             onChange={(e) => setEmail(e.target.value)}

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import LoginHeader from "@/components/auth/LoginHeader";
 import LoginForm from "@/components/auth/LoginForm";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -20,43 +21,36 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // En un caso real, validarías las credenciales contra un backend
-      console.log(`Logging in as ${role} with email: ${email}`);
+      // Verificamos credenciales de administrador (para entrenadores)
+      if (role === "trainer" && email === "admin" && password === "admin") {
+        toast.success("¡Bienvenido entrenador!");
+        navigate("/dashboard");
+        return;
+      }
+      
+      // Para clientes, usamos autenticación de Supabase
+      if (role === "client") {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      // Simulando llamada a API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        if (error) {
+          console.error("Login error:", error);
+          toast.error("Credenciales inválidas. Por favor, verifica tu email y contraseña.");
+          return;
+        }
 
-      // Verificamos si las credenciales son "admin"
-      if (email === "admin" && password === "admin") {
-        toast.success(`¡Bienvenido ${role === "trainer" ? "entrenador" : "cliente"}!`);
-        
-        // Redirigimos según el rol
-        if (role === "trainer") {
-          navigate("/dashboard");
-        } else {
-          navigate("/client-portal");
-          // Store client login status
+        if (data.user) {
+          toast.success("¡Inicio de sesión exitoso!");
           localStorage.setItem('clientLoggedIn', 'true');
           localStorage.setItem('clientEmail', email);
+          navigate("/client-portal");
+          return;
         }
       } else {
-        // Check if it's a registered client
-        const clients = JSON.parse(localStorage.getItem('fit-manager-clients') || '[]');
-        const client = clients.find((c: any) => c.email === email);
-        
-        if (client && role === "client") {
-          // Simple password check - in a real app, this would be properly hashed
-          if (localStorage.getItem(`client-password-${email}`) === password) {
-            toast.success(`¡Bienvenido ${client.name}!`);
-            localStorage.setItem('clientLoggedIn', 'true');
-            localStorage.setItem('clientEmail', email);
-            navigate("/client-portal");
-          } else {
-            toast.error("Contraseña incorrecta");
-          }
-        } else {
-          toast.error("Credenciales inválidas");
-        }
+        // Mensaje para credenciales incorrectas de entrenador
+        toast.error("Credenciales inválidas");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -71,27 +65,43 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Validate email and password
+      // Validar email y contraseña
       if (!email || !password) {
         toast.error("Por favor ingresa un email y contraseña");
+        setIsLoading(false);
         return;
       }
 
-      // Check if email is already registered
-      const clients = JSON.parse(localStorage.getItem('fit-manager-clients') || '[]');
-      const clientExists = clients.find((c: any) => c.email === email);
+      // Verificar si el correo ya está registrado en Supabase
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('clients')
+        .select('email')
+        .eq('email', email)
+        .single();
       
-      if (clientExists) {
+      if (existingUsers) {
         toast.error("Este email ya está registrado");
         setIsLoading(false);
         return;
       }
 
-      // Store the password (in a real app, this would be properly hashed)
-      localStorage.setItem(`client-password-${email}`, password);
+      // Crear usuario en Supabase auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error("Registration error:", error);
+        toast.error("Error al registrar: " + error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // Guardar el email para el registro del perfil
       localStorage.setItem('clientEmail', email);
       
-      // Redirect to client registration form
+      // Redirigir al formulario de registro de perfil
       toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
       navigate("/client-register");
       
