@@ -1,54 +1,40 @@
 
-import { useState } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { StatsCardGrid } from "@/components/dashboard/StatsCardGrid";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuickActions } from "@/components/dashboard/QuickActions";
-import { RecentClients } from "@/components/dashboard/RecentClients";
-import { NotificationsCard } from "@/components/dashboard/NotificationsCard";
-import { UpcomingBirthdays } from "@/components/dashboard/UpcomingBirthdays";
-
-// Sample data for demonstration
-const recentClients = [
-  { id: 1, name: "Ana García", goal: "Pérdida de peso", level: "Principiante", lastVisit: "Hace 2 días" },
-  { id: 2, name: "Carlos Pérez", goal: "Ganancia muscular", level: "Intermedio", lastVisit: "Hace 1 semana" },
-  { id: 3, name: "Laura Sánchez", goal: "Tonificación", level: "Avanzado", lastVisit: "Ayer" },
-  { id: 4, name: "Javier Rodríguez", goal: "Rendimiento", level: "Intermedio", lastVisit: "Hoy" },
-];
-
-const upcomingBirthdays = [
-  { id: 1, name: "Ana García", date: "23 Abril" },
-  { id: 2, name: "Carlos Pérez", date: "28 Abril" },
-  { id: 3, name: "Laura Sánchez", date: "2 Mayo" },
-];
 
 const Dashboard = () => {
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "Ana García ha completado su rutina semanal", date: "Hace 1 hora" },
-    { id: 2, text: "Nuevo cliente registrado: Javier Rodríguez", date: "Hace 2 horas" },
-    { id: 3, text: "Recordatorio: Actualizar plan de dieta para Laura", date: "Hace 1 día" },
-  ]);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       
       <main className="fit-container">
         <DashboardHeader title="Dashboard" />
-        <StatsCardGrid />
+        
+        {/* Welcome Card */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Bienvenido a Fit Manager</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Gestiona tus clientes, crea rutinas de entrenamiento personalizadas y diseña planes dietéticos a medida.
+            </p>
+          </CardContent>
+        </Card>
+        
         <QuickActions />
-
-        {/* Recent Clients & Notifications */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <RecentClients clients={recentClients} />
+        
+        {/* Empty state for recent clients */}
+        <Card className="text-center p-6 mb-8">
+          <div className="flex flex-col items-center justify-center space-y-4 py-8">
+            <h3 className="text-lg font-medium">No hay clientes registrados</h3>
+            <p className="text-sm text-gray-500 max-w-md mx-auto">
+              Empieza añadiendo nuevos clientes a tu plataforma para gestionar sus rutinas y dietas.
+            </p>
           </div>
-
-          <div className="space-y-6">
-            <NotificationsCard notifications={notifications} />
-            <UpcomingBirthdays birthdays={upcomingBirthdays} />
-          </div>
-        </div>
+        </Card>
       </main>
     </div>
   );

@@ -18,6 +18,8 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [formData, setFormData] = useState<DietFormData>({
     clientId: "",
+    clientName: "",
+    dietName: "",
     age: "",
     weight: "",
     height: "",
@@ -51,8 +53,14 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
     e.preventDefault();
     
     // Validate form
-    if (!formData.age || !formData.weight || !formData.height || !formData.sex || !formData.activityLevel || !formData.goal || !formData.dietType) {
+    if (!formData.age || !formData.weight || !formData.height || !formData.sex || !formData.activityLevel || !formData.goal || !formData.dietType || !formData.dietName) {
       toast.error("Por favor completa todos los campos obligatorios");
+      return;
+    }
+
+    // Additional validation for client name when creating a new client
+    if (formData.clientId === "nuevo" && !formData.clientName) {
+      toast.error("Por favor ingresa el nombre del cliente");
       return;
     }
 
@@ -98,7 +106,11 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
         <form onSubmit={handleGenerateDiet} className="space-y-6">
           <ClientSelector 
             clientId={formData.clientId} 
-            onClientChange={(value) => handleSelectChange("clientId", value)} 
+            clientName={formData.clientName}
+            dietName={formData.dietName}
+            onClientChange={(value) => handleSelectChange("clientId", value)}
+            onClientNameChange={handleChange}
+            onDietNameChange={handleChange}
           />
           
           <PhysicalInfoInputs 

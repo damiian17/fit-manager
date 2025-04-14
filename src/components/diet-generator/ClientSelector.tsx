@@ -1,27 +1,71 @@
 
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ClientSelectorProps {
   clientId: string;
-  onClientChange: (clientId: string) => void;
+  clientName: string;
+  dietName: string;
+  onClientChange: (value: string) => void;
+  onClientNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onDietNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export const ClientSelector = ({ clientId, onClientChange }: ClientSelectorProps) => {
+export const ClientSelector = ({ 
+  clientId, 
+  clientName, 
+  dietName,
+  onClientChange, 
+  onClientNameChange,
+  onDietNameChange
+}: ClientSelectorProps) => {
   return (
-    <div className="space-y-2">
-      <Label htmlFor="clientId">Seleccionar cliente (opcional)</Label>
-      <Select onValueChange={onClientChange} value={clientId}>
-        <SelectTrigger>
-          <SelectValue placeholder="Selecciona un cliente" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="1">Ana García</SelectItem>
-          <SelectItem value="2">Carlos Pérez</SelectItem>
-          <SelectItem value="3">Laura Sánchez</SelectItem>
-          <SelectItem value="4">Javier Rodríguez</SelectItem>
-        </SelectContent>
-      </Select>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="clientId">Seleccionar cliente (opcional)</Label>
+        <Select onValueChange={onClientChange} value={clientId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecciona un cliente existente" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nuevo">Crear nuevo cliente</SelectItem>
+            {/* Client list will be populated here in the future */}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {clientId === "nuevo" && (
+        <div className="space-y-2">
+          <Label htmlFor="clientName">Nombre del cliente *</Label>
+          <Input 
+            id="clientName" 
+            name="clientName" 
+            value={clientName}
+            onChange={onClientNameChange}
+            placeholder="Nombre completo del cliente" 
+            required={clientId === "nuevo"}
+          />
+        </div>
+      )}
+      
+      <div className="space-y-2">
+        <Label htmlFor="dietName">Nombre del plan dietético *</Label>
+        <Input 
+          id="dietName" 
+          name="dietName" 
+          value={dietName}
+          onChange={onDietNameChange}
+          placeholder="Ej. Plan pérdida de peso - Fase 1" 
+          required
+        />
+      </div>
     </div>
   );
 };

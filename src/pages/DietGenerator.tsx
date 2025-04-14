@@ -7,14 +7,19 @@ import { ChevronLeft } from "lucide-react";
 import { DietForm } from "@/components/diet-generator/DietForm";
 import { DietPlan } from "@/components/diet-generator/DietPlan";
 import { NutritionalTips } from "@/components/diet-generator/NutritionalTips";
-import { generatedDietData } from "@/data/mockDiet";
 import { WebhookResponse, DietOption } from "@/types/diet";
+import { toast } from "sonner";
 
 const DietGenerator = () => {
   const navigate = useNavigate();
   const [dietGenerated, setDietGenerated] = useState(false);
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("Opcion1");
+  const [clientInfo, setClientInfo] = useState({
+    id: "",
+    name: "",
+    dietName: ""
+  });
 
   const handleDietGenerated = (response: WebhookResponse) => {
     setWebhookResponse(response);
@@ -28,6 +33,13 @@ const DietGenerator = () => {
 
   const handleOptionChange = (option: string) => {
     setSelectedOption(option);
+  };
+
+  const handleSaveDiet = () => {
+    // In the future, we'll implement actual saving to a database
+    // For now, we'll just show a success message
+    toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${clientInfo.name || "el cliente"}`);
+    navigate("/diets");
   };
 
   // Get the selected diet option
@@ -61,6 +73,7 @@ const DietGenerator = () => {
                 selectedOption={selectedOption}
                 onOptionChange={handleOptionChange}
                 onReset={handleResetForm}
+                onSave={handleSaveDiet}
               />
             )}
           </div>

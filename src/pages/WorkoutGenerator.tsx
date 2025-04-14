@@ -31,6 +31,8 @@ const WorkoutGenerator = () => {
   const [workoutGenerated, setWorkoutGenerated] = useState(false);
   const [formData, setFormData] = useState({
     clientId: "",
+    clientName: "",
+    workoutName: "",
     age: "",
     weight: "",
     height: "",
@@ -83,8 +85,14 @@ const WorkoutGenerator = () => {
     e.preventDefault();
     
     // Validate form
-    if (!formData.age || !formData.weight || !formData.height || !formData.fitnessLevel || !formData.workoutType) {
+    if (!formData.age || !formData.weight || !formData.height || !formData.fitnessLevel || !formData.workoutType || !formData.workoutName) {
       toast.error("Por favor completa todos los campos obligatorios");
+      return;
+    }
+
+    // Additional validation for client name when creating a new client
+    if (formData.clientId === "nuevo" && !formData.clientName) {
+      toast.error("Por favor ingresa el nombre del cliente");
       return;
     }
 
@@ -101,6 +109,13 @@ const WorkoutGenerator = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleSaveWorkout = () => {
+    // In the future, we'll implement actual saving to a database
+    // For now, we'll just show a success message
+    toast.success(`Rutina "${formData.workoutName}" guardada para ${formData.clientName || "el cliente"}`);
+    navigate("/workouts");
   };
 
   // Example generated workout data
@@ -167,19 +182,45 @@ const WorkoutGenerator = () => {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleGenerateWorkout} className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="clientId">Seleccionar cliente (opcional)</Label>
-                      <Select onValueChange={(value) => handleSelectChange("clientId", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un cliente" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Ana García</SelectItem>
-                          <SelectItem value="2">Carlos Pérez</SelectItem>
-                          <SelectItem value="3">Laura Sánchez</SelectItem>
-                          <SelectItem value="4">Javier Rodríguez</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="clientId">Seleccionar cliente (opcional)</Label>
+                        <Select onValueChange={(value) => handleSelectChange("clientId", value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un cliente existente" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="nuevo">Crear nuevo cliente</SelectItem>
+                            {/* Client list will be populated here in the future */}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {formData.clientId === "nuevo" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="clientName">Nombre del cliente *</Label>
+                          <Input 
+                            id="clientName" 
+                            name="clientName" 
+                            value={formData.clientName}
+                            onChange={handleChange}
+                            placeholder="Nombre completo del cliente" 
+                            required={formData.clientId === "nuevo"}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="workoutName">Nombre de la rutina *</Label>
+                        <Input 
+                          id="workoutName" 
+                          name="workoutName" 
+                          value={formData.workoutName}
+                          onChange={handleChange}
+                          placeholder="Ej. Rutina de fuerza - Fase 1" 
+                          required
+                        />
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -367,9 +408,9 @@ const WorkoutGenerator = () => {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Rutina Personalizada</CardTitle>
+                      <CardTitle>Rutina Personalizada: {formData.workoutName}</CardTitle>
                       <CardDescription>
-                        Basada en los parámetros proporcionados
+                        {formData.clientName ? `Cliente: ${formData.clientName}` : "Sin cliente asignado"} | Basada en los parámetros proporcionados
                       </CardDescription>
                     </div>
                     <div className="flex space-x-2">
@@ -451,7 +492,7 @@ const WorkoutGenerator = () => {
                   <Button variant="outline" className="flex-1" onClick={() => setWorkoutGenerated(false)}>
                     Modificar parámetros
                   </Button>
-                  <Button className="flex-1 bg-fitBlue-600 hover:bg-fitBlue-700">
+                  <Button className="flex-1 bg-fitBlue-600 hover:bg-fitBlue-700" onClick={handleSaveWorkout}>
                     Guardar rutina
                   </Button>
                 </div>

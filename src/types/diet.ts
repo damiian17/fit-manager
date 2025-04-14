@@ -1,6 +1,9 @@
 
+// Diet form data type
 export interface DietFormData {
   clientId: string;
+  clientName?: string;
+  dietName: string;
   age: string;
   weight: string;
   height: string;
@@ -12,11 +15,68 @@ export interface DietFormData {
   dietType: string;
 }
 
-export interface Macros {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
+// Webhook response types
+export type WebhookResponse = Array<DietOption | SummaryItem>;
+
+export interface DietOption {
+  opcion: string;
+  caloriasObjetivo: {
+    [key: string]: number;
+  };
+  recetasSeleccionadas: {
+    [key: string]: {
+      nombre: string;
+      ingredientes: string;
+      kcals: number;
+      gruposAlimentos: string;
+      tipo: string;
+      macros: {
+        proteinas: number;
+        grasas: number;
+        carbohidratos: number;
+      };
+    };
+  };
+  caloriasTotalesDia: number;
+  caloriasDiariasObjetivo: number;
+  variacionCalorica: string;
+}
+
+export interface SummaryItem {
+  tipo: string;
+  recetasUsadasTotal: number;
+  recetasDisponiblesTotal: number;
+  ingestasConfiguradas: string[];
+  prohibidos: string[];
+  tiposComidaConfig: string[];
+  tiposComidaDisponibles: string[];
+  distribucionCalorias: {
+    [key: string]: number;
+  };
+  caloriasTotalesDiarias: number;
+  histogramaKcals: {
+    [key: string]: number;
+  };
+  rangosOptimos: {
+    [key: string]: {
+      min: number;
+      mediana: number;
+      max: number;
+      rangoFrecuente: number;
+      total: number;
+    };
+  };
+}
+
+// Generated diet data structure
+export interface GeneratedDiet {
+  days: DietDay[];
+  totalMacros: Macros;
+}
+
+export interface DietDay {
+  name: string;
+  meals: Meal[];
 }
 
 export interface Meal {
@@ -25,57 +85,9 @@ export interface Meal {
   macros: Macros;
 }
 
-export interface Day {
-  name: string;
-  meals: Meal[];
+export interface Macros {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 }
-
-export interface GeneratedDiet {
-  days: Day[];
-  totalMacros: Macros;
-}
-
-// New interfaces for webhook response
-export interface Recipe {
-  nombre: string;
-  ingredientes: string;
-  kcals: number;
-  gruposAlimentos: string;
-  tipo: string;
-  macros: {
-    proteinas: number;
-    grasas: number;
-    carbohidratos: number;
-  };
-}
-
-export interface DietOption {
-  opcion: string;
-  caloriasObjetivo: Record<string, number>;
-  recetasSeleccionadas: Record<string, Recipe>;
-  caloriasTotalesDia: number;
-  caloriasDiariasObjetivo: number;
-  variacionCalorica: string;
-}
-
-export interface DietSummary {
-  tipo: string;
-  recetasUsadasTotal: number;
-  recetasDisponiblesTotal: number;
-  ingestasConfiguradas: string[];
-  prohibidos: string[];
-  tiposComidaConfig: string[];
-  tiposComidaDisponibles: string[];
-  distribucionCalorias: Record<string, number>;
-  caloriasTotalesDiarias: number;
-  histogramaKcals: Record<string, number>;
-  rangosOptimos: Record<string, {
-    min: number;
-    mediana: number;
-    max: number;
-    rangoFrecuente: number;
-    total: number;
-  }>;
-}
-
-export type WebhookResponse = Array<DietOption | DietSummary>;
