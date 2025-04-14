@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WebhookResponse, DietOption, DietSummary } from "@/types/diet";
-import { ArrowCounterClockwise, FloppyDisk } from "lucide-react";
+import { RotateCcw, Save } from "lucide-react";
 
 interface DietPlanProps {
   webhookResponse: WebhookResponse;
@@ -52,7 +51,7 @@ export const DietPlan = ({
             <h3 className="text-xl font-medium text-red-600">Error en los datos</h3>
             <p className="mt-2 text-gray-500">No se pudo procesar correctamente la información de la dieta.</p>
             <Button variant="outline" onClick={onReset} className="mt-4">
-              <ArrowCounterClockwise className="mr-2 h-4 w-4" />
+              <RotateCcw className="mr-2 h-4 w-4" />
               Volver al formulario
             </Button>
           </div>
@@ -75,11 +74,11 @@ export const DietPlan = ({
             </div>
             <div className="flex space-x-2">
               <Button variant="outline" size="sm" onClick={onReset}>
-                <ArrowCounterClockwise className="mr-2 h-4 w-4" />
+                <RotateCcw className="mr-2 h-4 w-4" />
                 Reiniciar
               </Button>
               <Button size="sm" onClick={onSave}>
-                <FloppyDisk className="mr-2 h-4 w-4" />
+                <Save className="mr-2 h-4 w-4" />
                 Guardar
               </Button>
             </div>
