@@ -1,4 +1,3 @@
-
 // Type definitions
 interface Client {
   id: number;
@@ -36,6 +35,8 @@ interface Workout {
   // Other workout properties
 }
 
+import { supabase } from "@/integrations/supabase/client";
+
 // Storage keys
 const CLIENTS_STORAGE_KEY = 'fit-manager-clients';
 const DIETS_STORAGE_KEY = 'fit-manager-diets';
@@ -47,11 +48,46 @@ export const getClients = (): Client[] => {
   return storedClients ? JSON.parse(storedClients) : [];
 };
 
-export const saveClient = (client: Client) => {
-  const clients = getClients();
-  const updatedClients = [...clients, client];
-  localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(updatedClients));
-  return client;
+export const saveClient = async (client: Client) => {
+  try {
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('clients')
+      .insert({
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        birthdate: client.birthdate,
+        height: client.height,
+        weight: client.weight,
+        fitness_level: client.fitnessLevel,
+        goals: client.goals,
+        medical_history: client.medicalHistory,
+        status: client.status,
+        age: client.age,
+        sex: client.sex
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving client to Supabase:", error);
+      // Fallback to localStorage if Supabase fails
+      const clients = getClients();
+      const updatedClients = [...clients, client];
+      localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(updatedClients));
+      return client;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Unexpected error saving client:", error);
+    // Fallback to localStorage
+    const clients = getClients();
+    const updatedClients = [...clients, client];
+    localStorage.setItem(CLIENTS_STORAGE_KEY, JSON.stringify(updatedClients));
+    return client;
+  }
 };
 
 export const updateClient = (updatedClient: Client) => {
