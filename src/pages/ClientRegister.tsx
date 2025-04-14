@@ -1,0 +1,239 @@
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Save, User } from "lucide-react";
+import { toast } from "sonner";
+import { saveClient } from "@/utils/clientStorage";
+
+const ClientRegister = () => {
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    birthdate: "",
+    height: "",
+    weight: "",
+    fitnessLevel: "",
+    goals: "",
+    medicalHistory: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Validate form
+      if (!formData.name || !formData.email) {
+        toast.error("Por favor completa los campos obligatorios");
+        return;
+      }
+
+      // Generate a unique ID
+      const newClient = {
+        ...formData,
+        id: Date.now(),
+        status: "active",
+        age: formData.birthdate ? calculateAge(formData.birthdate) : 0,
+        diets: [],
+        workouts: []
+      };
+
+      // Save client
+      saveClient(newClient);
+
+      // On success
+      toast.success("¡Registro completado con éxito! Tu entrenador podrá ver tu perfil y asignarte rutinas y dietas.");
+      navigate("/client-portal");
+    } catch (error) {
+      console.error("Error registering client:", error);
+      toast.error("Error al registrar. Por favor, inténtalo de nuevo.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const calculateAge = (birthdate: string) => {
+    const today = new Date();
+    const birthDate = new Date(birthdate);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10">
+      <main className="max-w-4xl mx-auto px-4">
+        <Card className="mb-8">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Registro de Cliente</CardTitle>
+            <CardDescription>
+              Completa tus datos para que tu entrenador pueda crear planes personalizados para ti
+            </CardDescription>
+          </CardHeader>
+        </Card>
+        
+        <form onSubmit={handleSubmit}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Información Personal</CardTitle>
+              <CardDescription>
+                Ingresa tu información personal. Los campos marcados con * son obligatorios.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nombre completo *</Label>
+                  <Input 
+                    id="name" 
+                    name="name" 
+                    placeholder="Ej. Ana García Pérez" 
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input 
+                    id="email" 
+                    name="email" 
+                    type="email" 
+                    placeholder="Ej. cliente@ejemplo.com" 
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Teléfono</Label>
+                  <Input 
+                    id="phone" 
+                    name="phone" 
+                    placeholder="Ej. +34 612 345 678" 
+                    value={formData.phone}
+                    onChange={handleChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="birthdate">Fecha de nacimiento</Label>
+                  <Input 
+                    id="birthdate" 
+                    name="birthdate" 
+                    type="date" 
+                    value={formData.birthdate}
+                    onChange={handleChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="height">Altura (cm)</Label>
+                  <Input 
+                    id="height" 
+                    name="height" 
+                    type="number" 
+                    placeholder="Ej. 170" 
+                    value={formData.height}
+                    onChange={handleChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="weight">Peso (kg)</Label>
+                  <Input 
+                    id="weight" 
+                    name="weight" 
+                    type="number" 
+                    placeholder="Ej. 65" 
+                    value={formData.weight}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="fitnessLevel">Nivel de fitness</Label>
+                <Select 
+                  onValueChange={(value) => handleSelectChange("fitnessLevel", value)}
+                  value={formData.fitnessLevel}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona tu nivel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="principiante">Principiante</SelectItem>
+                    <SelectItem value="intermedio">Intermedio</SelectItem>
+                    <SelectItem value="avanzado">Avanzado</SelectItem>
+                    <SelectItem value="elite">Elite</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="goals">Objetivos de fitness</Label>
+                <Textarea 
+                  id="goals" 
+                  name="goals" 
+                  placeholder="Describe tus objetivos de fitness (pérdida de peso, ganancia muscular, etc.)..." 
+                  className="min-h-[100px]"
+                  value={formData.goals}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="medicalHistory">Historial médico relevante (opcional)</Label>
+                <Textarea 
+                  id="medicalHistory" 
+                  name="medicalHistory" 
+                  placeholder="Indica cualquier información médica relevante (lesiones, condiciones, alergias, etc.)..." 
+                  className="min-h-[100px]"
+                  value={formData.medicalHistory}
+                  onChange={handleChange}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Button type="submit" className="w-full max-w-md bg-fitBlue-600 hover:bg-fitBlue-700" disabled={isSubmitting}>
+                <Save className="mr-2 h-4 w-4" />
+                {isSubmitting ? "Guardando..." : "Completar Registro"}
+              </Button>
+            </CardFooter>
+          </Card>
+        </form>
+      </main>
+    </div>
+  );
+};
+
+export default ClientRegister;

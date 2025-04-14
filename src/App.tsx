@@ -12,6 +12,7 @@ import NewClient from "./pages/NewClient";
 import WorkoutGenerator from "./pages/WorkoutGenerator";
 import DietGenerator from "./pages/DietGenerator";
 import ClientPortal from "./pages/ClientPortal";
+import ClientRegister from "./pages/ClientRegister";
 import NotFound from "./pages/NotFound";
 import Workouts from "./pages/Workouts";
 import Diets from "./pages/Diets";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/clients/new" element={<NewClient />} />
+          <Route path="/client-register" element={<ClientRegister />} />
           <Route path="/workouts" element={<Workouts />} />
           <Route path="/workouts/new" element={<WorkoutGenerator />} />
           <Route path="/diets" element={<Diets />} />
