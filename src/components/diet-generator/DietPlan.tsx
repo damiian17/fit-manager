@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tabs";
 import { FileDown, Mail, Salad, Utensils, Calendar, PieChart, BarChart3 } from "lucide-react";
 import { WebhookResponse, DietOption, SummaryItem, DietSummary } from "@/types/diet";
+import { useEffect } from "react";
 
 interface DietPlanProps {
   webhookResponse: WebhookResponse | null;
@@ -19,8 +20,23 @@ interface DietPlanProps {
 }
 
 export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onReset, onSave }: DietPlanProps) => {
-  if (!webhookResponse) {
-    return <div>No hay datos disponibles</div>;
+  // Debug logging
+  useEffect(() => {
+    console.log("DietPlan component received webhookResponse:", webhookResponse);
+    console.log("Selected option:", selectedOption);
+  }, [webhookResponse, selectedOption]);
+
+  if (!webhookResponse || webhookResponse.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <div>No hay datos disponibles para mostrar</div>
+          <Button variant="outline" onClick={onReset} className="mt-4">
+            Volver al formulario
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Get diet options (exclude the summary)
@@ -33,7 +49,27 @@ export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onRe
   const summaryData = webhookResponse.find(item => 'tipo' in item && item.tipo === "Resumen") as DietSummary | undefined;
 
   if (!selectedDietOption) {
-    return <div>Opción de dieta no encontrada</div>;
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <div>Opción de dieta no encontrada. Por favor, seleccione otra opción.</div>
+          <div className="mt-4">
+            <Tabs value={dietOptions[0]?.opcion || ""} onValueChange={onOptionChange} className="w-full">
+              <TabsList className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 mb-4">
+                {dietOptions.map((option) => (
+                  <TabsTrigger key={option.opcion} value={option.opcion}>
+                    {option.opcion}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+          <Button variant="outline" onClick={onReset} className="mt-4">
+            Volver al formulario
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Convert the selected diet option's recipes to an array for easier rendering
@@ -53,7 +89,8 @@ export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onRe
           <div>
             <CardTitle>Plan Dietético Personalizado</CardTitle>
             <CardDescription>
-              {summaryData && `Calorías diarias objetivo: ${summaryData.caloriasTotalesDiarias} kcal`}
+              {summaryData ? `Calorías diarias objetivo: ${summaryData.caloriasTotalesDiariasObjetivo} kcal` : 
+                `Calorías diarias objetivo: ${selectedDietOption.caloriasDiariasObjetivo} kcal`}
             </CardDescription>
           </div>
           <div className="flex space-x-2">
@@ -94,7 +131,7 @@ export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onRe
           <div className="mb-6">
             <h3 className="font-semibold mb-3">Opciones de Dieta</h3>
             <Tabs value={selectedOption} onValueChange={onOptionChange} className="w-full">
-              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 mb-4">
+              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 mb-4">
                 {dietOptions.map((option) => (
                   <TabsTrigger key={option.opcion} value={option.opcion}>
                     {option.opcion}
@@ -132,14 +169,18 @@ export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onRe
           
           <div className="mt-6 p-4 border border-gray-200 rounded-lg">
             <h3 className="font-semibold mb-2">Distribución Calórica</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-              {Object.entries(selectedDietOption.caloriasObjetivo).map(([mealKey, calories]) => (
-                <div key={mealKey} className="text-center p-2 bg-gray-50 rounded border">
-                  <div className="text-sm font-medium">{mealKey}</div>
-                  <div className="text-lg font-bold text-fitGreen-600">{calories} kcal</div>
-                </div>
-              ))}
-            </div>
+            {selectedDietOption.caloriasObjetivo ? (
+              <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                {Object.entries(selectedDietOption.caloriasObjetivo).map(([mealKey, calories]) => (
+                  <div key={mealKey} className="text-center p-2 bg-gray-50 rounded border">
+                    <div className="text-sm font-medium">{mealKey}</div>
+                    <div className="text-lg font-bold text-fitGreen-600">{calories} kcal</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Información de distribución calórica no disponible</p>
+            )}
           </div>
           
           {summaryData && (
@@ -151,14 +192,14 @@ export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onRe
                   <ul className="list-disc list-inside text-sm space-y-1">
                     <li>Recetas usadas: {summaryData.recetasUsadasTotal}</li>
                     <li>Recetas disponibles: {summaryData.recetasDisponiblesTotal}</li>
-                    <li>Calorías diarias: {summaryData.caloriasTotalesDiarias}</li>
+                    <li>Calorías diarias: {summaryData.caloriasTotalesDiariasObjetivo}</li>
                     <li>Ingestas configuradas: {summaryData.ingestasConfiguradas.join(", ")}</li>
                   </ul>
                 </div>
                 <div>
                   <h4 className="font-medium mb-1">Distribución Calórica</h4>
                   <ul className="list-disc list-inside text-sm space-y-1">
-                    {Object.entries(summaryData.distribucionCalorias).map(([meal, calories]) => (
+                    {summaryData.distribucionCaloriasBase && Object.entries(summaryData.distribucionCaloriasBase).map(([meal, calories]) => (
                       <li key={meal}>{meal}: {calories} kcal</li>
                     ))}
                   </ul>

@@ -31,7 +31,14 @@ const DietGenerator = () => {
   const handleDietGenerated = (response: WebhookResponse) => {
     console.log("Webhook response received:", response);
     
-    // Extract client information from the first item in the response
+    // Check if response is valid
+    if (!response || !Array.isArray(response) || response.length === 0) {
+      toast.error("La respuesta del servidor no es válida");
+      console.error("Invalid webhook response:", response);
+      return;
+    }
+    
+    // Extract client information from the first item in the response or use default values
     const firstItem = response[0];
     if (firstItem && 'clientId' in firstItem && 'clientName' in firstItem && 'dietName' in firstItem) {
       setClientInfo({
@@ -41,13 +48,13 @@ const DietGenerator = () => {
       });
     }
     
-    // Ensure webhookResponse is set before setting dietGenerated to true
+    // Set the webhook response in state
     setWebhookResponse(response);
     
-    // Use a setTimeout to ensure state is updated before showing diet plan
+    // Set dietGenerated to true after a short delay to ensure state is updated
     setTimeout(() => {
       setDietGenerated(true);
-    }, 100);
+    }, 300);
   };
 
   const handleResetForm = () => {
@@ -112,6 +119,16 @@ const DietGenerator = () => {
     }
   };
 
+  useEffect(() => {
+    // Debug logging
+    console.log("Current state:", {
+      dietGenerated,
+      webhookResponseExists: !!webhookResponse,
+      webhookResponseLength: webhookResponse ? webhookResponse.length : 0,
+      selectedOption
+    });
+  }, [dietGenerated, webhookResponse, selectedOption]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
@@ -132,7 +149,7 @@ const DietGenerator = () => {
           <div className="lg:col-span-2">
             {!dietGenerated ? (
               <DietForm onDietGenerated={handleDietGenerated} />
-            ) : webhookResponse ? (
+            ) : webhookResponse && webhookResponse.length > 0 ? (
               <DietPlan 
                 webhookResponse={webhookResponse}
                 selectedOption={selectedOption}

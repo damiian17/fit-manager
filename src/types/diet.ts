@@ -20,7 +20,7 @@ export type WebhookResponse = Array<DietOption | SummaryItem>;
 
 export interface DietOption {
   opcion: string;
-  caloriasObjetivo: {
+  caloriasObjetivo?: {
     [key: string]: number;
   };
   recetasSeleccionadas: {
@@ -40,6 +40,9 @@ export interface DietOption {
   caloriasTotalesDia: number;
   caloriasDiariasObjetivo: number;
   variacionCalorica: string;
+  clientId?: number;
+  clientName?: string;
+  dietName?: string;
 }
 
 export interface SummaryItem {
@@ -50,14 +53,14 @@ export interface SummaryItem {
   prohibidos: string[];
   tiposComidaConfig: string[];
   tiposComidaDisponibles: string[];
-  distribucionCalorias: {
+  distribucionCaloriasBase?: {
     [key: string]: number;
   };
-  caloriasTotalesDiarias: number;
-  histogramaKcals: {
+  caloriasTotalesDiariasObjetivo: number;
+  histogramaKcalsSeleccionadas?: {
     [key: string]: number;
   };
-  rangosOptimos: {
+  rangosOptimosDetectados?: {
     [key: string]: {
       min: number;
       mediana: number;
