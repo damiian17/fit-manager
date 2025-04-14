@@ -16,6 +16,7 @@ import {
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveSession } from "@/utils/authUtils";
 
 const ClientRegister = () => {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ const ClientRegister = () => {
     const checkSession = async () => {
       console.log("Verificando sesión de usuario...");
       // Obtener sesión actual
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = await getActiveSession();
       
       if (!session) {
         console.log("No hay sesión activa, verificando localStorage...");
@@ -98,51 +99,20 @@ const ClientRegister = () => {
         return;
       }
 
-      // Obtener la sesión actual
-      const { data: { session } } = await supabase.auth.getSession();
+      // Obtener la sesión actual para obtener el ID de usuario
+      const session = await getActiveSession();
       
-      // Si no hay sesión, intentar obtener el ID de usuario de la autenticación
+      // Si no hay sesión, no podemos continuar
       if (!session) {
-        console.log("No hay sesión activa, intentando obtener user ID de la autenticación...");
-        
-        // Intentar iniciar sesión con el email almacenado
-        const storedEmail = localStorage.getItem('clientEmail');
-        
-        if (!storedEmail) {
-          console.error("No hay email almacenado, imposible continuar");
-          toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
-          navigate("/login");
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Obtener el user ID realizando una consulta para encontrar el user ID asociado al email
-        const { data: userData, error: userError } = await supabase
-          .from('auth')
-          .select('id')
-          .eq('email', storedEmail)
-          .single();
-        
-        if (userError) {
-          console.error("Error al buscar usuario:", userError);
-          toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
-          navigate("/login");
-          setIsSubmitting(false);
-          return;
-        }
-        
-        // Si no se encontró el usuario, redireccionar al login
-        if (!userData) {
-          console.error("No se encontró el usuario");
-          toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
-          navigate("/login");
-          setIsSubmitting(false);
-          return;
-        }
+        console.error("No hay sesión activa, imposible continuar");
+        toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
+        navigate("/login");
+        setIsSubmitting(false);
+        return;
       }
       
       // Usar el userId de la sesión o el establecido previamente
-      const userIdToUse = session?.user?.id || userId;
+      const userIdToUse = session.user.id || userId;
       
       if (!userIdToUse) {
         console.error("No se pudo determinar el ID de usuario");
