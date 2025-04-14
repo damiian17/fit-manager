@@ -257,15 +257,15 @@ export const mockWebhookResponse: WebhookResponse = [
       "Comida 2",
       "Comida 1"
     ],
-    "distribucionCalorias": {
+    "distribucionCaloriasBase": {
       "Comida1": 432,
       "Comida2": 432,
       "Comida3": 800,
       "Comida4": 432,
       "Comida5": 700
     },
-    "caloriasTotalesDiarias": 2877,
-    "histogramaKcals": {
+    "caloriasTotalesDiariasObjetivo": 2877,
+    "histogramaKcalsSeleccionadas": {
       "300": 5,
       "400": 16,
       "500": 2,
@@ -273,7 +273,7 @@ export const mockWebhookResponse: WebhookResponse = [
       "700": 4,
       "800": 3
     },
-    "rangosOptimos": {
+    "rangosOptimosDetectados": {
       "Comida 1": {
         "min": 200,
         "mediana": 450,
