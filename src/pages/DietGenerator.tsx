@@ -29,6 +29,8 @@ const DietGenerator = () => {
   });
 
   const handleDietGenerated = (response: WebhookResponse) => {
+    console.log("Webhook response received:", response);
+    
     // Extract client information from the first item in the response
     const firstItem = response[0];
     if (firstItem && 'clientId' in firstItem && 'clientName' in firstItem && 'dietName' in firstItem) {
@@ -39,8 +41,13 @@ const DietGenerator = () => {
       });
     }
     
+    // Ensure webhookResponse is set before setting dietGenerated to true
     setWebhookResponse(response);
-    setDietGenerated(true);
+    
+    // Use a setTimeout to ensure state is updated before showing diet plan
+    setTimeout(() => {
+      setDietGenerated(true);
+    }, 100);
   };
 
   const handleResetForm = () => {
@@ -53,7 +60,10 @@ const DietGenerator = () => {
   };
 
   const handleSaveDiet = () => {
-    if (!webhookResponse) return;
+    if (!webhookResponse) {
+      toast.error("No hay datos de dieta para guardar");
+      return;
+    }
     
     // Get the selected diet option
     const selectedDietOption = webhookResponse.find(
@@ -102,11 +112,6 @@ const DietGenerator = () => {
     }
   };
 
-  // Get the selected diet option
-  const selectedDietOption = webhookResponse?.find(
-    (item) => 'opcion' in item && item.opcion === selectedOption
-  ) as DietOption | undefined;
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
@@ -127,7 +132,7 @@ const DietGenerator = () => {
           <div className="lg:col-span-2">
             {!dietGenerated ? (
               <DietForm onDietGenerated={handleDietGenerated} />
-            ) : (
+            ) : webhookResponse ? (
               <DietPlan 
                 webhookResponse={webhookResponse}
                 selectedOption={selectedOption}
@@ -135,6 +140,18 @@ const DietGenerator = () => {
                 onReset={handleResetForm}
                 onSave={handleSaveDiet}
               />
+            ) : (
+              <div className="p-8 text-center">
+                <h3 className="text-xl font-medium text-gray-700">Error al cargar los datos</h3>
+                <p className="mt-2 text-gray-500">No se pudo cargar la información de la dieta.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={handleResetForm}
+                  className="mt-4"
+                >
+                  Volver al formulario
+                </Button>
+              </div>
             )}
           </div>
           
