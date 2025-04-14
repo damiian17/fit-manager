@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,12 +17,14 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveSession, getCurrentUser } from "@/utils/authUtils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ClientRegister = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [clientEmail, setClientEmail] = useState("");
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -64,6 +67,13 @@ const ClientRegister = () => {
         const userId = session.user.id;
         console.log("Sesión activa encontrada:", { userEmail, userId });
         
+        if (!userId) {
+          setSessionError("No se pudo obtener el ID de usuario. Por favor, inicia sesión nuevamente.");
+          return;
+        }
+        
+        setUserId(userId);
+        
         // Obtener datos del usuario, incluidos posibles datos de redes sociales
         const user = await getCurrentUser();
         
@@ -76,7 +86,6 @@ const ClientRegister = () => {
         
         if (userEmail) {
           setClientEmail(userEmail);
-          setUserId(userId);
           setFormData(prev => ({
             ...prev, 
             email: userEmail,
@@ -124,12 +133,12 @@ const ClientRegister = () => {
         return;
       }
       
-      // Usar el userId de la sesión o el establecido previamente
-      const userIdToUse = session.user.id || userId;
+      // Usar el userId de la sesión
+      const userIdToUse = session.user.id;
       
       if (!userIdToUse) {
         console.error("No se pudo determinar el ID de usuario");
-        toast.error("Error de autenticación. Por favor, regístrate nuevamente.");
+        toast.error("Error de autenticación. Por favor, inicia sesión nuevamente.");
         navigate("/login");
         setIsSubmitting(false);
         return;
@@ -194,6 +203,10 @@ const ClientRegister = () => {
     return age;
   };
 
+  const handleReturnToLogin = () => {
+    navigate("/login");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10">
       <main className="max-w-4xl mx-auto px-4">
@@ -206,157 +219,175 @@ const ClientRegister = () => {
           </CardHeader>
         </Card>
         
-        <form onSubmit={handleSubmit}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Información Personal</CardTitle>
-              <CardDescription>
-                Ingresa tu información personal. Los campos marcados con * son obligatorios.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre completo *</Label>
-                  <Input 
-                    id="name" 
-                    name="name" 
-                    placeholder="Ej. Ana García Pérez" 
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email *</Label>
-                  <Input 
-                    id="email" 
-                    name="email" 
-                    type="email" 
-                    placeholder="Ej. cliente@ejemplo.com" 
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled
-                    required
-                  />
-                  <p className="text-sm text-gray-500">Email de registro (no se puede cambiar)</p>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <Input 
-                    id="phone" 
-                    name="phone" 
-                    placeholder="Ej. +34 612 345 678" 
-                    value={formData.phone}
-                    onChange={handleChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="birthdate">Fecha de nacimiento</Label>
-                  <Input 
-                    id="birthdate" 
-                    name="birthdate" 
-                    type="date" 
-                    value={formData.birthdate}
-                    onChange={handleChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="height">Altura (cm)</Label>
-                  <Input 
-                    id="height" 
-                    name="height" 
-                    type="number" 
-                    placeholder="Ej. 170" 
-                    value={formData.height}
-                    onChange={handleChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="weight">Peso (kg)</Label>
-                  <Input 
-                    id="weight" 
-                    name="weight" 
-                    type="number" 
-                    placeholder="Ej. 65" 
-                    value={formData.weight}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="fitnessLevel">Nivel de fitness</Label>
-                <Select 
-                  onValueChange={(value) => handleSelectChange("fitnessLevel", value)}
-                  value={formData.fitnessLevel}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona tu nivel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="principiante">Principiante</SelectItem>
-                    <SelectItem value="intermedio">Intermedio</SelectItem>
-                    <SelectItem value="avanzado">Avanzado</SelectItem>
-                    <SelectItem value="elite">Elite</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="sex">Sexo</Label>
-                <Select 
-                  onValueChange={(value) => handleSelectChange("sex", value)}
-                  value={formData.sex}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona tu sexo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="femenino">Femenino</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="goals">Objetivos de fitness</Label>
-                <Textarea 
-                  id="goals" 
-                  name="goals" 
-                  placeholder="Describe tus objetivos de fitness (pérdida de peso, ganancia muscular, etc.)..." 
-                  className="min-h-[100px]"
-                  value={formData.goals}
-                  onChange={handleChange}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="medicalHistory">Historial médico relevante (opcional)</Label>
-                <Textarea 
-                  id="medicalHistory" 
-                  name="medicalHistory" 
-                  placeholder="Indica cualquier información médica relevante (lesiones, condiciones, alergias, etc.)..." 
-                  className="min-h-[100px]"
-                  value={formData.medicalHistory}
-                  onChange={handleChange}
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button type="submit" className="w-full max-w-md bg-fitBlue-600 hover:bg-fitBlue-700" disabled={isSubmitting}>
-                <Save className="mr-2 h-4 w-4" />
-                {isSubmitting ? "Guardando..." : "Completar Registro"}
+        {sessionError ? (
+          <Card className="mb-8">
+            <CardContent className="pt-6">
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>
+                  {sessionError}
+                </AlertDescription>
+              </Alert>
+              <Button 
+                onClick={handleReturnToLogin} 
+                className="w-full"
+              >
+                Volver a iniciar sesión
               </Button>
-            </CardFooter>
+            </CardContent>
           </Card>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Información Personal</CardTitle>
+                <CardDescription>
+                  Ingresa tu información personal. Los campos marcados con * son obligatorios.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nombre completo *</Label>
+                    <Input 
+                      id="name" 
+                      name="name" 
+                      placeholder="Ej. Ana García Pérez" 
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input 
+                      id="email" 
+                      name="email" 
+                      type="email" 
+                      placeholder="Ej. cliente@ejemplo.com" 
+                      value={formData.email}
+                      onChange={handleChange}
+                      disabled
+                      required
+                    />
+                    <p className="text-sm text-gray-500">Email de registro (no se puede cambiar)</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Teléfono</Label>
+                    <Input 
+                      id="phone" 
+                      name="phone" 
+                      placeholder="Ej. +34 612 345 678" 
+                      value={formData.phone}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="birthdate">Fecha de nacimiento</Label>
+                    <Input 
+                      id="birthdate" 
+                      name="birthdate" 
+                      type="date" 
+                      value={formData.birthdate}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="height">Altura (cm)</Label>
+                    <Input 
+                      id="height" 
+                      name="height" 
+                      type="number" 
+                      placeholder="Ej. 170" 
+                      value={formData.height}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="weight">Peso (kg)</Label>
+                    <Input 
+                      id="weight" 
+                      name="weight" 
+                      type="number" 
+                      placeholder="Ej. 65" 
+                      value={formData.weight}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="fitnessLevel">Nivel de fitness</Label>
+                  <Select 
+                    onValueChange={(value) => handleSelectChange("fitnessLevel", value)}
+                    value={formData.fitnessLevel}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tu nivel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="principiante">Principiante</SelectItem>
+                      <SelectItem value="intermedio">Intermedio</SelectItem>
+                      <SelectItem value="avanzado">Avanzado</SelectItem>
+                      <SelectItem value="elite">Elite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="sex">Sexo</Label>
+                  <Select 
+                    onValueChange={(value) => handleSelectChange("sex", value)}
+                    value={formData.sex}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tu sexo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="masculino">Masculino</SelectItem>
+                      <SelectItem value="femenino">Femenino</SelectItem>
+                      <SelectItem value="otro">Otro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="goals">Objetivos de fitness</Label>
+                  <Textarea 
+                    id="goals" 
+                    name="goals" 
+                    placeholder="Describe tus objetivos de fitness (pérdida de peso, ganancia muscular, etc.)..." 
+                    className="min-h-[100px]"
+                    value={formData.goals}
+                    onChange={handleChange}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="medicalHistory">Historial médico relevante (opcional)</Label>
+                  <Textarea 
+                    id="medicalHistory" 
+                    name="medicalHistory" 
+                    placeholder="Indica cualquier información médica relevante (lesiones, condiciones, alergias, etc.)..." 
+                    className="min-h-[100px]"
+                    value={formData.medicalHistory}
+                    onChange={handleChange}
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-center">
+                <Button type="submit" className="w-full max-w-md bg-fitBlue-600 hover:bg-fitBlue-700" disabled={isSubmitting}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSubmitting ? "Guardando..." : "Completar Registro"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </form>
+        )}
       </main>
     </div>
   );

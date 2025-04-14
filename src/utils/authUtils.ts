@@ -16,13 +16,18 @@ export const getActiveSession = async () => {
  * @returns True si tiene perfil, false si no
  */
 export const hasClientProfile = async (userId: string) => {
-  const { data } = await supabase
-    .from('clients')
-    .select('id')
-    .eq('id', userId)
-    .maybeSingle();
-  
-  return !!data;
+  try {
+    const { data } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    return !!data;
+  } catch (error) {
+    console.error("Error verificando perfil de cliente:", error);
+    return false;
+  }
 };
 
 /**
@@ -59,4 +64,32 @@ export const signInWithGoogle = async () => {
 export const getCurrentUser = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   return user;
+};
+
+/**
+ * Busca un usuario por email en la tabla de clientes
+ * @param email Email del usuario
+ * @returns ID del usuario si existe, undefined si no
+ */
+export const findUserIdByEmail = async (email: string) => {
+  try {
+    if (!email) return undefined;
+    
+    console.log("Buscando usuario por email:", email);
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Error buscando usuario por email:", error);
+      return undefined;
+    }
+    
+    return data?.id;
+  } catch (error) {
+    console.error("Error inesperado buscando usuario:", error);
+    return undefined;
+  }
 };
