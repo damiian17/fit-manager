@@ -32,9 +32,28 @@ const LoginForm = ({
   onRegister,
 }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validaciones básicas
+    if (!email.trim()) {
+      toast.error("Por favor, introduce tu email");
+      return;
+    }
+    
+    if (!password.trim()) {
+      toast.error("Por favor, introduce tu contraseña");
+      return;
+    }
+    
+    // Llamar a la función de inicio de sesión
+    await onLogin(e, role);
+  };
 
   return (
-    <form onSubmit={(e) => onLogin(e, role)}>
+    <form onSubmit={handleSubmit}>
       <CardContent className="space-y-4 pt-6">
         <div className="space-y-2">
           <Label htmlFor={`email-${role}`}>Email</Label>

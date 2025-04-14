@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +16,21 @@ const Login = () => {
   const [isRegistering, setIsRegistering] = useState(false);
   const navigate = useNavigate();
 
+  // Verificar si el usuario ya está autenticado
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Si ya hay una sesión activa, redirigir según el rol
+        localStorage.setItem('clientEmail', session.user.email || '');
+        localStorage.setItem('clientLoggedIn', 'true');
+        navigate("/client-portal");
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent, role: "trainer" | "client") => {
     e.preventDefault();
     setIsLoading(true);
@@ -30,6 +45,8 @@ const Login = () => {
       
       // Para clientes, usamos autenticación de Supabase
       if (role === "client") {
+        console.log("Intentando iniciar sesión con:", { email, password });
+        
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -37,7 +54,7 @@ const Login = () => {
 
         if (error) {
           console.error("Login error:", error);
-          toast.error("Credenciales inválidas. Por favor, verifica tu email y contraseña.");
+          toast.error(`Error de inicio de sesión: ${error.message}`);
           return;
         }
 
@@ -72,18 +89,7 @@ const Login = () => {
         return;
       }
 
-      // Verificar si el correo ya está registrado en Supabase
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('clients')
-        .select('email')
-        .eq('email', email)
-        .single();
-      
-      if (existingUsers) {
-        toast.error("Este email ya está registrado");
-        setIsLoading(false);
-        return;
-      }
+      console.log("Intentando registrar:", { email, password });
 
       // Crear usuario en Supabase auth
       const { data, error } = await supabase.auth.signUp({
@@ -97,6 +103,8 @@ const Login = () => {
         setIsLoading(false);
         return;
       }
+
+      console.log("Usuario registrado:", data);
 
       // Guardar el email para el registro del perfil
       localStorage.setItem('clientEmail', email);

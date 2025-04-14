@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -33,26 +34,35 @@ const ClientRegister = () => {
     sex: "",
   });
 
-  // Obtener el email del cliente del localStorage
-  useEffect(() => {
-    const email = localStorage.getItem('clientEmail');
-    if (email) {
-      setClientEmail(email);
-      setFormData(prev => ({...prev, email}));
-    } else {
-      // Si no hay email, redirigir al login
-      navigate("/login");
-      toast.error("Por favor registra una cuenta primero");
-    }
-  }, [navigate]);
-
-  // Verificar si el usuario está autenticado
+  // Obtener el email del cliente del localStorage y verificar sesión
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      // Obtener sesión actual
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         navigate("/login");
         toast.error("Por favor inicia sesión primero");
+        return;
+      }
+      
+      // Establecer el email del usuario autenticado
+      const userEmail = session.user.email;
+      if (userEmail) {
+        setClientEmail(userEmail);
+        setFormData(prev => ({...prev, email: userEmail}));
+        localStorage.setItem('clientEmail', userEmail);
+      } else {
+        // Si no hay email en la sesión, usar el del localStorage como fallback
+        const storedEmail = localStorage.getItem('clientEmail');
+        if (storedEmail) {
+          setClientEmail(storedEmail);
+          setFormData(prev => ({...prev, email: storedEmail}));
+        } else {
+          // Si no hay email en ninguna parte, redirigir al login
+          navigate("/login");
+          toast.error("Por favor registra una cuenta primero");
+        }
       }
     };
     
@@ -90,32 +100,69 @@ const ClientRegister = () => {
       }
 
       const userId = session.user.id;
+      console.log("Registrando cliente con ID:", userId);
 
       // Calcular edad si hay fecha de nacimiento
       const age = formData.birthdate ? calculateAge(formData.birthdate) : undefined;
 
-      // Crear cliente en Supabase
-      const { data, error } = await supabase.from('clients').insert({
-        id: userId, // Usar el ID de autenticación como ID de cliente
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
-        birthdate: formData.birthdate || null,
-        height: formData.height || null,
-        weight: formData.weight || null,
-        fitness_level: formData.fitnessLevel || null,
-        goals: formData.goals || null,
-        medical_history: formData.medicalHistory || null,
-        status: "active",
-        age: age,
-        sex: formData.sex || null
-      }).select();
+      // Verificar si ya existe un perfil para este usuario
+      const { data: existingProfile } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('id', userId)
+        .single();
 
-      if (error) {
-        console.error("Error registering client:", error);
-        toast.error("Error al registrar el cliente: " + error.message);
-        return;
+      let clientData;
+      
+      if (existingProfile) {
+        // Actualizar el perfil existente
+        const { data, error } = await supabase
+          .from('clients')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            birthdate: formData.birthdate || null,
+            height: formData.height || null,
+            weight: formData.weight || null,
+            fitness_level: formData.fitnessLevel || null,
+            goals: formData.goals || null,
+            medical_history: formData.medicalHistory || null,
+            status: "active",
+            age: age,
+            sex: formData.sex || null
+          })
+          .eq('id', userId)
+          .select();
+          
+        if (error) throw error;
+        clientData = data;
+      } else {
+        // Crear un nuevo perfil de cliente
+        const { data, error } = await supabase
+          .from('clients')
+          .insert({
+            id: userId, // Usar el ID de autenticación como ID de cliente
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone || null,
+            birthdate: formData.birthdate || null,
+            height: formData.height || null,
+            weight: formData.weight || null,
+            fitness_level: formData.fitnessLevel || null,
+            goals: formData.goals || null,
+            medical_history: formData.medicalHistory || null,
+            status: "active",
+            age: age,
+            sex: formData.sex || null
+          })
+          .select();
+
+        if (error) throw error;
+        clientData = data;
       }
+
+      console.log("Perfil de cliente guardado:", clientData);
 
       // Marcar al cliente como conectado
       localStorage.setItem('clientLoggedIn', 'true');
@@ -123,9 +170,9 @@ const ClientRegister = () => {
       // Éxito
       toast.success("¡Registro completado con éxito! Tu entrenador podrá ver tu perfil y asignarte rutinas y dietas.");
       navigate("/client-portal");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error registering client:", error);
-      toast.error("Error al registrar. Por favor, inténtalo de nuevo.");
+      toast.error(`Error al registrar: ${error.message || "Inténtalo de nuevo"}`);
     } finally {
       setIsSubmitting(false);
     }
