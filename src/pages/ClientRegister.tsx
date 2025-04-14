@@ -3,8 +3,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Select,
@@ -48,14 +46,31 @@ const ClientRegister = () => {
     const checkSession = async () => {
       try {
         console.log("Verificando sesión de usuario...");
-        // Obtener sesión actual
+        // Intentar obtener ID del localStorage primero (más confiable)
+        const storedUserId = localStorage.getItem('clientUserId');
+        const storedEmail = localStorage.getItem('clientEmail');
+        const clientLoggedIn = localStorage.getItem('clientLoggedIn');
+        
+        console.log("Datos del localStorage:", { storedUserId, storedEmail, clientLoggedIn });
+        
+        if (storedUserId) {
+          setUserId(storedUserId);
+          console.log("Usando ID de usuario del localStorage:", storedUserId);
+        }
+        
+        // Obtener sesión actual como respaldo
         const session = await getActiveSession();
         
         if (session && session.user) {
           // Si hay sesión, usar los datos del usuario autenticado
           console.log("Sesión activa encontrada:", session);
           
-          setUserId(session.user.id);
+          // Actualizar el ID si no se obtuvo del localStorage
+          if (!storedUserId) {
+            setUserId(session.user.id);
+            // Guardar en localStorage para futuras referencias
+            localStorage.setItem('clientUserId', session.user.id);
+          }
           
           // Obtener datos del usuario, incluidos posibles datos de redes sociales
           const user = await getCurrentUser();
@@ -78,30 +93,14 @@ const ClientRegister = () => {
             localStorage.setItem('clientEmail', session.user.email);
             localStorage.setItem('clientLoggedIn', 'true');
           }
-        } else {
-          console.log("No hay sesión activa, verificando localStorage...");
-          // Si no hay sesión, intentar usar el email del localStorage
-          const storedEmail = localStorage.getItem('clientEmail');
-          const clientLoggedIn = localStorage.getItem('clientLoggedIn');
-          
-          if (!storedEmail || !clientLoggedIn) {
-            console.log("No hay datos en localStorage, redirigiendo a login...");
-            setSessionError("No se ha podido encontrar una sesión activa. Por favor, inicia sesión primero.");
-            return;
-          }
-          
+        } else if (storedEmail && clientLoggedIn) {
+          // Si no hay sesión pero hay datos en localStorage
+          console.log("Usando email del localStorage:", storedEmail);
           setClientEmail(storedEmail);
           setFormData(prev => ({...prev, email: storedEmail}));
-          console.log("Usando email del localStorage:", storedEmail);
-          
-          // Intentar obtener usuario actual aunque no haya sesión detectada
-          const user = await getCurrentUser();
-          if (user) {
-            setUserId(user.id);
-            console.log("Usuario encontrado a pesar de no detectar sesión:", user);
-          } else {
-            console.log("No se pudo obtener el usuario actual");
-          }
+        } else {
+          console.log("No hay sesión activa ni datos válidos en localStorage");
+          setSessionError("No se ha podido encontrar una sesión activa. Por favor, inicia sesión primero.");
         }
       } catch (error) {
         console.error("Error verificando sesión:", error);
@@ -133,6 +132,16 @@ const ClientRegister = () => {
         return;
       }
 
+      // Verificar si tenemos el ID de usuario
+      const userIdToUse = userId || localStorage.getItem('clientUserId');
+      
+      if (!userIdToUse) {
+        console.error("No se pudo obtener el ID del usuario");
+        toast.error("Error de autenticación. Por favor, inicia sesión nuevamente.");
+        navigate("/login");
+        return;
+      }
+
       // Calcular edad si hay fecha de nacimiento
       const age = formData.birthdate ? calculateAge(formData.birthdate) : undefined;
 
@@ -152,8 +161,10 @@ const ClientRegister = () => {
         sex: formData.sex || null
       };
 
+      console.log("Intentando guardar perfil con ID:", userIdToUse);
+      
       // Intentar guardar el perfil del cliente
-      await saveClientProfile(clientData, userId || undefined);
+      await saveClientProfile(clientData, userIdToUse);
 
       // Éxito
       toast.success("¡Registro completado con éxito! Tu entrenador podrá ver tu perfil y asignarte rutinas y dietas.");
@@ -161,6 +172,11 @@ const ClientRegister = () => {
     } catch (error: any) {
       console.error("Error registering client:", error);
       toast.error(`Error al registrar: ${error.message || "Inténtalo de nuevo"}`);
+      
+      // Si el error es de autenticación, redirigir al login
+      if (error.message?.includes("autenticación") || error.message?.includes("ID del usuario")) {
+        setTimeout(() => navigate("/login"), 2000);
+      }
     } finally {
       setIsSubmitting(false);
     }

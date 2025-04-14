@@ -52,6 +52,7 @@ export const hasClientProfile = async (userId: string) => {
 export const signOut = async () => {
   localStorage.removeItem('clientLoggedIn');
   localStorage.removeItem('clientEmail');
+  localStorage.removeItem('clientUserId'); // También limpiar el ID de usuario
   await supabase.auth.signOut();
 };
 
@@ -96,6 +97,7 @@ export const signInWithPassword = async (email: string, password: string) => {
   if (data.user) {
     localStorage.setItem('clientLoggedIn', 'true');
     localStorage.setItem('clientEmail', email);
+    localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
   }
   
   return data;
@@ -122,10 +124,11 @@ export const signUpWithPassword = async (email: string, password: string) => {
   
   console.log("Registro exitoso:", data);
   
-  // Guardar información en localStorage
+  // Guardar información en localStorage incluyendo el ID
   if (data.user) {
     localStorage.setItem('clientLoggedIn', 'true');
     localStorage.setItem('clientEmail', email);
+    localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
   }
   
   return data;
@@ -160,27 +163,80 @@ export const findUserIdByEmail = async (email: string) => {
 };
 
 /**
+ * Busca el ID de un usuario autenticado por su email
+ * @param email Email del usuario
+ * @returns ID del usuario si existe, undefined si no
+ */
+export const findAuthUserIdByEmail = async (email: string) => {
+  try {
+    if (!email) return undefined;
+    
+    console.log("Buscando ID de usuario auth por email:", email);
+    
+    // Intentar obtener usuario desde auth.users mediante función RPC
+    const { data, error } = await supabase
+      .rpc('get_user_id_by_email', { 
+        email_input: email 
+      });
+    
+    if (error) {
+      console.error("Error buscando ID de usuario auth:", error);
+      return undefined;
+    }
+    
+    console.log("ID encontrado:", data);
+    return data;
+  } catch (error) {
+    console.error("Error inesperado buscando ID de usuario auth:", error);
+    return undefined;
+  }
+};
+
+/**
  * Crea o actualiza el perfil de un cliente 
  * @param clientData Datos del cliente a guardar
  * @param userId ID del usuario (opcional, si no se proporciona se usará el usuario actual)
  */
 export const saveClientProfile = async (clientData: any, userId?: string) => {
   try {
-    // Si no se proporciona userId, intentar obtenerlo de la sesión actual
-    if (!userId) {
-      const user = await getCurrentUser();
-      userId = user?.id;
+    // Múltiples métodos para obtener el ID del usuario
+    let finalUserId = userId;
+    
+    if (!finalUserId) {
+      console.log("ID no proporcionado, buscando alternativas...");
       
-      if (!userId) {
-        throw new Error("No se pudo determinar el ID del usuario");
+      // 1. Intentar obtener desde localStorage
+      finalUserId = localStorage.getItem('clientUserId');
+      console.log("ID desde localStorage:", finalUserId);
+      
+      // 2. Si no hay ID en localStorage, intentar obtener desde la sesión actual
+      if (!finalUserId) {
+        const session = await getActiveSession();
+        finalUserId = session?.user?.id;
+        console.log("ID desde sesión activa:", finalUserId);
+        
+        // 3. Si no hay sesión, intentar buscar por email
+        if (!finalUserId) {
+          const email = localStorage.getItem('clientEmail') || clientData.email;
+          if (email) {
+            finalUserId = await findAuthUserIdByEmail(email);
+            console.log("ID encontrado por email:", finalUserId);
+          }
+        }
       }
     }
     
-    console.log("Guardando perfil para usuario ID:", userId, "con datos:", clientData);
+    // Verificación final
+    if (!finalUserId) {
+      console.error("No se pudo determinar el ID del usuario después de múltiples intentos");
+      throw new Error("No se pudo determinar el ID del usuario");
+    }
+    
+    console.log("Guardando perfil para usuario ID:", finalUserId, "con datos:", clientData);
     
     // Preparar datos para guardar
     const profileData = {
-      id: userId,
+      id: finalUserId,
       ...clientData
     };
     
