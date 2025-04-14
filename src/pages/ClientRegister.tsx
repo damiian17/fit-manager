@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import {
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { getActiveSession } from "@/utils/authUtils";
+import { getActiveSession, getCurrentUser } from "@/utils/authUtils";
 
 const ClientRegister = () => {
   const navigate = useNavigate();
@@ -36,7 +35,7 @@ const ClientRegister = () => {
     sex: "",
   });
 
-  // Obtener el email del cliente del localStorage y verificar sesión
+  // Obtener el email del cliente y verificar sesión
   useEffect(() => {
     const checkSession = async () => {
       console.log("Verificando sesión de usuario...");
@@ -65,10 +64,24 @@ const ClientRegister = () => {
         const userId = session.user.id;
         console.log("Sesión activa encontrada:", { userEmail, userId });
         
+        // Obtener datos del usuario, incluidos posibles datos de redes sociales
+        const user = await getCurrentUser();
+        
+        let userName = "";
+        
+        // Si se ha registrado con OAuth, intentar obtener el nombre
+        if (user?.app_metadata?.provider === 'google') {
+          userName = user.user_metadata?.full_name || "";
+        }
+        
         if (userEmail) {
           setClientEmail(userEmail);
           setUserId(userId);
-          setFormData(prev => ({...prev, email: userEmail}));
+          setFormData(prev => ({
+            ...prev, 
+            email: userEmail,
+            name: userName || prev.name
+          }));
           localStorage.setItem('clientEmail', userEmail);
           localStorage.setItem('clientLoggedIn', 'true');
         }
@@ -181,7 +194,6 @@ const ClientRegister = () => {
     return age;
   };
 
-  // ... Mantener el componente de renderizado existente
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10">
       <main className="max-w-4xl mx-auto px-4">

@@ -33,3 +33,30 @@ export const signOut = async () => {
   localStorage.removeItem('clientLoggedIn');
   localStorage.removeItem('clientEmail');
 };
+
+/**
+ * Inicia sesión con Google
+ */
+export const signInWithGoogle = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + '/client-register',
+    }
+  });
+  
+  if (error) {
+    console.error("Error al iniciar sesión con Google:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+/**
+ * Obtiene datos del usuario actual
+ */
+export const getCurrentUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};

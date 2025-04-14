@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { getActiveSession, hasClientProfile } from "@/utils/authUtils";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -26,21 +26,17 @@ const Login = () => {
   // Verificar si el usuario ya está autenticado
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = await getActiveSession();
       if (session) {
         // Si ya hay una sesión activa, redirigir según el rol
         localStorage.setItem('clientEmail', session.user.email || '');
         localStorage.setItem('clientLoggedIn', 'true');
         
-        // Verificar si el usuario tiene perfil y redirigir adecuadamente
-        const { data: clientProfile } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('id', session.user.id)
-          .maybeSingle();
+        // Verificar si el usuario tiene perfil
+        const hasProfile = await hasClientProfile(session.user.id);
           
         // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
-        if (!clientProfile) {
+        if (!hasProfile) {
           navigate("/client-register");
         } else {
           navigate("/client-portal");
@@ -75,6 +71,7 @@ const Login = () => {
         if (error) {
           console.error("Login error:", error);
           toast.error(`Error de inicio de sesión: ${error.message}`);
+          setIsLoading(false);
           return;
         }
 
@@ -84,14 +81,10 @@ const Login = () => {
           localStorage.setItem('clientEmail', email);
           
           // Verificar si el usuario tiene perfil
-          const { data: clientProfile } = await supabase
-            .from('clients')
-            .select('id')
-            .eq('id', data.user.id)
-            .maybeSingle();
+          const hasProfile = await hasClientProfile(data.user.id);
             
           // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
-          if (!clientProfile) {
+          if (!hasProfile) {
             navigate("/client-register");
           } else {
             navigate("/client-portal");

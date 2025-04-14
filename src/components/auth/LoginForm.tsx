@@ -1,12 +1,13 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
+import { signInWithGoogle } from "@/utils/authUtils";
 
 interface LoginFormProps {
   role: "trainer" | "client";
@@ -50,6 +51,15 @@ const LoginForm = ({
     
     // Llamar a la función de inicio de sesión
     await onLogin(e, role);
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+      // No necesitamos hacer nada más aquí, ya que el usuario será redirigido
+    } catch (error: any) {
+      toast.error(`Error al iniciar sesión con Google: ${error.message}`);
+    }
   };
 
   return (
@@ -103,6 +113,26 @@ const LoginForm = ({
         >
           {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
         </Button>
+        
+        {role === "client" && (
+          <div className="mt-4 w-full">
+            <div className="relative flex items-center py-2">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="mx-4 flex-shrink text-gray-400 text-xs">O continúa con</span>
+              <div className="flex-grow border-t border-gray-300"></div>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full mt-2"
+              onClick={handleGoogleLogin}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Google
+            </Button>
+          </div>
+        )}
+        
         {role === "trainer" ? (
           <div className="mt-4 text-center text-sm">
             ¿No tienes cuenta?{" "}

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,21 +10,78 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getActiveSession, signOut } from "@/utils/authUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ClientInfo {
   name: string;
   email: string;
-  membership: string;
+  membership?: string;
 }
 
 export const ProfileButton = () => {
-  // Mock client data - in a real app, this would come from an API or context
-  const [clientInfo] = useState<ClientInfo>({
-    name: "María García",
-    email: "maria.garcia@ejemplo.com",
-    membership: "Premium"
+  const navigate = useNavigate();
+  const [clientInfo, setClientInfo] = useState<ClientInfo>({
+    name: "",
+    email: "",
+    membership: "Standard"
   });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const session = await getActiveSession();
+        if (!session) {
+          navigate("/login");
+          return;
+        }
+
+        // Obtener datos del perfil desde la base de datos
+        const { data, error } = await supabase
+          .from('clients')
+          .select('name, email')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error al obtener perfil:", error);
+          return;
+        }
+
+        if (data) {
+          setClientInfo({
+            name: data.name,
+            email: data.email || session.user.email || "",
+            membership: "Premium" // Puedes ajustar esto según tus necesidades
+          });
+        } else {
+          // Si no hay datos en la tabla de clientes, usar datos de la sesión
+          setClientInfo({
+            name: session.user.user_metadata?.full_name || "Cliente",
+            email: session.user.email || "",
+            membership: "Standard"
+          });
+        }
+      } catch (error) {
+        console.error("Error al cargar datos del usuario:", error);
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success("Sesión cerrada correctamente");
+      navigate("/login");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      toast.error("Error al cerrar sesión");
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -59,11 +116,11 @@ export const ProfileButton = () => {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Link to="/login" className="flex items-center w-full">
+        <DropdownMenuItem onClick={handleLogout}>
+          <div className="flex items-center w-full">
             <LogOut className="mr-2 h-4 w-4" />
             <span>Cerrar sesión</span>
-          </Link>
+          </div>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
