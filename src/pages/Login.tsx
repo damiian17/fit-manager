@@ -1,16 +1,21 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import LoginHeader from "@/components/auth/LoginHeader";
-import LoginForm from "@/components/auth/LoginForm";
-import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { getActiveSession, hasClientProfile, signUpWithPassword } from "@/utils/authUtils";
+import { 
+  getActiveSession, 
+  hasClientProfile, 
+  signUpWithPassword,
+  signInWithPassword,
+  signInWithGoogle
+} from "@/utils/authUtils";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -19,69 +24,25 @@ const Login = () => {
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"trainer" | "client">("trainer");
+  const [activeTab, setActiveTab] = useState<"trainer" | "client">("client");
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   // Verificar si el usuario ya está autenticado
   useEffect(() => {
     const checkSession = async () => {
-      const session = await getActiveSession();
-      if (session) {
-        // Si ya hay una sesión activa, redirigir según el rol
-        localStorage.setItem('clientEmail', session.user.email || '');
-        localStorage.setItem('clientLoggedIn', 'true');
+      try {
+        console.log("Verificando sesión...");
+        const session = await getActiveSession();
         
-        // Verificar si el usuario tiene perfil
-        const hasProfile = await hasClientProfile(session.user.id);
-          
-        // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
-        if (!hasProfile) {
-          navigate("/client-register");
-        } else {
-          navigate("/client-portal");
-        }
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
-
-  const handleLogin = async (e: React.FormEvent, role: "trainer" | "client") => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // Verificamos credenciales de administrador (para entrenadores)
-      if (role === "trainer" && email === "admin" && password === "admin") {
-        toast.success("¡Bienvenido entrenador!");
-        navigate("/dashboard");
-        return;
-      }
-      
-      // Para clientes, usamos autenticación de Supabase
-      if (role === "client") {
-        console.log("Intentando iniciar sesión con:", { email, password });
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          console.error("Login error:", error);
-          toast.error(`Error de inicio de sesión: ${error.message}`);
-          setIsLoading(false);
-          return;
-        }
-
-        if (data.user) {
-          toast.success("¡Inicio de sesión exitoso!");
+        if (session) {
+          console.log("Sesión activa encontrada:", session);
+          localStorage.setItem('clientEmail', session.user.email || '');
           localStorage.setItem('clientLoggedIn', 'true');
-          localStorage.setItem('clientEmail', email);
           
           // Verificar si el usuario tiene perfil
-          const hasProfile = await hasClientProfile(data.user.id);
+          const hasProfile = await hasClientProfile(session.user.id);
+          console.log("¿El usuario tiene perfil?", hasProfile);
             
           // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
           if (!hasProfile) {
@@ -89,15 +50,55 @@ const Login = () => {
           } else {
             navigate("/client-portal");
           }
-          return;
+        } else {
+          console.log("No hay sesión activa");
+        }
+      } catch (error) {
+        console.error("Error verificando sesión:", error);
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Verificamos credenciales de administrador (para entrenadores)
+      if (activeTab === "trainer" && email === "admin" && password === "admin") {
+        toast.success("¡Bienvenido entrenador!");
+        navigate("/dashboard");
+        return;
+      }
+      
+      // Para clientes, usamos autenticación de Supabase
+      if (activeTab === "client") {
+        console.log("Intentando iniciar sesión con:", { email, password });
+        
+        const { user, session } = await signInWithPassword(email, password);
+
+        if (user) {
+          toast.success("¡Inicio de sesión exitoso!");
+          
+          // Verificar si el usuario tiene perfil
+          const hasProfile = await hasClientProfile(user.id);
+            
+          // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
+          if (!hasProfile) {
+            navigate("/client-register");
+          } else {
+            navigate("/client-portal");
+          }
         }
       } else {
         // Mensaje para credenciales incorrectas de entrenador
         toast.error("Credenciales inválidas");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
-      toast.error("Error al iniciar sesión. Inténtalo de nuevo.");
+      toast.error(`Error al iniciar sesión: ${error.message || "Inténtalo de nuevo"}`);
     } finally {
       setIsLoading(false);
     }
@@ -105,6 +106,18 @@ const Login = () => {
 
   const handleOpenRegisterDialog = () => {
     setRegisterDialogOpen(true);
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      await signInWithGoogle();
+      // No necesitamos manejar la redirección aquí ya que es manejada por OAuth
+    } catch (error: any) {
+      console.error("Error al iniciar sesión con Google:", error);
+      toast.error(`Error al iniciar sesión con Google: ${error.message}`);
+      setIsLoading(false);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -174,7 +187,7 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <Tabs 
-            defaultValue="trainer" 
+            defaultValue="client" 
             className="w-full" 
             value={activeTab} 
             onValueChange={(value) => {
@@ -185,30 +198,111 @@ const Login = () => {
               <TabsTrigger value="trainer">Entrenador</TabsTrigger>
               <TabsTrigger value="client">Cliente</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="trainer">
-              <LoginForm
-                role="trainer"
-                email={email}
-                setEmail={setEmail}
-                password={password}
-                setPassword={setPassword}
-                isLoading={isLoading}
-                onLogin={handleLogin}
-                setActiveTab={setActiveTab}
-              />
+              <CardContent className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="trainer-email">Usuario</Label>
+                    <Input
+                      id="trainer-email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Ingresa tu usuario"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="trainer-password">Contraseña</Label>
+                    <Input
+                      id="trainer-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Ingresa tu contraseña"
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Procesando..." : "Iniciar sesión"}
+                  </Button>
+                </form>
+              </CardContent>
             </TabsContent>
+            
             <TabsContent value="client">
-              <LoginForm
-                role="client"
-                email={email}
-                setEmail={setEmail}
-                password={password}
-                setPassword={setPassword}
-                isLoading={isLoading}
-                onLogin={handleLogin}
-                setActiveTab={setActiveTab}
-                onRegister={handleOpenRegisterDialog}
-              />
+              <CardContent className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="client-email">Email</Label>
+                    <Input
+                      id="client-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="tu@email.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="client-password">Contraseña</Label>
+                    <Input
+                      id="client-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Ingresa tu contraseña"
+                      required
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Procesando..." : "Iniciar sesión"}
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2 text-muted-foreground">
+                        o continúa con
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleGoogleLogin}
+                    disabled={isLoading}
+                  >
+                    <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                      <path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/>
+                    </svg>
+                    Google
+                  </Button>
+                  
+                  <p className="text-center text-sm">
+                    ¿No tienes una cuenta?{" "}
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto" 
+                      onClick={handleOpenRegisterDialog}
+                    >
+                      Regístrate
+                    </Button>
+                  </p>
+                </form>
+              </CardContent>
             </TabsContent>
           </Tabs>
         </Card>

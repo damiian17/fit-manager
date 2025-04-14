@@ -11,21 +11,37 @@ export const getActiveSession = async () => {
 };
 
 /**
+ * Obtiene datos del usuario actual
+ */
+export const getCurrentUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
+
+/**
  * Verifica si un usuario tiene perfil de cliente
  * @param userId ID del usuario
  * @returns True si tiene perfil, false si no
  */
 export const hasClientProfile = async (userId: string) => {
   try {
-    const { data } = await supabase
+    console.log("Verificando perfil para el usuario ID:", userId);
+    
+    const { data, error } = await supabase
       .from('clients')
       .select('id')
       .eq('id', userId)
       .maybeSingle();
     
+    if (error) {
+      console.error("Error verificando perfil de cliente:", error);
+      return false;
+    }
+    
+    console.log("Resultado de verificación de perfil:", data);
     return !!data;
   } catch (error) {
-    console.error("Error verificando perfil de cliente:", error);
+    console.error("Error inesperado verificando perfil de cliente:", error);
     return false;
   }
 };
@@ -34,9 +50,9 @@ export const hasClientProfile = async (userId: string) => {
  * Cierra la sesión del usuario
  */
 export const signOut = async () => {
-  await supabase.auth.signOut();
   localStorage.removeItem('clientLoggedIn');
   localStorage.removeItem('clientEmail');
+  await supabase.auth.signOut();
 };
 
 /**
@@ -62,6 +78,8 @@ export const signInWithGoogle = async () => {
  * Inicia sesión con email y contraseña
  */
 export const signInWithPassword = async (email: string, password: string) => {
+  console.log("Iniciando sesión con email:", email);
+  
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -72,6 +90,14 @@ export const signInWithPassword = async (email: string, password: string) => {
     throw error;
   }
   
+  console.log("Inicio de sesión exitoso:", data);
+  
+  // Guardar información en localStorage
+  if (data.user) {
+    localStorage.setItem('clientLoggedIn', 'true');
+    localStorage.setItem('clientEmail', email);
+  }
+  
   return data;
 };
 
@@ -79,9 +105,14 @@ export const signInWithPassword = async (email: string, password: string) => {
  * Registra un nuevo usuario con email y contraseña
  */
 export const signUpWithPassword = async (email: string, password: string) => {
+  console.log("Registrando nuevo usuario con email:", email);
+  
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: window.location.origin + '/client-register',
+    }
   });
   
   if (error) {
@@ -89,15 +120,15 @@ export const signUpWithPassword = async (email: string, password: string) => {
     throw error;
   }
   
+  console.log("Registro exitoso:", data);
+  
+  // Guardar información en localStorage
+  if (data.user) {
+    localStorage.setItem('clientLoggedIn', 'true');
+    localStorage.setItem('clientEmail', email);
+  }
+  
   return data;
-};
-
-/**
- * Obtiene datos del usuario actual
- */
-export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
 };
 
 /**
@@ -125,5 +156,49 @@ export const findUserIdByEmail = async (email: string) => {
   } catch (error) {
     console.error("Error inesperado buscando usuario:", error);
     return undefined;
+  }
+};
+
+/**
+ * Crea o actualiza el perfil de un cliente 
+ * @param clientData Datos del cliente a guardar
+ * @param userId ID del usuario (opcional, si no se proporciona se usará el usuario actual)
+ */
+export const saveClientProfile = async (clientData: any, userId?: string) => {
+  try {
+    // Si no se proporciona userId, intentar obtenerlo de la sesión actual
+    if (!userId) {
+      const user = await getCurrentUser();
+      userId = user?.id;
+      
+      if (!userId) {
+        throw new Error("No se pudo determinar el ID del usuario");
+      }
+    }
+    
+    console.log("Guardando perfil para usuario ID:", userId, "con datos:", clientData);
+    
+    // Preparar datos para guardar
+    const profileData = {
+      id: userId,
+      ...clientData
+    };
+    
+    // Upsert para crear o actualizar el perfil
+    const { data, error } = await supabase
+      .from('clients')
+      .upsert(profileData)
+      .select();
+    
+    if (error) {
+      console.error("Error guardando perfil del cliente:", error);
+      throw error;
+    }
+    
+    console.log("Perfil guardado exitosamente:", data);
+    return data;
+  } catch (error) {
+    console.error("Error inesperado guardando perfil:", error);
+    throw error;
   }
 };

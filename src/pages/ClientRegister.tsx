@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,9 +15,14 @@ import {
 } from "@/components/ui/select";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getActiveSession, getCurrentUser } from "@/utils/authUtils";
+import { 
+  getActiveSession, 
+  getCurrentUser, 
+  saveClientProfile 
+} from "@/utils/authUtils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import GoalsAndMedicalInputs from "@/components/clients/GoalsAndMedicalInputs";
+import PersonalInfoInputs from "@/components/clients/PersonalInfoInputs";
 
 const ClientRegister = () => {
   const navigate = useNavigate();
@@ -40,59 +46,66 @@ const ClientRegister = () => {
   // Obtener el email del cliente y verificar sesión
   useEffect(() => {
     const checkSession = async () => {
-      console.log("Verificando sesión de usuario...");
-      // Obtener sesión actual
-      const session = await getActiveSession();
-      
-      if (!session) {
-        console.log("No hay sesión activa, verificando localStorage...");
-        // Si no hay sesión, intentar usar el email del localStorage
-        const storedEmail = localStorage.getItem('clientEmail');
-        const clientLoggedIn = localStorage.getItem('clientLoggedIn');
+      try {
+        console.log("Verificando sesión de usuario...");
+        // Obtener sesión actual
+        const session = await getActiveSession();
         
-        if (!storedEmail || !clientLoggedIn) {
-          console.log("No hay datos en localStorage, redirigiendo a login...");
-          toast.error("Por favor inicia sesión o regístrate primero");
-          navigate("/login");
-          return;
+        if (session && session.user) {
+          // Si hay sesión, usar los datos del usuario autenticado
+          console.log("Sesión activa encontrada:", session);
+          
+          setUserId(session.user.id);
+          
+          // Obtener datos del usuario, incluidos posibles datos de redes sociales
+          const user = await getCurrentUser();
+          console.log("Datos del usuario:", user);
+          
+          let userName = "";
+          
+          // Si se ha registrado con OAuth, intentar obtener el nombre
+          if (user?.app_metadata?.provider === 'google') {
+            userName = user.user_metadata?.full_name || "";
+          }
+          
+          if (session.user.email) {
+            setClientEmail(session.user.email);
+            setFormData(prev => ({
+              ...prev, 
+              email: session.user.email || "",
+              name: userName || prev.name
+            }));
+            localStorage.setItem('clientEmail', session.user.email);
+            localStorage.setItem('clientLoggedIn', 'true');
+          }
+        } else {
+          console.log("No hay sesión activa, verificando localStorage...");
+          // Si no hay sesión, intentar usar el email del localStorage
+          const storedEmail = localStorage.getItem('clientEmail');
+          const clientLoggedIn = localStorage.getItem('clientLoggedIn');
+          
+          if (!storedEmail || !clientLoggedIn) {
+            console.log("No hay datos en localStorage, redirigiendo a login...");
+            setSessionError("No se ha podido encontrar una sesión activa. Por favor, inicia sesión primero.");
+            return;
+          }
+          
+          setClientEmail(storedEmail);
+          setFormData(prev => ({...prev, email: storedEmail}));
+          console.log("Usando email del localStorage:", storedEmail);
+          
+          // Intentar obtener usuario actual aunque no haya sesión detectada
+          const user = await getCurrentUser();
+          if (user) {
+            setUserId(user.id);
+            console.log("Usuario encontrado a pesar de no detectar sesión:", user);
+          } else {
+            console.log("No se pudo obtener el usuario actual");
+          }
         }
-        
-        setClientEmail(storedEmail);
-        setFormData(prev => ({...prev, email: storedEmail}));
-        console.log("Usando email del localStorage:", storedEmail);
-      } else {
-        // Si hay sesión, usar los datos del usuario autenticado
-        const userEmail = session.user.email;
-        const userId = session.user.id;
-        console.log("Sesión activa encontrada:", { userEmail, userId });
-        
-        if (!userId) {
-          setSessionError("No se pudo obtener el ID de usuario. Por favor, inicia sesión nuevamente.");
-          return;
-        }
-        
-        setUserId(userId);
-        
-        // Obtener datos del usuario, incluidos posibles datos de redes sociales
-        const user = await getCurrentUser();
-        
-        let userName = "";
-        
-        // Si se ha registrado con OAuth, intentar obtener el nombre
-        if (user?.app_metadata?.provider === 'google') {
-          userName = user.user_metadata?.full_name || "";
-        }
-        
-        if (userEmail) {
-          setClientEmail(userEmail);
-          setFormData(prev => ({
-            ...prev, 
-            email: userEmail,
-            name: userName || prev.name
-          }));
-          localStorage.setItem('clientEmail', userEmail);
-          localStorage.setItem('clientLoggedIn', 'true');
-        }
+      } catch (error) {
+        console.error("Error verificando sesión:", error);
+        setSessionError("Error al verificar la sesión. Por favor, inicia sesión nuevamente.");
       }
     };
     
@@ -120,74 +133,27 @@ const ClientRegister = () => {
         return;
       }
 
-      // Si hay un userId en el estado, usarlo. De lo contrario, obtener la sesión actual
-      let userIdToUse = userId;
-      
-      if (!userIdToUse) {
-        // Intentar obtener sesión
-        const session = await getActiveSession();
-        
-        if (session && session.user) {
-          userIdToUse = session.user.id;
-        } else {
-          // Intentar obtener el ID a partir del email
-          const currentUser = await getCurrentUser();
-          if (currentUser) {
-            userIdToUse = currentUser.id;
-          } else {
-            console.error("No se pudo determinar el ID de usuario");
-            toast.error("Error de autenticación. Por favor, inicia sesión e inténtalo de nuevo.");
-            setTimeout(() => navigate("/login"), 2000);
-            setIsSubmitting(false);
-            return;
-          }
-        }
-      }
-
-      if (!userIdToUse) {
-        console.error("No se pudo determinar el ID de usuario después de varios intentos");
-        toast.error("Error de autenticación. Vuelve a iniciar sesión y completa el formulario de nuevo.");
-        setTimeout(() => navigate("/login"), 2000);
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log("Registrando cliente con ID:", userIdToUse);
-
       // Calcular edad si hay fecha de nacimiento
       const age = formData.birthdate ? calculateAge(formData.birthdate) : undefined;
 
-      // Guardar perfil del cliente
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .upsert({
-          id: userIdToUse,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone || null,
-          birthdate: formData.birthdate || null,
-          height: formData.height || null,
-          weight: formData.weight || null,
-          fitness_level: formData.fitnessLevel || null,
-          goals: formData.goals || null,
-          medical_history: formData.medicalHistory || null,
-          status: "active",
-          age: age,
-          sex: formData.sex || null
-        })
-        .select();
+      // Preparar datos del cliente
+      const clientData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || null,
+        birthdate: formData.birthdate || null,
+        height: formData.height || null,
+        weight: formData.weight || null,
+        fitness_level: formData.fitnessLevel || null,
+        goals: formData.goals || null,
+        medical_history: formData.medicalHistory || null,
+        status: "active",
+        age: age,
+        sex: formData.sex || null
+      };
 
-      if (clientError) {
-        console.error("Error al guardar perfil:", clientError);
-        toast.error(`Error al guardar perfil: ${clientError.message}`);
-        setIsSubmitting(false);
-        return;
-      }
-
-      console.log("Perfil de cliente guardado:", clientData);
-
-      // Marcar al cliente como conectado
-      localStorage.setItem('clientLoggedIn', 'true');
+      // Intentar guardar el perfil del cliente
+      await saveClientProfile(clientData, userId || undefined);
 
       // Éxito
       toast.success("¡Registro completado con éxito! Tu entrenador podrá ver tu perfil y asignarte rutinas y dietas.");
@@ -253,56 +219,12 @@ const ClientRegister = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <PersonalInfoInputs 
+                  formData={formData} 
+                  handleChange={handleChange} 
+                />
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nombre completo *</Label>
-                    <Input 
-                      id="name" 
-                      name="name" 
-                      placeholder="Ej. Ana García Pérez" 
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input 
-                      id="email" 
-                      name="email" 
-                      type="email" 
-                      placeholder="Ej. cliente@ejemplo.com" 
-                      value={formData.email}
-                      onChange={handleChange}
-                      disabled
-                      required
-                    />
-                    <p className="text-sm text-gray-500">Email de registro (no se puede cambiar)</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input 
-                      id="phone" 
-                      name="phone" 
-                      placeholder="Ej. +34 612 345 678" 
-                      value={formData.phone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="birthdate">Fecha de nacimiento</Label>
-                    <Input 
-                      id="birthdate" 
-                      name="birthdate" 
-                      type="date" 
-                      value={formData.birthdate}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  
                   <div className="space-y-2">
                     <Label htmlFor="height">Altura (cm)</Label>
                     <Input 
@@ -363,29 +285,10 @@ const ClientRegister = () => {
                   </Select>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="goals">Objetivos de fitness</Label>
-                  <Textarea 
-                    id="goals" 
-                    name="goals" 
-                    placeholder="Describe tus objetivos de fitness (pérdida de peso, ganancia muscular, etc.)..." 
-                    className="min-h-[100px]"
-                    value={formData.goals}
-                    onChange={handleChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="medicalHistory">Historial médico relevante (opcional)</Label>
-                  <Textarea 
-                    id="medicalHistory" 
-                    name="medicalHistory" 
-                    placeholder="Indica cualquier información médica relevante (lesiones, condiciones, alergias, etc.)..." 
-                    className="min-h-[100px]"
-                    value={formData.medicalHistory}
-                    onChange={handleChange}
-                  />
-                </div>
+                <GoalsAndMedicalInputs 
+                  formData={formData} 
+                  handleChange={handleChange} 
+                />
               </CardContent>
               <CardFooter className="flex justify-center">
                 <Button type="submit" className="w-full max-w-md bg-fitBlue-600 hover:bg-fitBlue-700" disabled={isSubmitting}>
