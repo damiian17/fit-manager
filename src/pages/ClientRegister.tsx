@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 const ClientRegister = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [clientEmail, setClientEmail] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -37,32 +38,40 @@ const ClientRegister = () => {
   // Obtener el email del cliente del localStorage y verificar sesión
   useEffect(() => {
     const checkSession = async () => {
+      console.log("Verificando sesión de usuario...");
       // Obtener sesión actual
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        navigate("/login");
-        toast.error("Por favor inicia sesión primero");
+        console.log("No hay sesión activa, verificando localStorage...");
+        // Si no hay sesión, intentar usar el email del localStorage
+        const storedEmail = localStorage.getItem('clientEmail');
+        const clientLoggedIn = localStorage.getItem('clientLoggedIn');
+        
+        if (!storedEmail || !clientLoggedIn) {
+          console.log("No hay datos en localStorage, redirigiendo a login...");
+          toast.error("Por favor inicia sesión o regístrate primero");
+          navigate("/login");
+          return;
+        }
+        
+        setClientEmail(storedEmail);
+        setFormData(prev => ({...prev, email: storedEmail}));
+        console.log("Usando email del localStorage:", storedEmail);
         return;
       }
       
-      // Establecer el email del usuario autenticado
+      // Si hay sesión, usar los datos del usuario autenticado
       const userEmail = session.user.email;
+      const userId = session.user.id;
+      console.log("Sesión activa encontrada:", { userEmail, userId });
+      
       if (userEmail) {
         setClientEmail(userEmail);
+        setUserId(userId);
         setFormData(prev => ({...prev, email: userEmail}));
         localStorage.setItem('clientEmail', userEmail);
-      } else {
-        // Si no hay email en la sesión, usar el del localStorage como fallback
-        const storedEmail = localStorage.getItem('clientEmail');
-        if (storedEmail) {
-          setClientEmail(storedEmail);
-          setFormData(prev => ({...prev, email: storedEmail}));
-        } else {
-          // Si no hay email en ninguna parte, redirigir al login
-          navigate("/login");
-          toast.error("Por favor registra una cuenta primero");
-        }
+        localStorage.setItem('clientLoggedIn', 'true');
       }
     };
     
@@ -90,17 +99,46 @@ const ClientRegister = () => {
         return;
       }
 
-      // Obtener el usuario autenticado
-      const { data: { session } } = await supabase.auth.getSession();
+      // Obtener el usuario autenticado o verificar el email
+      let userIdToUse = userId;
       
-      if (!session || !session.user) {
-        toast.error("No hay sesión activa");
-        navigate("/login");
-        return;
+      if (!userIdToUse) {
+        // Si no tenemos ID de usuario de la sesión, intentar buscar por email
+        console.log("Buscando usuario por email:", formData.email);
+        const { data: userData, error: userError } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('email', formData.email)
+          .single();
+          
+        if (userError && userError.code !== 'PGRST116') {
+          // Error distinto a "no se encontró el registro"
+          console.error("Error al buscar usuario:", userError);
+          toast.error("Error al verificar usuario");
+          setIsSubmitting(false);
+          return;
+        }
+        
+        if (userData) {
+          userIdToUse = userData.id;
+          console.log("Usuario encontrado por email:", userIdToUse);
+        } else {
+          // Intentar obtener ID de la sesión actual
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session && session.user) {
+            userIdToUse = session.user.id;
+            console.log("Usando ID de la sesión actual:", userIdToUse);
+          } else {
+            console.error("No se pudo determinar el ID de usuario");
+            toast.error("Error de autenticación. Por favor, inicia sesión nuevamente.");
+            navigate("/login");
+            return;
+          }
+        }
       }
 
-      const userId = session.user.id;
-      console.log("Registrando cliente con ID:", userId);
+      console.log("Registrando cliente con ID:", userIdToUse);
 
       // Calcular edad si hay fecha de nacimiento
       const age = formData.birthdate ? calculateAge(formData.birthdate) : undefined;
@@ -109,13 +147,14 @@ const ClientRegister = () => {
       const { data: existingProfile } = await supabase
         .from('clients')
         .select('id')
-        .eq('id', userId)
+        .eq('id', userIdToUse)
         .single();
 
       let clientData;
       
       if (existingProfile) {
         // Actualizar el perfil existente
+        console.log("Actualizando perfil existente para:", userIdToUse);
         const { data, error } = await supabase
           .from('clients')
           .update({
@@ -132,17 +171,21 @@ const ClientRegister = () => {
             age: age,
             sex: formData.sex || null
           })
-          .eq('id', userId)
+          .eq('id', userIdToUse)
           .select();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error al actualizar:", error);
+          throw error;
+        }
         clientData = data;
       } else {
         // Crear un nuevo perfil de cliente
+        console.log("Creando nuevo perfil para:", userIdToUse);
         const { data, error } = await supabase
           .from('clients')
           .insert({
-            id: userId, // Usar el ID de autenticación como ID de cliente
+            id: userIdToUse, // Usar el ID de autenticación como ID de cliente
             name: formData.name,
             email: formData.email,
             phone: formData.phone || null,
@@ -158,7 +201,10 @@ const ClientRegister = () => {
           })
           .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error al insertar:", error);
+          throw error;
+        }
         clientData = data;
       }
 
@@ -189,6 +235,7 @@ const ClientRegister = () => {
     return age;
   };
 
+  // ... Mantener el componente de renderizado existente
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10">
       <main className="max-w-4xl mx-auto px-4">

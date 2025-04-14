@@ -7,13 +7,21 @@ import { toast } from "sonner";
 import LoginHeader from "@/components/auth/LoginHeader";
 import LoginForm from "@/components/auth/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
+  const [registerPassword, setRegisterPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"trainer" | "client">("trainer");
   const [isRegistering, setIsRegistering] = useState(false);
+  const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   // Verificar si el usuario ya está autenticado
@@ -77,24 +85,34 @@ const Login = () => {
     }
   };
 
+  const handleOpenRegisterDialog = () => {
+    setRegisterDialogOpen(true);
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       // Validar email y contraseña
-      if (!email || !password) {
+      if (!registerEmail || !registerPassword) {
         toast.error("Por favor ingresa un email y contraseña");
         setIsLoading(false);
         return;
       }
 
-      console.log("Intentando registrar:", { email, password });
+      if (registerPassword !== confirmPassword) {
+        toast.error("Las contraseñas no coinciden");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Intentando registrar:", { email: registerEmail, password: registerPassword });
 
       // Crear usuario en Supabase auth
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: registerEmail,
+        password: registerPassword,
       });
 
       if (error) {
@@ -106,13 +124,17 @@ const Login = () => {
 
       console.log("Usuario registrado:", data);
 
-      // Guardar el email para el registro del perfil
-      localStorage.setItem('clientEmail', email);
-      
-      // Redirigir al formulario de registro de perfil
-      toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
-      navigate("/client-register");
-      
+      // Si el usuario se ha registrado correctamente, iniciar sesión automáticamente
+      if (data.user) {
+        // Guardar el email para el registro del perfil
+        localStorage.setItem('clientEmail', registerEmail);
+        localStorage.setItem('clientLoggedIn', 'true');
+        
+        // Redirigir al formulario de registro de perfil
+        toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
+        setRegisterDialogOpen(false);
+        navigate("/client-register");
+      }
     } catch (error) {
       console.error("Registration error:", error);
       toast.error("Error al registrar. Inténtalo de nuevo.");
@@ -129,12 +151,10 @@ const Login = () => {
         <Card className="w-full">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
-              {isRegistering && activeTab === "client" ? "Registro de Cliente" : "Acceso a Fit Manager"}
+              Acceso a Fit Manager
             </CardTitle>
             <CardDescription className="text-center">
-              {isRegistering && activeTab === "client" 
-                ? "Crea una cuenta para acceder a tus rutinas y dietas personalizadas" 
-                : "Ingresa tus credenciales para acceder al sistema"}
+              Ingresa tus credenciales para acceder al sistema
             </CardDescription>
           </CardHeader>
           <Tabs 
@@ -143,7 +163,6 @@ const Login = () => {
             value={activeTab} 
             onValueChange={(value) => {
               setActiveTab(value as "trainer" | "client");
-              setIsRegistering(false);
             }}
           >
             <TabsList className="w-full grid grid-cols-2">
@@ -163,69 +182,76 @@ const Login = () => {
               />
             </TabsContent>
             <TabsContent value="client">
-              {isRegistering ? (
-                <form onSubmit={handleRegister}>
-                  <div className="p-6 space-y-4">
-                    <div className="space-y-2">
-                      <label htmlFor="email" className="text-sm font-medium">Email</label>
-                      <input
-                        id="email"
-                        type="email"
-                        className="w-full p-2 border rounded"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="tu@email.com"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label htmlFor="password" className="text-sm font-medium">Contraseña</label>
-                      <input
-                        id="password"
-                        type="password"
-                        className="w-full p-2 border rounded"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Contraseña"
-                        required
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="w-full py-2 px-4 bg-fitBlue-600 text-white rounded hover:bg-fitBlue-700 transition"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Procesando..." : "Registrarme"}
-                    </button>
-                    <p className="text-center text-sm mt-4">
-                      ¿Ya tienes cuenta?{" "}
-                      <button
-                        type="button"
-                        className="text-fitBlue-600 hover:underline"
-                        onClick={() => setIsRegistering(false)}
-                      >
-                        Iniciar sesión
-                      </button>
-                    </p>
-                  </div>
-                </form>
-              ) : (
-                <LoginForm
-                  role="client"
-                  email={email}
-                  setEmail={setEmail}
-                  password={password}
-                  setPassword={setPassword}
-                  isLoading={isLoading}
-                  onLogin={handleLogin}
-                  setActiveTab={setActiveTab}
-                  onRegister={() => setIsRegistering(true)}
-                />
-              )}
+              <LoginForm
+                role="client"
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                isLoading={isLoading}
+                onLogin={handleLogin}
+                setActiveTab={setActiveTab}
+                onRegister={handleOpenRegisterDialog}
+              />
             </TabsContent>
           </Tabs>
         </Card>
       </div>
+
+      {/* Dialog para registro de clientes */}
+      <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registro de Cliente</DialogTitle>
+            <DialogDescription>
+              Crea una cuenta para acceder a tus rutinas y dietas personalizadas
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="registerEmail">Email</Label>
+              <Input
+                id="registerEmail"
+                type="email"
+                value={registerEmail}
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                placeholder="tu@email.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="registerPassword">Contraseña</Label>
+              <Input
+                id="registerPassword"
+                type="password"
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                placeholder="Contraseña"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite la contraseña"
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setRegisterDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Procesando..." : "Registrarme"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
