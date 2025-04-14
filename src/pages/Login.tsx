@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { getActiveSession, hasClientProfile } from "@/utils/authUtils";
+import { getActiveSession, hasClientProfile, signUpWithPassword } from "@/utils/authUtils";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -127,35 +127,33 @@ const Login = () => {
 
       console.log("Intentando registrar:", { email: registerEmail, password: registerPassword });
 
-      // Crear usuario en Supabase auth
-      const { data, error } = await supabase.auth.signUp({
-        email: registerEmail,
-        password: registerPassword,
-      });
+      // Usar la función de registro desde authUtils
+      const { user, session } = await signUpWithPassword(registerEmail, registerPassword);
 
-      if (error) {
-        console.error("Registration error:", error);
-        toast.error("Error al registrar: " + error.message);
-        setIsLoading(false);
-        return;
-      }
+      console.log("Usuario registrado:", { user, session });
 
-      console.log("Usuario registrado:", data);
-
-      // Si el usuario se ha registrado correctamente, preparar para el siguiente paso
-      if (data.user) {
+      // Manejar el caso de registration_confirmed y registration_sent de manera diferente
+      if (user) {
         // Guardar el email para el registro del perfil
         localStorage.setItem('clientEmail', registerEmail);
         localStorage.setItem('clientLoggedIn', 'true');
         
-        // Redirigir al formulario de registro de perfil
-        toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
-        setRegisterDialogOpen(false);
-        navigate("/client-register");
+        // Si hay una sesión activa, usarla directamente
+        if (session) {
+          // Redirigir al formulario de registro de perfil
+          toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
+          setRegisterDialogOpen(false);
+          navigate("/client-register");
+        } else {
+          // Si no hay sesión (confirmación pendiente), mostrar mensaje específico
+          toast.success("Cuenta creada. Verifica tu email para confirmar tu cuenta (si es necesario).");
+          setRegisterDialogOpen(false);
+          navigate("/client-register");
+        }
       }
     } catch (error: any) {
       console.error("Registration error:", error);
-      toast.error("Error al registrar. Inténtalo de nuevo.");
+      toast.error(`Error al registrar: ${error.message}`);
     } finally {
       setIsLoading(false);
     }

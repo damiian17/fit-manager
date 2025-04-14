@@ -59,6 +59,40 @@ export const signInWithGoogle = async () => {
 };
 
 /**
+ * Inicia sesión con email y contraseña
+ */
+export const signInWithPassword = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  
+  if (error) {
+    console.error("Error al iniciar sesión con email y contraseña:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+/**
+ * Registra un nuevo usuario con email y contraseña
+ */
+export const signUpWithPassword = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+  
+  if (error) {
+    console.error("Error al registrar usuario:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+/**
  * Obtiene datos del usuario actual
  */
 export const getCurrentUser = async () => {

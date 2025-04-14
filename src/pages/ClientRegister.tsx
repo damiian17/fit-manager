@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -121,25 +120,34 @@ const ClientRegister = () => {
         return;
       }
 
-      // Obtener la sesión actual para obtener el ID de usuario
-      const session = await getActiveSession();
-      
-      // Si no hay sesión, no podemos continuar
-      if (!session) {
-        console.error("No hay sesión activa, imposible continuar");
-        toast.error("Error de autenticación. Por favor, vuelve a iniciar sesión.");
-        navigate("/login");
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Usar el userId de la sesión
-      const userIdToUse = session.user.id;
+      // Si hay un userId en el estado, usarlo. De lo contrario, obtener la sesión actual
+      let userIdToUse = userId;
       
       if (!userIdToUse) {
-        console.error("No se pudo determinar el ID de usuario");
-        toast.error("Error de autenticación. Por favor, inicia sesión nuevamente.");
-        navigate("/login");
+        // Intentar obtener sesión
+        const session = await getActiveSession();
+        
+        if (session && session.user) {
+          userIdToUse = session.user.id;
+        } else {
+          // Intentar obtener el ID a partir del email
+          const currentUser = await getCurrentUser();
+          if (currentUser) {
+            userIdToUse = currentUser.id;
+          } else {
+            console.error("No se pudo determinar el ID de usuario");
+            toast.error("Error de autenticación. Por favor, inicia sesión e inténtalo de nuevo.");
+            setTimeout(() => navigate("/login"), 2000);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
+      if (!userIdToUse) {
+        console.error("No se pudo determinar el ID de usuario después de varios intentos");
+        toast.error("Error de autenticación. Vuelve a iniciar sesión y completa el formulario de nuevo.");
+        setTimeout(() => navigate("/login"), 2000);
         setIsSubmitting(false);
         return;
       }
