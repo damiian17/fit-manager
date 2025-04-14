@@ -68,6 +68,9 @@ export interface SummaryItem {
   };
 }
 
+// Alias for SummaryItem to make the code more readable
+export type DietSummary = SummaryItem;
+
 // Generated diet data structure
 export interface GeneratedDiet {
   days: DietDay[];

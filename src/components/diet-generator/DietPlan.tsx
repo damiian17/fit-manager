@@ -8,16 +8,17 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { FileDown, Mail, Salad, Utensils, Calendar, PieChart, BarChart3 } from "lucide-react";
-import { WebhookResponse, DietOption, DietSummary } from "@/types/diet";
+import { WebhookResponse, DietOption, SummaryItem, DietSummary } from "@/types/diet";
 
 interface DietPlanProps {
   webhookResponse: WebhookResponse | null;
   selectedOption: string;
   onOptionChange: (option: string) => void;
   onReset: () => void;
+  onSave: () => void;
 }
 
-export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onReset }: DietPlanProps) => {
+export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onReset, onSave }: DietPlanProps) => {
   if (!webhookResponse) {
     return <div>No hay datos disponibles</div>;
   }
@@ -106,7 +107,7 @@ export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onRe
           {/* Comidas del día */}
           <div className="space-y-6">
             <h3 className="font-semibold mb-3">Plan Alimentario</h3>
-            {mealsArray.map((meal, index) => (
+            {mealsArray.map((meal) => (
               <Card key={meal.id} className="overflow-hidden">
                 <CardHeader className="bg-fitGreen-50 pb-2">
                   <div className="flex items-center">
@@ -172,7 +173,7 @@ export const DietPlan = ({ webhookResponse, selectedOption, onOptionChange, onRe
         <Button variant="outline" className="flex-1" onClick={onReset}>
           Modificar parámetros
         </Button>
-        <Button className="flex-1 bg-fitGreen-600 hover:bg-fitGreen-700">
+        <Button className="flex-1 bg-fitGreen-600 hover:bg-fitGreen-700" onClick={onSave}>
           Guardar plan dietético
         </Button>
       </div>
