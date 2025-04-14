@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DietFormData, WebhookResponse } from "@/types/diet";
@@ -9,6 +9,7 @@ import { DietaryPreferences } from "./DietaryPreferences";
 import { AllergySelector } from "./AllergySelector";
 import { SubmitButton } from "./SubmitButton";
 import { foodOptions } from "./dietConstants";
+import { getClientById } from "@/utils/clientStorage";
 
 interface DietFormProps {
   onDietGenerated: (response: WebhookResponse) => void;
@@ -37,7 +38,24 @@ export const DietForm = ({ onDietGenerated }: DietFormProps) => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === "clientId" && value !== "nuevo") {
+      // Load client data when an existing client is selected
+      const selectedClient = getClientById(parseInt(value));
+      if (selectedClient) {
+        setFormData(prev => ({
+          ...prev,
+          clientId: value,
+          clientName: selectedClient.name,
+          age: selectedClient.age?.toString() || "",
+          weight: selectedClient.weight || "",
+          height: selectedClient.height || "",
+          // Only set sex if it's available and valid
+          sex: selectedClient.sex || "",
+        }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const toggleAllergy = (allergy: string) => {

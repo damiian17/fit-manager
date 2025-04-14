@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { 
@@ -8,6 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getClients } from "@/utils/clientStorage";
+
+interface Client {
+  id: number;
+  name: string;
+}
 
 interface ClientSelectorProps {
   clientId: string;
@@ -26,6 +33,14 @@ export const ClientSelector = ({
   onClientNameChange,
   onDietNameChange
 }: ClientSelectorProps) => {
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    // Load registered clients from local storage
+    const registeredClients = getClients();
+    setClients(registeredClients);
+  }, []);
+  
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -36,7 +51,11 @@ export const ClientSelector = ({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="nuevo">Crear nuevo cliente</SelectItem>
-            {/* Client list will be populated here in the future */}
+            {clients.map((client) => (
+              <SelectItem key={client.id} value={client.id.toString()}>
+                {client.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { DietPlan } from "@/components/diet-generator/DietPlan";
 import { NutritionalTips } from "@/components/diet-generator/NutritionalTips";
 import { WebhookResponse, DietOption } from "@/types/diet";
 import { toast } from "sonner";
+import { saveDiet, getClientById } from "@/utils/clientStorage";
 
 const DietGenerator = () => {
   const navigate = useNavigate();
@@ -22,6 +23,16 @@ const DietGenerator = () => {
   });
 
   const handleDietGenerated = (response: WebhookResponse) => {
+    // Extract client information from the first item in the response
+    const firstItem = response[0];
+    if (firstItem && 'clientId' in firstItem && 'clientName' in firstItem && 'dietName' in firstItem) {
+      setClientInfo({
+        id: firstItem.clientId,
+        name: firstItem.clientName,
+        dietName: firstItem.dietName
+      });
+    }
+    
     setWebhookResponse(response);
     setDietGenerated(true);
   };
@@ -36,10 +47,53 @@ const DietGenerator = () => {
   };
 
   const handleSaveDiet = () => {
-    // In the future, we'll implement actual saving to a database
-    // For now, we'll just show a success message
-    toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${clientInfo.name || "el cliente"}`);
-    navigate("/diets");
+    if (!webhookResponse) return;
+    
+    // Get the selected diet option
+    const selectedDietOption = webhookResponse.find(
+      (item) => 'opcion' in item && item.opcion === selectedOption
+    ) as DietOption | undefined;
+    
+    if (!selectedDietOption) {
+      toast.error("No se pudo encontrar la opción de dieta seleccionada");
+      return;
+    }
+    
+    try {
+      // Create a diet object
+      const clientId = clientInfo.id !== "nuevo" ? parseInt(clientInfo.id) : null;
+      
+      // If no valid client ID, show an error
+      if (!clientId) {
+        toast.error("Es necesario seleccionar un cliente existente para guardar la dieta");
+        return;
+      }
+      
+      // Check if client exists
+      const client = getClientById(clientId);
+      if (!client) {
+        toast.error("No se encontró el cliente seleccionado");
+        return;
+      }
+      
+      // Create and save diet
+      const newDiet = {
+        id: Date.now(),
+        name: clientInfo.dietName,
+        clientId: clientId,
+        clientName: client.name,
+        createdAt: new Date().toISOString(),
+        content: selectedDietOption,
+        status: "Activa"
+      };
+      
+      saveDiet(newDiet);
+      toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${client.name}`);
+      navigate("/diets");
+    } catch (error) {
+      console.error("Error al guardar la dieta:", error);
+      toast.error("Hubo un error al guardar el plan dietético");
+    }
   };
 
   // Get the selected diet option
