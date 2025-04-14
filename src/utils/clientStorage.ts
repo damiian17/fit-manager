@@ -1,9 +1,9 @@
 // Type definitions
-interface Client {
-  id: number | string;
+export interface Client {
+  id: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   birthdate?: string;
   height?: string;
   weight?: string;
@@ -17,30 +17,26 @@ interface Client {
   workouts: Workout[];
 }
 
-interface Diet {
-  id: number | string;
+export interface Diet {
+  id: string;
   name: string;
-  clientId: number | string;
+  clientId: string;
   clientName: string;
   createdAt: string;
   // Other diet properties
 }
 
-interface Workout {
-  id: number | string;
+export interface Workout {
+  id: string;
   name: string;
-  clientId: number | string;
+  clientId: string;
   clientName: string;
   createdAt: string;
   // Other workout properties
 }
 
 import { supabase } from "@/integrations/supabase/client";
-
-// Storage keys
-const CLIENTS_STORAGE_KEY = 'fit-manager-clients';
-const DIETS_STORAGE_KEY = 'fit-manager-diets';
-const WORKOUTS_STORAGE_KEY = 'fit-manager-workouts';
+import { Json } from '@/integrations/supabase/types';
 
 // Client functions
 export const getClients = async (): Promise<Client[]> => {
@@ -78,7 +74,7 @@ export const getClients = async (): Promise<Client[]> => {
   }
 };
 
-export const saveClient = async (client: Client) => {
+export const saveClient = async (client: Omit<Client, 'id' | 'diets' | 'workouts'>) => {
   try {
     // Save to Supabase
     const { data, error } = await supabase
@@ -107,7 +103,9 @@ export const saveClient = async (client: Client) => {
 
     return {
       ...client,
-      id: data.id
+      id: data.id,
+      diets: [],
+      workouts: []
     };
   } catch (error) {
     console.error("Unexpected error saving client:", error);
@@ -152,7 +150,7 @@ export const updateClient = async (updatedClient: Client) => {
   }
 };
 
-export const deleteClient = async (clientId: number | string) => {
+export const deleteClient = async (clientId: string) => {
   try {
     const { error } = await supabase
       .from('clients')
@@ -171,7 +169,7 @@ export const deleteClient = async (clientId: number | string) => {
   }
 };
 
-export const getClientById = async (clientId: number | string): Promise<Client | undefined> => {
+export const getClientById = async (clientId: string): Promise<Client | undefined> => {
   try {
     const { data, error } = await supabase
       .from('clients')
@@ -224,9 +222,9 @@ export const getDiets = async (): Promise<Diet[]> => {
     return data.map(diet => ({
       id: diet.id,
       name: diet.name,
-      clientId: diet.client_id,
+      clientId: diet.client_id || "",
       clientName: diet.client_name,
-      createdAt: diet.created_at,
+      createdAt: diet.created_at || new Date().toISOString(),
     }));
   } catch (error) {
     console.error("Unexpected error fetching diets:", error);
@@ -234,7 +232,7 @@ export const getDiets = async (): Promise<Diet[]> => {
   }
 };
 
-export const saveDiet = async (diet: Diet) => {
+export const saveDiet = async (diet: Omit<Diet, 'id' | 'createdAt'>) => {
   try {
     // Save diet to Supabase
     const { data, error } = await supabase
@@ -243,8 +241,8 @@ export const saveDiet = async (diet: Diet) => {
         name: diet.name,
         client_id: diet.clientId,
         client_name: diet.clientName,
-        diet_data: {},
-        form_data: {}
+        diet_data: {} as Json,
+        form_data: {} as Json
       })
       .select()
       .single();
@@ -256,7 +254,8 @@ export const saveDiet = async (diet: Diet) => {
     
     return {
       ...diet,
-      id: data.id
+      id: data.id,
+      createdAt: data.created_at || new Date().toISOString()
     };
   } catch (error) {
     console.error("Unexpected error saving diet:", error);
@@ -280,9 +279,9 @@ export const getWorkouts = async (): Promise<Workout[]> => {
     return data.map(workout => ({
       id: workout.id,
       name: workout.name,
-      clientId: workout.client_id,
+      clientId: workout.client_id || "",
       clientName: workout.client_name,
-      createdAt: workout.created_at,
+      createdAt: workout.created_at || new Date().toISOString(),
     }));
   } catch (error) {
     console.error("Unexpected error fetching workouts:", error);
@@ -290,7 +289,7 @@ export const getWorkouts = async (): Promise<Workout[]> => {
   }
 };
 
-export const saveWorkout = async (workout: Workout) => {
+export const saveWorkout = async (workout: Omit<Workout, 'id' | 'createdAt'>) => {
   try {
     // Save workout to Supabase
     const { data, error } = await supabase
@@ -299,8 +298,8 @@ export const saveWorkout = async (workout: Workout) => {
         name: workout.name,
         client_id: workout.clientId,
         client_name: workout.clientName,
-        workout_data: {},
-        form_data: {}
+        workout_data: {} as Json,
+        form_data: {} as Json
       })
       .select()
       .single();
@@ -312,7 +311,8 @@ export const saveWorkout = async (workout: Workout) => {
     
     return {
       ...workout,
-      id: data.id
+      id: data.id,
+      createdAt: data.created_at || new Date().toISOString()
     };
   } catch (error) {
     console.error("Unexpected error saving workout:", error);

@@ -9,9 +9,9 @@ import { RecentClients } from "@/components/dashboard/RecentClients";
 import { getClients, getStats } from "@/utils/clientStorage";
 import { toast } from "sonner";
 
-// Type for client data
-interface ClientData {
-  id: number | string;
+// Type for client data specifically for the RecentClients component
+interface DashboardClientData {
+  id: string;
   name: string;
   goal: string;
   level: string;
@@ -19,7 +19,7 @@ interface ClientData {
 }
 
 const Dashboard = () => {
-  const [clients, setClients] = useState<ClientData[]>([]);
+  const [clients, setClients] = useState<DashboardClientData[]>([]);
   const [stats, setStats] = useState({
     totalClients: 0,
     activeWorkouts: 0,

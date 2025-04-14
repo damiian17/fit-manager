@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, User } from "lucide-react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { saveClient } from "@/utils/clientStorage";
 
@@ -69,11 +68,8 @@ const ClientRegister = () => {
       // Create new client object
       const newClient = {
         ...formData,
-        id: Date.now(), // This will be replaced by Supabase's UUID
         status: "active",
-        age: formData.birthdate ? calculateAge(formData.birthdate) : 0,
-        diets: [],
-        workouts: []
+        age: formData.birthdate ? calculateAge(formData.birthdate) : undefined,
       };
 
       // Save client to Supabase

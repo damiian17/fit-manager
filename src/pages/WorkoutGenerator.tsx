@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Sparkles, FileDown, Mail, Dumbbell, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { getClients, saveClient, saveWorkout, getClientById } from "@/utils/clientStorage";
+import { getClients, saveClient, saveWorkout, getClientById, Client } from "@/utils/clientStorage";
 
 const WorkoutGenerator = () => {
   const navigate = useNavigate();
@@ -56,21 +55,26 @@ const WorkoutGenerator = () => {
   ];
 
   // Load available clients
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   
-  useState(() => {
-    setClients(getClients());
-  });
+  useEffect(() => {
+    const loadClients = async () => {
+      const clientsList = await getClients();
+      setClients(clientsList);
+    };
+    
+    loadClients();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
+  const handleSelectChange = async (name: string, value: string) => {
     if (name === "clientId" && value !== "nuevo") {
       // Load client data when an existing client is selected
-      const selectedClient = getClientById(parseInt(value));
+      const selectedClient = await getClientById(value);
       if (selectedClient) {
         setFormData(prev => ({
           ...prev,
@@ -134,9 +138,9 @@ const WorkoutGenerator = () => {
     }
   };
 
-  const handleSaveWorkout = () => {
+  const handleSaveWorkout = async () => {
     try {
-      let clientId: number;
+      let clientId: string;
       
       // Check if we need to create a new client or use an existing one
       if (formData.clientId === "nuevo") {
@@ -147,25 +151,22 @@ const WorkoutGenerator = () => {
         
         // Create a new client
         const newClient = {
-          id: Date.now(),
           name: formData.clientName,
           email: "",
           phone: "",
           status: "active",
-          diets: [],
-          workouts: []
         };
         
         // Save the new client
-        saveClient(newClient);
-        clientId = newClient.id;
+        const savedClient = await saveClient(newClient);
+        clientId = savedClient.id;
         toast.success(`Nuevo cliente "${formData.clientName}" creado`);
       } else if (formData.clientId) {
         // Use existing client
-        clientId = parseInt(formData.clientId);
+        clientId = formData.clientId;
         
         // Check if client exists
-        const client = getClientById(clientId);
+        const client = await getClientById(clientId);
         if (!client) {
           toast.error("No se encontró el cliente seleccionado");
           return;
@@ -177,24 +178,13 @@ const WorkoutGenerator = () => {
       
       // Create and save workout
       const newWorkout = {
-        id: Date.now(),
         name: formData.workoutName,
         clientId: clientId,
         clientName: formData.clientName,
         createdAt: new Date().toISOString(),
-        content: {
-          days: generatedWorkout.days,
-          type: formData.workoutType,
-          fitnessLevel: formData.fitnessLevel,
-          daysPerWeek: formData.daysPerWeek,
-          equipment: formData.equipment,
-          duration: formData.duration
-        },
-        status: "Activa",
-        startDate: new Date().toISOString()
       };
       
-      saveWorkout(newWorkout);
+      await saveWorkout(newWorkout);
       toast.success(`Rutina "${formData.workoutName}" guardada para ${formData.clientName || "el cliente"}`);
       navigate("/workouts");
     } catch (error) {

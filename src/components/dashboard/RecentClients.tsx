@@ -5,9 +5,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Sample data type
+// Match the type from Dashboard.tsx
 interface ClientData {
-  id: number;
+  id: string;
   name: string;
   goal: string;
   level: string;

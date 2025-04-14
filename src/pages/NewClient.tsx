@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -53,11 +52,8 @@ const NewClient = () => {
       // Create new client object
       const newClient = {
         ...formData,
-        id: Date.now(), // This will be replaced by Supabase's UUID
         status: "active",
-        age: formData.birthdate ? calculateAge(formData.birthdate) : 0,
-        diets: [],
-        workouts: []
+        age: formData.birthdate ? calculateAge(formData.birthdate) : undefined,
       };
 
       // Save client to Supabase
