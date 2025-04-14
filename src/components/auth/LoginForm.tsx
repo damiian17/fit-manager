@@ -17,6 +17,7 @@ interface LoginFormProps {
   isLoading: boolean;
   onLogin: (e: React.FormEvent, role: "trainer" | "client") => Promise<void>;
   setActiveTab: (tab: "trainer" | "client") => void;
+  onRegister?: () => void;
 }
 
 const LoginForm = ({
@@ -28,6 +29,7 @@ const LoginForm = ({
   isLoading,
   onLogin,
   setActiveTab,
+  onRegister,
 }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -91,14 +93,29 @@ const LoginForm = ({
           </div>
         ) : (
           <div className="mt-4 text-center text-sm">
-            ¿Eres entrenador?{" "}
-            <button
-              type="button"
-              className="text-fitBlue-600 hover:text-fitBlue-700 font-medium"
-              onClick={() => setActiveTab("trainer")}
-            >
-              Ingresa como entrenador
-            </button>
+            {onRegister ? (
+              <>
+                ¿No tienes cuenta?{" "}
+                <button
+                  type="button"
+                  className="text-fitBlue-600 hover:text-fitBlue-700 font-medium"
+                  onClick={onRegister}
+                >
+                  Regístrate
+                </button>
+              </>
+            ) : (
+              <>
+                ¿Eres entrenador?{" "}
+                <button
+                  type="button"
+                  className="text-fitBlue-600 hover:text-fitBlue-700 font-medium"
+                  onClick={() => setActiveTab("trainer")}
+                >
+                  Ingresa como entrenador
+                </button>
+              </>
+            )}
           </div>
         )}
       </CardFooter>

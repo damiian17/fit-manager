@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import { saveClient } from "@/utils/clientStorage";
 const ClientRegister = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clientEmail, setClientEmail] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -31,6 +32,19 @@ const ClientRegister = () => {
     goals: "",
     medicalHistory: "",
   });
+
+  // Get client email from localStorage
+  useEffect(() => {
+    const email = localStorage.getItem('clientEmail');
+    if (email) {
+      setClientEmail(email);
+      setFormData(prev => ({...prev, email}));
+    } else {
+      // If no email is found, redirect to login
+      navigate("/login");
+      toast.error("Por favor registra una cuenta primero");
+    }
+  }, [navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -65,6 +79,9 @@ const ClientRegister = () => {
       // Save client
       saveClient(newClient);
 
+      // Mark client as logged in
+      localStorage.setItem('clientLoggedIn', 'true');
+
       // On success
       toast.success("¡Registro completado con éxito! Tu entrenador podrá ver tu perfil y asignarte rutinas y dietas.");
       navigate("/client-portal");
@@ -92,9 +109,9 @@ const ClientRegister = () => {
       <main className="max-w-4xl mx-auto px-4">
         <Card className="mb-8">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Registro de Cliente</CardTitle>
+            <CardTitle className="text-2xl">Completa tu Perfil</CardTitle>
             <CardDescription>
-              Completa tus datos para que tu entrenador pueda crear planes personalizados para ti
+              Proporciónanos tu información para que tu entrenador pueda crear planes personalizados para ti
             </CardDescription>
           </CardHeader>
         </Card>
@@ -130,8 +147,10 @@ const ClientRegister = () => {
                     placeholder="Ej. cliente@ejemplo.com" 
                     value={formData.email}
                     onChange={handleChange}
+                    disabled
                     required
                   />
+                  <p className="text-sm text-gray-500">Email de registro (no se puede cambiar)</p>
                 </div>
                 
                 <div className="space-y-2">
