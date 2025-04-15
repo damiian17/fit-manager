@@ -23,17 +23,37 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     try {
       // Process diet data from the diet prop
       if (diet && diet.diet_data) {
-        // Ensure diet_data is an array
-        console.log("Diet data:", diet.diet_data);
-        const data = Array.isArray(diet.diet_data) ? diet.diet_data : [];
-        setDietData(data);
+        console.log("Processing diet data:", diet.diet_data);
+        
+        // Handle different types of diet_data
+        if (typeof diet.diet_data === 'string') {
+          try {
+            // Try to parse if it's a JSON string
+            const parsedData = JSON.parse(diet.diet_data);
+            const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
+            setDietData(dataArray);
+          } catch (parseError) {
+            console.error("Error parsing diet_data string:", parseError);
+            setDietData([]);
+          }
+        } else if (Array.isArray(diet.diet_data)) {
+          // It's already an array
+          setDietData(diet.diet_data);
+        } else if (typeof diet.diet_data === 'object' && diet.diet_data !== null) {
+          // It's an object, convert to array
+          setDietData([diet.diet_data]);
+        } else {
+          console.error("Unsupported diet_data format:", diet.diet_data);
+          setDietData([]);
+        }
       } else {
         console.error("No diet data available:", diet);
-        toast.error("No se pudieron cargar los datos de la dieta");
+        setDietData([]);
       }
     } catch (error) {
       console.error("Error processing diet data:", error);
       toast.error("Error al procesar los datos de la dieta");
+      setDietData([]);
     } finally {
       setIsLoading(false);
     }

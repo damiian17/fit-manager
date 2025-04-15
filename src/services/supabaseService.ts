@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Client {
@@ -66,6 +65,21 @@ export const getClientDiets = async (clientId: string): Promise<Diet[]> => {
   }
   
   return data || [];
+};
+
+export const getDietById = async (dietId: string): Promise<Diet | null> => {
+  const { data, error } = await supabase
+    .from('diets')
+    .select('*')
+    .eq('id', dietId)
+    .single();
+    
+  if (error) {
+    console.error("Error fetching diet by ID:", error);
+    return null;
+  }
+  
+  return data;
 };
 
 // Workout operations

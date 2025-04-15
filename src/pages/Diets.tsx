@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,6 @@ import { Diet } from "@/services/supabaseService";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
 import { supabase } from "@/integrations/supabase/client";
 
-// Empty state for when there are no diet plans yet
 const EmptyState = () => (
   <Card className="text-center p-6">
     <div className="flex flex-col items-center justify-center space-y-4 py-8">
@@ -45,64 +43,66 @@ const Diets = () => {
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
 
   useEffect(() => {
-    // Load diets from Supabase
     const loadDiets = async () => {
       try {
         setIsLoading(true);
         
-        // Get all diets
-        const diets = await getDiets();
+        const { data: supabaseDiets, error } = await supabase
+          .from('diets')
+          .select('*')
+          .order('created_at', { ascending: false });
         
-        // Group diets by client
-        const groupedDiets: { [key: string]: GroupedDiets } = {};
-        
-        // Process each diet
-        for (const diet of diets) {
-          // Changed client_id to clientId to match the correct property name
-          const clientId = diet.clientId.toString();
-          
-          if (!groupedDiets[clientId]) {
-            // Fetch client information
-            const client = await getClientById(clientId);
-            
-            groupedDiets[clientId] = {
-              id: clientId,
-              name: client ? client.name : `Cliente ${clientId}`,
-              diets: []
-            };
-          }
-          
-          // Fetch the actual diet data from Supabase to ensure we have the complete data
-          const { data: dietData, error } = await supabase
-            .from('diets')
-            .select('*')
-            .eq('id', diet.id)
-            .single();
-          
-          if (error) {
-            console.error("Error fetching diet data:", error);
-            continue;
-          }
-          
-          if (dietData) {
-            // Convert the Diet type from clientStorage to the Diet type from supabaseService
-            const convertedDiet: Diet = {
-              id: diet.id,
-              name: diet.name,
-              client_id: diet.clientId,
-              client_name: diet.clientName,
-              created_at: diet.createdAt,
-              diet_data: dietData.diet_data || [],
-              form_data: dietData.form_data || {}
-            };
-            
-            groupedDiets[clientId].diets.push(convertedDiet);
-          } else {
-            console.error(`Could not fetch complete diet data for diet ID: ${diet.id}`);
-          }
+        if (error) {
+          console.error("Error fetching diets from Supabase:", error);
+          throw error;
         }
         
-        // Convert grouped diets object to array
+        console.log("Fetched diets from Supabase:", supabaseDiets);
+        
+        const groupedDiets: { [key: string]: GroupedDiets } = {};
+        
+        for (const diet of supabaseDiets || []) {
+          const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
+          
+          if (!groupedDiets[clientId]) {
+            if (clientId === "unknown") {
+              groupedDiets[clientId] = {
+                id: clientId,
+                name: diet.client_name || "Cliente sin asignar",
+                diets: []
+              };
+            } else {
+              try {
+                const client = await getClientById(clientId);
+                groupedDiets[clientId] = {
+                  id: clientId,
+                  name: client ? client.name : diet.client_name || `Cliente ${clientId}`,
+                  diets: []
+                };
+              } catch (clientError) {
+                console.error("Error fetching client:", clientError);
+                groupedDiets[clientId] = {
+                  id: clientId,
+                  name: diet.client_name || `Cliente ${clientId}`,
+                  diets: []
+                };
+              }
+            }
+          }
+          
+          const convertedDiet: Diet = {
+            id: diet.id,
+            name: diet.name,
+            client_id: diet.client_id || "",
+            client_name: diet.client_name,
+            created_at: diet.created_at || new Date().toISOString(),
+            diet_data: diet.diet_data || [],
+            form_data: diet.form_data || {}
+          };
+          
+          groupedDiets[clientId].diets.push(convertedDiet);
+        }
+        
         setClientDiets(Object.values(groupedDiets));
       } catch (error) {
         console.error("Error loading diets:", error);
@@ -119,7 +119,6 @@ const Diets = () => {
     try {
       console.log("Viewing diet details for:", diet.id);
       
-      // Get the complete diet data from Supabase
       const { data: dietData, error } = await supabase
         .from('diets')
         .select('*')
@@ -135,7 +134,6 @@ const Diets = () => {
       if (dietData) {
         console.log("Diet data fetched successfully:", dietData);
         
-        // Create a complete diet object with all the necessary data
         const completeDiet: Diet = {
           id: diet.id,
           name: diet.name,
@@ -160,7 +158,6 @@ const Diets = () => {
     setSelectedDiet(null);
   };
 
-  // Si hay una dieta seleccionada, mostrar la vista detallada
   if (selectedDiet) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
