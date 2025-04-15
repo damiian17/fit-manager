@@ -264,27 +264,21 @@ export const saveDiet = async (diet: Omit<Diet, 'id' | 'createdAt'>) => {
 };
 
 // Workout functions
-export const getWorkouts = async (): Promise<Workout[]> => {
+export const getWorkouts = async () => {
   try {
     const { data, error } = await supabase
       .from('workouts')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false });
     
     if (error) {
       console.error("Error fetching workouts:", error);
-      return [];
+      throw error;
     }
     
-    // Transform Supabase response to Workout interface
-    return data.map(workout => ({
-      id: workout.id,
-      name: workout.name,
-      clientId: workout.client_id || "",
-      clientName: workout.client_name,
-      createdAt: workout.created_at || new Date().toISOString(),
-    }));
+    return data || [];
   } catch (error) {
-    console.error("Unexpected error fetching workouts:", error);
+    console.error("Error in getWorkouts:", error);
     return [];
   }
 };

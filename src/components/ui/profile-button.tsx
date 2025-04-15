@@ -75,8 +75,20 @@ export const ProfileButton = () => {
   const handleLogout = async () => {
     try {
       await signOut();
+      // Limpiamos explícitamente toda la información de la sesión
+      localStorage.removeItem('clientLoggedIn');
+      localStorage.removeItem('clientEmail');
+      localStorage.removeItem('clientUserId');
+      
+      // Limpiamos la sesión de Supabase explícitamente
+      await supabase.auth.signOut();
+      
       toast.success("Sesión cerrada correctamente");
-      navigate("/login");
+      
+      // Redirección después de limpiar todo
+      setTimeout(() => {
+        navigate("/login");
+      }, 100);
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       toast.error("Error al cerrar sesión");

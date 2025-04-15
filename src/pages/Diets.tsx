@@ -7,6 +7,8 @@ import { Salad, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getDiets, getClientById } from "@/utils/clientStorage";
 import { toast } from "sonner";
+import { Diet } from "@/services/supabaseService";
+import { DietDetailView } from "@/components/client-portal/DietDetailView";
 
 // Empty state for when there are no diet plans yet
 const EmptyState = () => (
@@ -33,12 +35,13 @@ const EmptyState = () => (
 interface GroupedDiets {
   id: number | string;
   name: string;
-  diets: any[];
+  diets: Diet[];
 }
 
 const Diets = () => {
   const [clientDiets, setClientDiets] = useState<GroupedDiets[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
 
   useEffect(() => {
     // Load diets from Supabase
@@ -54,7 +57,7 @@ const Diets = () => {
         
         // Process each diet
         for (const diet of diets) {
-          const clientId = diet.clientId.toString();
+          const clientId = diet.client_id.toString();
           
           if (!groupedDiets[clientId]) {
             // Fetch client information
@@ -83,6 +86,26 @@ const Diets = () => {
     loadDiets();
   }, []);
 
+  const handleViewDietDetails = (diet: Diet) => {
+    setSelectedDiet(diet);
+  };
+
+  const handleBackFromDetails = () => {
+    setSelectedDiet(null);
+  };
+
+  // Si hay una dieta seleccionada, mostrar la vista detallada
+  if (selectedDiet) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Navigation />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <DietDetailView diet={selectedDiet} onBack={handleBackFromDetails} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
@@ -103,9 +126,13 @@ const Diets = () => {
           Gestiona todos los planes alimenticios asignados a tus clientes
         </p>
         
-        <div className="space-y-6">
-          {clientDiets.length > 0 ? (
-            clientDiets.map((client) => (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <p className="text-gray-500">Cargando planes dietéticos...</p>
+          </div>
+        ) : clientDiets.length > 0 ? (
+          <div className="space-y-6">
+            {clientDiets.map((client) => (
               <Card key={client.id} className="overflow-hidden">
                 <CardHeader className="bg-fitBlue-50 dark:bg-fitBlue-900/30 px-6 py-4">
                   <CardTitle className="text-xl">{client.name}</CardTitle>
@@ -119,17 +146,17 @@ const Diets = () => {
                       <div 
                         key={diet.id} 
                         className="flex justify-between items-center px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                        onClick={() => console.log(`Ver detalles de dieta ${diet.id}`)}
+                        onClick={() => handleViewDietDetails(diet)}
                       >
                         <div className="flex flex-col">
                           <span className="font-medium">{diet.name}</span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            Desde: {new Date(diet.createdAt).toLocaleDateString()}
+                            Desde: {new Date(diet.created_at).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center">
-                          <Badge variant={diet.status === "Activa" ? "default" : "secondary"}>
-                            {diet.status}
+                          <Badge variant="secondary">
+                            Ver detalles
                           </Badge>
                           <ChevronRight className="ml-2 h-4 w-4 text-gray-400" />
                         </div>
@@ -138,11 +165,11 @@ const Diets = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          ) : (
-            <EmptyState />
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState />
+        )}
       </main>
     </div>
   );

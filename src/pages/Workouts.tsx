@@ -7,8 +7,10 @@ import { Dumbbell, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getWorkouts, getClientById } from "@/utils/clientStorage";
 import { toast } from "sonner";
+import { Workout } from "@/services/supabaseService";
+import { WorkoutDetailView } from "@/components/client-portal/WorkoutDetailView";
 
-// Empty state for when there are no workout routines yet
+// Empty state for when there are no workout plans yet
 const EmptyState = () => (
   <Card className="text-center p-6">
     <div className="flex flex-col items-center justify-center space-y-4 py-8">
@@ -33,12 +35,13 @@ const EmptyState = () => (
 interface GroupedWorkouts {
   id: number | string;
   name: string;
-  workouts: any[];
+  workouts: Workout[];
 }
 
 const Workouts = () => {
   const [clientWorkouts, setClientWorkouts] = useState<GroupedWorkouts[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
   useEffect(() => {
     // Load workouts from Supabase
@@ -54,7 +57,7 @@ const Workouts = () => {
         
         // Process each workout
         for (const workout of workouts) {
-          const clientId = workout.clientId.toString();
+          const clientId = workout.client_id.toString();
           
           if (!groupedWorkouts[clientId]) {
             // Fetch client information
@@ -83,6 +86,26 @@ const Workouts = () => {
     loadWorkouts();
   }, []);
 
+  const handleViewWorkoutDetails = (workout: Workout) => {
+    setSelectedWorkout(workout);
+  };
+
+  const handleBackFromDetails = () => {
+    setSelectedWorkout(null);
+  };
+
+  // Si hay una rutina seleccionada, mostrar la vista detallada
+  if (selectedWorkout) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Navigation />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <WorkoutDetailView workout={selectedWorkout} onBack={handleBackFromDetails} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
@@ -103,9 +126,13 @@ const Workouts = () => {
           Gestiona todas las rutinas de entrenamiento asignadas a tus clientes
         </p>
         
-        <div className="space-y-6">
-          {clientWorkouts.length > 0 ? (
-            clientWorkouts.map((client) => (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <p className="text-gray-500">Cargando rutinas de entrenamiento...</p>
+          </div>
+        ) : clientWorkouts.length > 0 ? (
+          <div className="space-y-6">
+            {clientWorkouts.map((client) => (
               <Card key={client.id} className="overflow-hidden">
                 <CardHeader className="bg-fitBlue-50 dark:bg-fitBlue-900/30 px-6 py-4">
                   <CardTitle className="text-xl">{client.name}</CardTitle>
@@ -119,17 +146,17 @@ const Workouts = () => {
                       <div 
                         key={workout.id} 
                         className="flex justify-between items-center px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                        onClick={() => console.log(`Ver detalles de rutina ${workout.id}`)}
+                        onClick={() => handleViewWorkoutDetails(workout)}
                       >
                         <div className="flex flex-col">
                           <span className="font-medium">{workout.name}</span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            Desde: {new Date(workout.startDate || workout.createdAt).toLocaleDateString()}
+                            Desde: {new Date(workout.created_at).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center">
-                          <Badge variant={workout.status === "Activa" ? "default" : "secondary"}>
-                            {workout.status}
+                          <Badge variant="secondary">
+                            Ver detalles
                           </Badge>
                           <ChevronRight className="ml-2 h-4 w-4 text-gray-400" />
                         </div>
@@ -138,11 +165,11 @@ const Workouts = () => {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          ) : (
-            <EmptyState />
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState />
+        )}
       </main>
     </div>
   );
