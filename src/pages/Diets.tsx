@@ -73,11 +73,16 @@ const Diets = () => {
           }
           
           // Fetch the actual diet data from Supabase to ensure we have the complete data
-          const { data: dietData } = await supabase
+          const { data: dietData, error } = await supabase
             .from('diets')
             .select('*')
             .eq('id', diet.id)
             .single();
+          
+          if (error) {
+            console.error("Error fetching diet data:", error);
+            continue;
+          }
           
           if (dietData) {
             // Convert the Diet type from clientStorage to the Diet type from supabaseService
@@ -112,6 +117,8 @@ const Diets = () => {
 
   const handleViewDietDetails = async (diet: Diet) => {
     try {
+      console.log("Viewing diet details for:", diet.id);
+      
       // Get the complete diet data from Supabase
       const { data: dietData, error } = await supabase
         .from('diets')
@@ -120,10 +127,14 @@ const Diets = () => {
         .single();
       
       if (error) {
-        throw error;
+        console.error("Error fetching diet details:", error);
+        toast.error("Error al cargar los detalles de la dieta");
+        return;
       }
       
       if (dietData) {
+        console.log("Diet data fetched successfully:", dietData);
+        
         // Create a complete diet object with all the necessary data
         const completeDiet: Diet = {
           id: diet.id,

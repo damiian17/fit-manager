@@ -20,17 +20,23 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
   useEffect(() => {
     setIsLoading(true);
     
-    // Process diet data from the diet prop
-    if (diet && diet.diet_data) {
-      // Ensure diet_data is an array
-      const data = Array.isArray(diet.diet_data) ? diet.diet_data : [];
-      setDietData(data);
-    } else {
-      console.error("No diet data available:", diet);
-      toast.error("No se pudieron cargar los datos de la dieta");
+    try {
+      // Process diet data from the diet prop
+      if (diet && diet.diet_data) {
+        // Ensure diet_data is an array
+        console.log("Diet data:", diet.diet_data);
+        const data = Array.isArray(diet.diet_data) ? diet.diet_data : [];
+        setDietData(data);
+      } else {
+        console.error("No diet data available:", diet);
+        toast.error("No se pudieron cargar los datos de la dieta");
+      }
+    } catch (error) {
+      console.error("Error processing diet data:", error);
+      toast.error("Error al procesar los datos de la dieta");
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   }, [diet]);
   
   if (isLoading) {
@@ -49,7 +55,7 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
   }
   
   // Handle empty data
-  if (dietData.length === 0) {
+  if (!dietData || dietData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -65,7 +71,7 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
   }
 
   // Check if this is the new format (contains "dia" property)
-  const isNewFormat = 'dia' in dietData[0];
+  const isNewFormat = dietData[0] && 'dia' in dietData[0];
   
   if (isNewFormat) {
     // New format handling (per day)
