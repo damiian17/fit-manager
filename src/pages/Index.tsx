@@ -10,35 +10,48 @@ const Index = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Intentar obtener la sesión actual
+        console.log("Checking session on Index page...");
+        
+        // Check if there's an active session
         const session = await getActiveSession();
         
-        // Si hay una sesión activa
         if (session) {
+          console.log("Session found:", session.user.id);
+          
+          // Check if it's a client or trainer based on localStorage
           const clientLoggedIn = localStorage.getItem('clientLoggedIn') === 'true';
+          const trainerLoggedIn = localStorage.getItem('trainerLoggedIn') === 'true';
+          
+          console.log("Login status:", { clientLoggedIn, trainerLoggedIn });
           
           if (clientLoggedIn) {
-            // Verificar si el cliente ya tiene un perfil completo
+            // Verify if the client has a complete profile
             const hasProfile = await hasClientProfile(session.user.id);
+            console.log("Client has profile:", hasProfile);
             
             if (hasProfile) {
-              // Si tiene perfil completo, ir al portal del cliente
+              // If profile is complete, go to client portal
               navigate("/client-portal");
             } else {
-              // Si no tiene perfil completo, ir a completar el perfil
+              // If profile is incomplete, go to profile completion
               navigate("/client-register");
             }
-          } else {
-            // Si hay sesión pero no es cliente, es entrenador
+          } else if (trainerLoggedIn) {
+            // If it's a trainer, go to dashboard
             navigate("/dashboard");
+          } else {
+            // If we have a session but no role is defined, default to login
+            console.log("Session exists but no role defined, redirecting to login");
+            navigate("/login");
           }
         } else {
-          // Si no hay sesión, redirigir al login
+          // If there's no session, go to login
+          console.log("No session found, redirecting to login");
           navigate("/login");
         }
       } catch (error) {
-        console.error("Error verificando sesión:", error);
-        // En caso de error, redirigir al login por seguridad
+        console.error("Error checking session:", error);
+        // In case of error, redirect to login for safety
         navigate("/login");
       }
     };

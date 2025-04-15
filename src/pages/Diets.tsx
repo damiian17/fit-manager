@@ -4,9 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Salad, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getDiets, getClientById } from "@/utils/clientStorage";
 import { toast } from "sonner";
-import { Diet } from "@/services/supabaseService";
+import { Diet, getDietById } from "@/services/supabaseService";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -47,14 +46,27 @@ const Diets = () => {
       try {
         setIsLoading(true);
         
+        const { data: { session } } = await supabase.auth.getSession();
+        const trainerId = session?.user?.id;
+        
+        if (!trainerId) {
+          console.error("No trainer ID found in session");
+          toast.error("Error: No se pudo identificar al entrenador");
+          setIsLoading(false);
+          return;
+        }
+        
         const { data: supabaseDiets, error } = await supabase
           .from('diets')
           .select('*')
+          .eq('trainer_id', trainerId)
           .order('created_at', { ascending: false });
         
         if (error) {
           console.error("Error fetching diets from Supabase:", error);
-          throw error;
+          toast.error("Error al cargar los planes dietéticos");
+          setIsLoading(false);
+          return;
         }
         
         console.log("Fetched diets from Supabase:", supabaseDiets);
@@ -65,29 +77,11 @@ const Diets = () => {
           const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
           
           if (!groupedDiets[clientId]) {
-            if (clientId === "unknown") {
-              groupedDiets[clientId] = {
-                id: clientId,
-                name: diet.client_name || "Cliente sin asignar",
-                diets: []
-              };
-            } else {
-              try {
-                const client = await getClientById(clientId);
-                groupedDiets[clientId] = {
-                  id: clientId,
-                  name: client ? client.name : diet.client_name || `Cliente ${clientId}`,
-                  diets: []
-                };
-              } catch (clientError) {
-                console.error("Error fetching client:", clientError);
-                groupedDiets[clientId] = {
-                  id: clientId,
-                  name: diet.client_name || `Cliente ${clientId}`,
-                  diets: []
-                };
-              }
-            }
+            groupedDiets[clientId] = {
+              id: clientId,
+              name: diet.client_name || "Cliente sin asignar",
+              diets: []
+            };
           }
           
           const convertedDiet: Diet = {
@@ -118,33 +112,11 @@ const Diets = () => {
   const handleViewDietDetails = async (diet: Diet) => {
     try {
       console.log("Viewing diet details for:", diet.id);
+      const dietDetails = await getDietById(diet.id);
       
-      const { data: dietData, error } = await supabase
-        .from('diets')
-        .select('*')
-        .eq('id', diet.id)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching diet details:", error);
-        toast.error("Error al cargar los detalles de la dieta");
-        return;
-      }
-      
-      if (dietData) {
-        console.log("Diet data fetched successfully:", dietData);
-        
-        const completeDiet: Diet = {
-          id: diet.id,
-          name: diet.name,
-          client_id: diet.client_id,
-          client_name: diet.client_name,
-          created_at: diet.created_at,
-          diet_data: dietData.diet_data || [],
-          form_data: dietData.form_data || {}
-        };
-        
-        setSelectedDiet(completeDiet);
+      if (dietDetails) {
+        console.log("Diet details fetched successfully:", dietDetails);
+        setSelectedDiet(dietDetails);
       } else {
         toast.error("No se pudieron cargar los datos de la dieta");
       }
