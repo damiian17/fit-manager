@@ -4,9 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DailyMeal } from "@/types/diet";
-import { toast } from "sonner";
 
 interface DietDetailViewProps {
   diet: Diet;
@@ -14,68 +13,20 @@ interface DietDetailViewProps {
 }
 
 export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
-  const [dietData, setDietData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Ensure we have diet_data and it's an array
+  const dietData = Array.isArray(diet.diet_data) ? diet.diet_data : [];
   
-  useEffect(() => {
-    setIsLoading(true);
-    
-    try {
-      // Process diet data from the diet prop
-      if (diet && diet.diet_data) {
-        console.log("Processing diet data:", diet.diet_data);
-        
-        // Handle different types of diet_data
-        if (typeof diet.diet_data === 'string') {
-          try {
-            // Try to parse if it's a JSON string
-            const parsedData = JSON.parse(diet.diet_data);
-            const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
-            setDietData(dataArray);
-          } catch (parseError) {
-            console.error("Error parsing diet_data string:", parseError);
-            setDietData([]);
-          }
-        } else if (Array.isArray(diet.diet_data)) {
-          // It's already an array
-          setDietData(diet.diet_data);
-        } else if (typeof diet.diet_data === 'object' && diet.diet_data !== null) {
-          // It's an object, convert to array
-          setDietData([diet.diet_data]);
-        } else {
-          console.error("Unsupported diet_data format:", diet.diet_data);
-          setDietData([]);
-        }
-      } else {
-        console.error("No diet data available:", diet);
-        setDietData([]);
-      }
-    } catch (error) {
-      console.error("Error processing diet data:", error);
-      toast.error("Error al procesar los datos de la dieta");
-      setDietData([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [diet]);
+  // Check if this is the new format (contains "dia" property)
+  const isNewFormat = dietData.length > 0 && 'dia' in dietData[0];
   
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
-          <CardTitle>{diet.name}</CardTitle>
-          <CardDescription>Cargando datos de la dieta...</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-  
+  const [activeTab, setActiveTab] = useState(
+    isNewFormat 
+      ? (dietData[0] as DailyMeal).dia 
+      : (dietData.find(item => 'opcion' in item) as any)?.opcion || ""
+  );
+
   // Handle empty data
-  if (!dietData || dietData.length === 0) {
+  if (dietData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -90,13 +41,10 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     );
   }
 
-  // Check if this is the new format (contains "dia" property)
-  const isNewFormat = dietData[0] && 'dia' in dietData[0];
-  
   if (isNewFormat) {
     // New format handling (per day)
     const dailyMeals = dietData as DailyMeal[];
-    const [activeTab, setActiveTab] = useState(dailyMeals[0]?.dia || "");
+    const selectedDay = dailyMeals.find(day => day.dia === activeTab);
 
     return (
       <Card>
@@ -191,8 +139,8 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     // Handle old format for backward compatibility
     const dietOptions = dietData.filter(item => 'opcion' in item);
     const summaryItem = dietData.find(item => 'tipo' in item && item.tipo === 'Resumen');
-    const [activeTab, setActiveTab] = useState(dietOptions[0]?.opcion || "");
-    
+    const selectedDiet = dietOptions.find(option => option.opcion === activeTab);
+
     return (
       <Card>
         <CardHeader>
