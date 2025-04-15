@@ -1,4 +1,3 @@
-
 // Diet form data type
 export interface DietFormData {
   clientId: string;
@@ -15,9 +14,28 @@ export interface DietFormData {
   dietType: string;
 }
 
-// Webhook response types
-export type WebhookResponse = Array<DietOption | SummaryItem>;
+// New webhook response type for the updated format
+export type WebhookResponse = DailyMeal[];
 
+export interface DailyMeal {
+  dia: string;
+  comida1: MealItem;
+  comida2: MealItem;
+  comida3: MealItem;
+  comida4?: MealItem;
+  kcalTotales: number;
+  kcalObjetivo: number;
+  variacion: string;
+}
+
+export interface MealItem {
+  nombre: string;
+  ingredientes: string;
+  kcals: number;
+  grupos: string;
+}
+
+// Keep the old types for backwards compatibility
 export interface DietOption {
   opcion: string;
   caloriasObjetivo?: {

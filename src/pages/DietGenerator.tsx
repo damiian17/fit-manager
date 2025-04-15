@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -6,7 +7,7 @@ import { ChevronLeft } from "lucide-react";
 import { DietForm } from "@/components/diet-generator/DietForm";
 import { DietPlan } from "@/components/diet-generator/DietPlan";
 import { NutritionalTips } from "@/components/diet-generator/NutritionalTips";
-import { WebhookResponse, DietOption } from "@/types/diet";
+import { WebhookResponse, DietFormData } from "@/types/diet";
 import { toast } from "sonner";
 import { saveClient, getClientById } from "@/utils/clientStorage";
 import { saveDiet } from "@/services/supabaseService";
@@ -22,14 +23,14 @@ const DietGenerator = () => {
   const navigate = useNavigate();
   const [dietGenerated, setDietGenerated] = useState(false);
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null);
-  const [selectedOption, setSelectedOption] = useState<string>("Opcion1");
+  const [selectedOption, setSelectedOption] = useState<string>("Lunes");
   const [clientInfo, setClientInfo] = useState<ClientInfo>({
     id: "",
     name: "",
     dietName: ""
   });
 
-  const handleDietGenerated = (response: WebhookResponse, formData: any) => {
+  const handleDietGenerated = (response: WebhookResponse, formData: DietFormData) => {
     console.log("Webhook response received:", response);
     
     // Check if response is valid
@@ -49,6 +50,9 @@ const DietGenerator = () => {
     // Set the webhook response in state
     setWebhookResponse(response);
     
+    // Set default selected option to first day
+    setSelectedOption(response[0]?.dia || "Lunes");
+    
     // Set dietGenerated to true after a short delay to ensure state is updated
     setTimeout(() => {
       setDietGenerated(true);
@@ -67,16 +71,6 @@ const DietGenerator = () => {
   const handleSaveDiet = async () => {
     if (!webhookResponse) {
       toast.error("No hay datos de dieta para guardar");
-      return;
-    }
-    
-    // Get the selected diet option
-    const selectedDietOption = webhookResponse.find(
-      (item) => 'opcion' in item && item.opcion === selectedOption
-    ) as DietOption | undefined;
-    
-    if (!selectedDietOption) {
-      toast.error("No se pudo encontrar la opción de dieta seleccionada");
       return;
     }
     

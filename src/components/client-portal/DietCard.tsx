@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { DailyMeal } from "@/types/diet";
 
 interface DietCardProps {
   diet: Diet;
@@ -17,10 +18,22 @@ export const DietCard = ({ diet, onViewDetails }: DietCardProps) => {
     ? format(new Date(diet.created_at), "d 'de' MMMM, yyyy", { locale: es })
     : "Fecha desconocida";
 
-  // Extract total calories if available
-  const totalCalories = diet.diet_data?.find(
-    (item: any) => item.tipo === 'Resumen'
-  )?.caloriasTotalesDiariasObjetivo || "N/A";
+  // Determine diet format and extract total calories
+  const dietData = Array.isArray(diet.diet_data) ? diet.diet_data : [];
+  const isNewFormat = dietData.length > 0 && 'dia' in dietData[0];
+  
+  let totalCalories: string | number = "N/A";
+  
+  if (isNewFormat) {
+    // New format
+    const firstDay = dietData[0] as DailyMeal;
+    totalCalories = firstDay.kcalObjetivo;
+  } else {
+    // Old format
+    totalCalories = dietData.find(
+      (item: any) => item.tipo === 'Resumen'
+    )?.caloriasTotalesDiariasObjetivo || "N/A";
+  }
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -41,9 +54,9 @@ export const DietCard = ({ diet, onViewDetails }: DietCardProps) => {
       <CardContent>
         <div className="flex justify-between items-center">
           <p className="text-sm text-gray-500">
-            {diet.diet_data && Array.isArray(diet.diet_data) 
-              ? `${diet.diet_data.filter((item: any) => item.opcion).length} opciones disponibles`
-              : "Detalles no disponibles"}
+            {isNewFormat 
+              ? `${dietData.length} días de dieta` 
+              : `${dietData.filter((item: any) => item.opcion).length} opciones disponibles`}
           </p>
           <Button 
             variant="ghost" 
