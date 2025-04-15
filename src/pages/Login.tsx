@@ -13,7 +13,8 @@ import {
   hasClientProfile, 
   signUpWithPassword,
   signInWithPassword,
-  signInWithGoogle
+  signInWithGoogle,
+  saveTrainerProfile
 } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import LoginForm from "@/components/auth/LoginForm";
@@ -72,29 +73,32 @@ const Login = () => {
 
     try {
       if (role === "trainer") {
-        const { data, error } = await supabase
-          .from('trainers')
-          .select('*')
-          .eq('email', email)
-          .single();
-
-        if (error || !data) {
-          toast.error("Credenciales de entrenador inválidas");
-          setIsLoading(false);
-          return;
-        }
-
         try {
-          const authResponse = await signInWithPassword(email, password);
-
-          if (authResponse.user) {
-            toast.success(`¡Bienvenido entrenador ${data.name}!`);
-            localStorage.setItem('trainerLoggedIn', 'true');
-            localStorage.setItem('trainerEmail', email);
-            localStorage.setItem('trainerName', data.name);
-            navigate("/dashboard");
+          const { user, session } = await signInWithPassword(email, password);
+          
+          if (!user) {
+            toast.error("Credenciales de entrenador inválidas");
+            setIsLoading(false);
             return;
           }
+          
+          const { data, error } = await supabase
+            .from('trainers')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          if (error || !data) {
+            toast.error("No tienes perfil de entrenador");
+            setIsLoading(false);
+            return;
+          }
+          
+          toast.success(`¡Bienvenido entrenador ${data.name}!`);
+          localStorage.setItem('trainerLoggedIn', 'true');
+          localStorage.setItem('trainerEmail', email);
+          localStorage.setItem('trainerName', data.name);
+          navigate("/dashboard");
         } catch (authError: any) {
           toast.error(`Error al iniciar sesión: ${authError.message}`);
           setIsLoading(false);
@@ -238,27 +242,24 @@ const Login = () => {
         const { user, session } = await signUpWithPassword(trainerEmail, trainerPassword);
 
         if (user) {
-          const { error: trainerInsertError } = await supabase
-            .from('trainers')
-            .insert({
-              id: user.id,
+          try {
+            await saveTrainerProfile({
               name: trainerName,
               email: trainerEmail
-            });
+            }, user.id);
 
-          if (trainerInsertError) {
-            toast.error(`Error guardando datos de entrenador: ${trainerInsertError.message}`);
+            toast.success("Cuenta de entrenador creada correctamente");
+            setTrainerRegisterDialogOpen(false);
+            
+            localStorage.setItem('trainerLoggedIn', 'true');
+            localStorage.setItem('trainerEmail', trainerEmail);
+            localStorage.setItem('trainerName', trainerName);
+            navigate("/dashboard");
+          } catch (profileError: any) {
+            toast.error(`Error guardando datos de entrenador: ${profileError.message}`);
             setIsLoading(false);
             return;
           }
-
-          toast.success("Cuenta de entrenador creada correctamente");
-          setTrainerRegisterDialogOpen(false);
-          
-          localStorage.setItem('trainerLoggedIn', 'true');
-          localStorage.setItem('trainerEmail', trainerEmail);
-          localStorage.setItem('trainerName', trainerName);
-          navigate("/dashboard");
         }
       } catch (authError: any) {
         toast.error(`Error al registrar: ${authError.message}`);

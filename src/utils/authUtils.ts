@@ -58,6 +58,9 @@ export const signOut = async () => {
   localStorage.removeItem('clientLoggedIn');
   localStorage.removeItem('clientEmail');
   localStorage.removeItem('clientUserId'); // También limpiar el ID de usuario
+  localStorage.removeItem('trainerLoggedIn');
+  localStorage.removeItem('trainerEmail');
+  localStorage.removeItem('trainerName');
   await supabase.auth.signOut();
 };
 
@@ -270,6 +273,53 @@ export const saveClientProfile = async (clientData: any, userId?: string) => {
     return data;
   } catch (error) {
     console.error("Error inesperado guardando perfil:", error);
+    throw error;
+  }
+};
+
+/**
+ * Crea o actualiza el perfil de un entrenador
+ * @param trainerData Datos del entrenador a guardar
+ * @param userId ID del usuario (opcional)
+ */
+export const saveTrainerProfile = async (trainerData: any, userId?: string) => {
+  try {
+    // Si no se proporciona el ID del usuario, usar el usuario actual
+    let finalUserId = userId;
+    
+    if (!finalUserId) {
+      // Obtener el usuario actual
+      const currentUser = await getCurrentUser();
+      finalUserId = currentUser?.id;
+      
+      if (!finalUserId) {
+        throw new Error("No se pudo determinar el ID del usuario");
+      }
+    }
+    
+    console.log("Guardando perfil de entrenador con ID:", finalUserId);
+    
+    // Preparar datos para guardar
+    const profileData = {
+      id: finalUserId,
+      ...trainerData
+    };
+    
+    // Usar una función RPC para guardar el perfil del entrenador
+    // Esto nos permite eludir las políticas RLS ya que la función se ejecuta con privilegios elevados
+    const { data, error } = await supabase.rpc('save_trainer_profile', {
+      trainer_data: profileData
+    });
+    
+    if (error) {
+      console.error("Error guardando perfil del entrenador:", error);
+      throw error;
+    }
+    
+    console.log("Perfil de entrenador guardado exitosamente:", data);
+    return data;
+  } catch (error) {
+    console.error("Error inesperado guardando perfil de entrenador:", error);
     throw error;
   }
 };
