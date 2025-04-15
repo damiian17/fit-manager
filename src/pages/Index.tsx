@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getActiveSession } from "@/utils/authUtils";
+import { getActiveSession, hasClientProfile } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -13,11 +13,21 @@ const Index = () => {
         // Intentar obtener la sesión actual
         const session = await getActiveSession();
         
-        // Si hay una sesión activa y el usuario es un cliente, redirigir al portal de cliente
+        // Si hay una sesión activa
         if (session) {
           const clientLoggedIn = localStorage.getItem('clientLoggedIn') === 'true';
+          
           if (clientLoggedIn) {
-            navigate("/client-portal");
+            // Verificar si el cliente ya tiene un perfil completo
+            const hasProfile = await hasClientProfile(session.user.id);
+            
+            if (hasProfile) {
+              // Si tiene perfil completo, ir al portal del cliente
+              navigate("/client-portal");
+            } else {
+              // Si no tiene perfil completo, ir a completar el perfil
+              navigate("/client-register");
+            }
           } else {
             // Si hay sesión pero no es cliente, es entrenador
             navigate("/dashboard");
