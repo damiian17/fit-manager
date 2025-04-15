@@ -57,7 +57,8 @@ const Diets = () => {
         
         // Process each diet
         for (const diet of diets) {
-          const clientId = diet.client_id.toString();
+          // Changed client_id to clientId to match the correct property name
+          const clientId = diet.clientId.toString();
           
           if (!groupedDiets[clientId]) {
             // Fetch client information
@@ -70,7 +71,19 @@ const Diets = () => {
             };
           }
           
-          groupedDiets[clientId].diets.push(diet);
+          // Convert the Diet type from clientStorage to the Diet type from supabaseService
+          // to ensure compatibility with the DietDetailView component
+          const convertedDiet: Diet = {
+            id: diet.id,
+            name: diet.name,
+            client_id: diet.clientId,
+            client_name: diet.clientName,
+            created_at: diet.createdAt,
+            diet_data: {},  // Initialize with empty object
+            form_data: {}   // Initialize with empty object
+          };
+          
+          groupedDiets[clientId].diets.push(convertedDiet);
         }
         
         // Convert grouped diets object to array
