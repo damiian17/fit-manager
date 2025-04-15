@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DailyMeal } from "@/types/diet";
+import { toast } from "sonner";
 
 interface DietDetailViewProps {
   diet: Diet;
@@ -13,18 +14,40 @@ interface DietDetailViewProps {
 }
 
 export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
-  // Ensure we have diet_data and it's an array
-  const dietData = Array.isArray(diet.diet_data) ? diet.diet_data : [];
+  const [dietData, setDietData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Check if this is the new format (contains "dia" property)
-  const isNewFormat = dietData.length > 0 && 'dia' in dietData[0];
+  useEffect(() => {
+    setIsLoading(true);
+    
+    // Process diet data from the diet prop
+    if (diet && diet.diet_data) {
+      // Ensure diet_data is an array
+      const data = Array.isArray(diet.diet_data) ? diet.diet_data : [];
+      setDietData(data);
+    } else {
+      console.error("No diet data available:", diet);
+      toast.error("No se pudieron cargar los datos de la dieta");
+    }
+    
+    setIsLoading(false);
+  }, [diet]);
   
-  const [activeTab, setActiveTab] = useState(
-    isNewFormat 
-      ? (dietData[0] as DailyMeal).dia 
-      : (dietData.find(item => 'opcion' in item) as any)?.opcion || ""
-  );
-
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
+          </Button>
+          <CardTitle>{diet.name}</CardTitle>
+          <CardDescription>Cargando datos de la dieta...</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+  
   // Handle empty data
   if (dietData.length === 0) {
     return (
@@ -41,10 +64,13 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     );
   }
 
+  // Check if this is the new format (contains "dia" property)
+  const isNewFormat = 'dia' in dietData[0];
+  
   if (isNewFormat) {
     // New format handling (per day)
     const dailyMeals = dietData as DailyMeal[];
-    const selectedDay = dailyMeals.find(day => day.dia === activeTab);
+    const [activeTab, setActiveTab] = useState(dailyMeals[0]?.dia || "");
 
     return (
       <Card>
@@ -139,8 +165,8 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     // Handle old format for backward compatibility
     const dietOptions = dietData.filter(item => 'opcion' in item);
     const summaryItem = dietData.find(item => 'tipo' in item && item.tipo === 'Resumen');
-    const selectedDiet = dietOptions.find(option => option.opcion === activeTab);
-
+    const [activeTab, setActiveTab] = useState(dietOptions[0]?.opcion || "");
+    
     return (
       <Card>
         <CardHeader>

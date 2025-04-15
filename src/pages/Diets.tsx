@@ -9,6 +9,7 @@ import { getDiets, getClientById } from "@/utils/clientStorage";
 import { toast } from "sonner";
 import { Diet } from "@/services/supabaseService";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
+import { supabase } from "@/integrations/supabase/client";
 
 // Empty state for when there are no diet plans yet
 const EmptyState = () => (
@@ -71,19 +72,29 @@ const Diets = () => {
             };
           }
           
-          // Convert the Diet type from clientStorage to the Diet type from supabaseService
-          // to ensure compatibility with the DietDetailView component
-          const convertedDiet: Diet = {
-            id: diet.id,
-            name: diet.name,
-            client_id: diet.clientId,
-            client_name: diet.clientName,
-            created_at: diet.createdAt,
-            diet_data: {},  // Initialize with empty object
-            form_data: {}   // Initialize with empty object
-          };
+          // Fetch the actual diet data from Supabase to ensure we have the complete data
+          const { data: dietData } = await supabase
+            .from('diets')
+            .select('*')
+            .eq('id', diet.id)
+            .single();
           
-          groupedDiets[clientId].diets.push(convertedDiet);
+          if (dietData) {
+            // Convert the Diet type from clientStorage to the Diet type from supabaseService
+            const convertedDiet: Diet = {
+              id: diet.id,
+              name: diet.name,
+              client_id: diet.clientId,
+              client_name: diet.clientName,
+              created_at: diet.createdAt,
+              diet_data: dietData.diet_data || [],
+              form_data: dietData.form_data || {}
+            };
+            
+            groupedDiets[clientId].diets.push(convertedDiet);
+          } else {
+            console.error(`Could not fetch complete diet data for diet ID: ${diet.id}`);
+          }
         }
         
         // Convert grouped diets object to array
@@ -99,8 +110,39 @@ const Diets = () => {
     loadDiets();
   }, []);
 
-  const handleViewDietDetails = (diet: Diet) => {
-    setSelectedDiet(diet);
+  const handleViewDietDetails = async (diet: Diet) => {
+    try {
+      // Get the complete diet data from Supabase
+      const { data: dietData, error } = await supabase
+        .from('diets')
+        .select('*')
+        .eq('id', diet.id)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (dietData) {
+        // Create a complete diet object with all the necessary data
+        const completeDiet: Diet = {
+          id: diet.id,
+          name: diet.name,
+          client_id: diet.client_id,
+          client_name: diet.client_name,
+          created_at: diet.created_at,
+          diet_data: dietData.diet_data || [],
+          form_data: dietData.form_data || {}
+        };
+        
+        setSelectedDiet(completeDiet);
+      } else {
+        toast.error("No se pudieron cargar los datos de la dieta");
+      }
+    } catch (error) {
+      console.error("Error loading diet details:", error);
+      toast.error("Error al cargar los detalles de la dieta");
+    }
   };
 
   const handleBackFromDetails = () => {
