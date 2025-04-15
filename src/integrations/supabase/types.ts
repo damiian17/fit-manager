@@ -178,6 +178,10 @@ export type Database = {
         Args: { email_input: string }
         Returns: string
       }
+      save_trainer_profile: {
+        Args: { trainer_data: Json }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
