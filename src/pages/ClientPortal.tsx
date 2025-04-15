@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,8 @@ import { DietCard } from "@/components/client-portal/DietCard";
 import { WorkoutCard } from "@/components/client-portal/WorkoutCard";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
 import { WorkoutDetailView } from "@/components/client-portal/WorkoutDetailView";
+import { getActiveSession } from "@/utils/authUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 const ClientPortal = () => {
   const [isNewUser, setIsNewUser] = useState(true);
@@ -24,51 +25,75 @@ const ClientPortal = () => {
   
   const navigate = useNavigate();
   
-  // Check if user exists in client storage
   useEffect(() => {
-    const hasLoggedIn = localStorage.getItem('clientLoggedIn') === 'true';
-    const clientEmail = localStorage.getItem('clientEmail');
-    
-    const fetchClientData = async () => {
-      setIsLoading(true);
-      if (hasLoggedIn && clientEmail) {
-        try {
-          // Fetch client data from Supabase
-          const client = await getClientByEmail(clientEmail);
-          
-          if (client) {
-            setClientData(client);
-            setIsNewUser(false);
-            
-            // Fetch client diets
-            const clientDiets = await getClientDiets(client.id);
-            setDiets(clientDiets);
-            
-            // Fetch client workouts
-            const clientWorkouts = await getClientWorkouts(client.id);
-            setWorkouts(clientWorkouts);
-          } else {
-            // No client found in Supabase, redirect to registration
-            navigate('/client-register');
-          }
-        } catch (error) {
-          console.error("Error fetching client data:", error);
-          toast.error("Error al cargar los datos del cliente");
+    const checkSession = async () => {
+      try {
+        const session = await getActiveSession();
+        if (!session) {
+          navigate("/login");
+          return;
         }
-      } else {
-        setIsNewUser(true);
+        
+        fetchClientData(session.user.email);
+      } catch (error) {
+        console.error("Error verificando sesión:", error);
+        navigate("/login");
       }
-      setIsLoading(false);
     };
     
-    fetchClientData();
+    checkSession();
   }, [navigate]);
   
-  const handleLogout = () => {
-    localStorage.removeItem('clientLoggedIn');
-    localStorage.removeItem('clientEmail');
-    toast.success("Sesión cerrada correctamente");
-    navigate('/login');
+  const fetchClientData = async (email: string | undefined) => {
+    setIsLoading(true);
+    if (!email) {
+      setIsLoading(false);
+      setIsNewUser(true);
+      return;
+    }
+    
+    try {
+      const client = await getClientByEmail(email);
+      
+      if (client) {
+        setClientData(client);
+        setIsNewUser(false);
+        
+        const clientDiets = await getClientDiets(client.id);
+        setDiets(clientDiets);
+        
+        const clientWorkouts = await getClientWorkouts(client.id);
+        setWorkouts(clientWorkouts);
+      } else {
+        navigate('/client-register');
+      }
+    } catch (error) {
+      console.error("Error fetching client data:", error);
+      toast.error("Error al cargar los datos del cliente");
+    }
+    
+    setIsLoading(false);
+  };
+  
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      localStorage.removeItem('clientLoggedIn');
+      localStorage.removeItem('clientEmail');
+      localStorage.removeItem('clientUserId');
+      localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
+      
+      toast.success("Sesión cerrada correctamente");
+      
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 100);
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      toast.error("Error al cerrar sesión");
+    }
   };
   
   const handleViewDietDetails = (diet: Diet) => {

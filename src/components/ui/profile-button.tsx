@@ -74,20 +74,26 @@ export const ProfileButton = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
-      // Limpiamos explícitamente toda la información de la sesión
+      // Primero, cerrar sesión en Supabase explícitamente
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Luego, limpiar toda la información de la sesión en localStorage
       localStorage.removeItem('clientLoggedIn');
       localStorage.removeItem('clientEmail');
       localStorage.removeItem('clientUserId');
+      // Limpiamos cualquier otro item relacionado con la sesión que pueda estar causando problemas
+      localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
       
-      // Limpiamos la sesión de Supabase explícitamente
-      await supabase.auth.signOut();
+      // También llamamos a la función signOut de authUtils por si hace algo adicional
+      await signOut();
       
       toast.success("Sesión cerrada correctamente");
       
-      // Redirección después de limpiar todo
+      // Esperar un momento para asegurar que todo esté limpio antes de redirigir
       setTimeout(() => {
-        navigate("/login");
+        // Forzar una redirección completa para asegurar una limpieza total
+        window.location.href = "/login";
       }, 100);
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
