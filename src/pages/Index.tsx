@@ -45,7 +45,7 @@ const Index = () => {
             navigate("/login");
           }
         } else {
-          // If there's no session, go to login
+          // If there's no session, always go to login
           console.log("No session found, redirecting to login");
           navigate("/login");
         }
