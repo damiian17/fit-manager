@@ -91,12 +91,14 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
   }
 
   // Check if this is the new format (contains "dia" property)
-  const isNewFormat = dietData[0] && 'dia' in dietData[0];
+  const isNewFormat = dietData.length > 0 && dietData[0] && 'dia' in dietData[0];
   
   if (isNewFormat) {
     // New format handling (per day)
     const dailyMeals = dietData as DailyMeal[];
-    const [activeTab, setActiveTab] = useState(dailyMeals[0]?.dia || "");
+    // Initialize with a default value to prevent useState from being called conditionally
+    const defaultActiveDay = dailyMeals.length > 0 ? dailyMeals[0].dia : "";
+    const [activeTab, setActiveTab] = useState(defaultActiveDay);
 
     return (
       <Card>
@@ -191,7 +193,9 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     // Handle old format for backward compatibility
     const dietOptions = dietData.filter(item => 'opcion' in item);
     const summaryItem = dietData.find(item => 'tipo' in item && item.tipo === 'Resumen');
-    const [activeTab, setActiveTab] = useState(dietOptions[0]?.opcion || "");
+    // Initialize with a default value to prevent useState from being called conditionally
+    const defaultActiveOption = dietOptions.length > 0 ? dietOptions[0]?.opcion : "";
+    const [activeTab, setActiveTab] = useState(defaultActiveOption);
     
     return (
       <Card>

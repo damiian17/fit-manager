@@ -13,7 +13,7 @@ const Index = () => {
         console.log("Checking session on Index page...");
         
         // Check if there's an active session
-        const session = await getActiveSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
           console.log("Session found:", session.user.id);

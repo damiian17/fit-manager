@@ -84,8 +84,14 @@ export const getDietById = async (dietId: string): Promise<Diet | null> => {
   return data;
 };
 
-// Get diets by trainer ID
-export const getTrainerDiets = async (trainerId: string): Promise<Diet[]> => {
+// Get diets by trainer ID - Fixed to properly handle the case where trainerId is undefined
+export const getTrainerDiets = async (trainerId: string | undefined): Promise<Diet[]> => {
+  // If trainerId is undefined, return an empty array
+  if (!trainerId) {
+    console.error("Trainer ID is undefined");
+    return [];
+  }
+  
   const { data, error } = await supabase
     .from('diets')
     .select('*')

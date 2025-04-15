@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +38,7 @@ interface GroupedDiets {
 }
 
 const Diets = () => {
+  // Initialize state variables properly
   const [clientDiets, setClientDiets] = useState<GroupedDiets[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
@@ -71,30 +73,34 @@ const Diets = () => {
         
         console.log("Fetched diets from Supabase:", supabaseDiets);
         
+        // Initialize groupedDiets object
         const groupedDiets: { [key: string]: GroupedDiets } = {};
         
-        for (const diet of supabaseDiets || []) {
-          const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
-          
-          if (!groupedDiets[clientId]) {
-            groupedDiets[clientId] = {
-              id: clientId,
-              name: diet.client_name || "Cliente sin asignar",
-              diets: []
+        // Process fetched diets
+        if (supabaseDiets && Array.isArray(supabaseDiets)) {
+          for (const diet of supabaseDiets) {
+            const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
+            
+            if (!groupedDiets[clientId]) {
+              groupedDiets[clientId] = {
+                id: clientId,
+                name: diet.client_name || "Cliente sin asignar",
+                diets: []
+              };
+            }
+            
+            const convertedDiet: Diet = {
+              id: diet.id,
+              name: diet.name,
+              client_id: diet.client_id || "",
+              client_name: diet.client_name,
+              created_at: diet.created_at || new Date().toISOString(),
+              diet_data: diet.diet_data || [],
+              form_data: diet.form_data || {}
             };
+            
+            groupedDiets[clientId].diets.push(convertedDiet);
           }
-          
-          const convertedDiet: Diet = {
-            id: diet.id,
-            name: diet.name,
-            client_id: diet.client_id || "",
-            client_name: diet.client_name,
-            created_at: diet.created_at || new Date().toISOString(),
-            diet_data: diet.diet_data || [],
-            form_data: diet.form_data || {}
-          };
-          
-          groupedDiets[clientId].diets.push(convertedDiet);
         }
         
         setClientDiets(Object.values(groupedDiets));
