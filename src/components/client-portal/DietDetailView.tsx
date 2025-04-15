@@ -16,6 +16,8 @@ interface DietDetailViewProps {
 export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
   const [dietData, setDietData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Always define all state variables up front, regardless of format
+  const [activeTab, setActiveTab] = useState("");
   
   useEffect(() => {
     setIsLoading(true);
@@ -59,6 +61,29 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     }
   }, [diet]);
   
+  // After loading the diet data, set the initial active tab
+  useEffect(() => {
+    // Set the initial active tab based on the loaded data
+    if (dietData.length > 0) {
+      // Check if this is the new format (contains "dia" property)
+      const isNewFormat = dietData.length > 0 && dietData[0] && 'dia' in dietData[0];
+      
+      if (isNewFormat) {
+        // New format - set initial tab to the first day
+        const dailyMeals = dietData as DailyMeal[];
+        if (dailyMeals.length > 0) {
+          setActiveTab(dailyMeals[0].dia);
+        }
+      } else {
+        // Old format - set initial tab to the first option
+        const dietOptions = dietData.filter(item => 'opcion' in item);
+        if (dietOptions.length > 0 && dietOptions[0]?.opcion) {
+          setActiveTab(dietOptions[0].opcion);
+        }
+      }
+    }
+  }, [dietData]);
+  
   if (isLoading) {
     return (
       <Card>
@@ -96,10 +121,7 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
   if (isNewFormat) {
     // New format handling (per day)
     const dailyMeals = dietData as DailyMeal[];
-    // Initialize with a default value to prevent useState from being called conditionally
-    const defaultActiveDay = dailyMeals.length > 0 ? dailyMeals[0].dia : "";
-    const [activeTab, setActiveTab] = useState(defaultActiveDay);
-
+    
     return (
       <Card>
         <CardHeader>
@@ -193,9 +215,6 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     // Handle old format for backward compatibility
     const dietOptions = dietData.filter(item => 'opcion' in item);
     const summaryItem = dietData.find(item => 'tipo' in item && item.tipo === 'Resumen');
-    // Initialize with a default value to prevent useState from being called conditionally
-    const defaultActiveOption = dietOptions.length > 0 ? dietOptions[0]?.opcion : "";
-    const [activeTab, setActiveTab] = useState(defaultActiveOption);
     
     return (
       <Card>
