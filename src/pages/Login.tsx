@@ -27,6 +27,11 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"trainer" | "client">("client");
   const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
+  const [trainerRegisterDialogOpen, setTrainerRegisterDialogOpen] = useState(false);
+  const [trainerEmail, setTrainerEmail] = useState("");
+  const [trainerPassword, setTrainerPassword] = useState("");
+  const [trainerConfirmPassword, setTrainerConfirmPassword] = useState("");
+  const [trainerName, setTrainerName] = useState("");
   const navigate = useNavigate();
 
   // Verificar si el usuario ya está autenticado
@@ -70,11 +75,29 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // Verificamos credenciales de administrador (para entrenadores)
-      if (role === "trainer" && email === "admin" && password === "admin") {
-        toast.success("¡Bienvenido entrenador!");
-        navigate("/dashboard");
-        return;
+      // Para entrenadores, verificamos en localStorage si están registrados
+      if (role === "trainer") {
+        const storedTrainers = JSON.parse(localStorage.getItem('registeredTrainers') || '[]');
+        const trainer = storedTrainers.find((t: any) => t.email === email && t.password === password);
+        
+        if (trainer) {
+          toast.success(`¡Bienvenido entrenador ${trainer.name}!`);
+          localStorage.setItem('trainerLoggedIn', 'true');
+          localStorage.setItem('trainerEmail', email);
+          localStorage.setItem('trainerName', trainer.name);
+          navigate("/dashboard");
+          return;
+        } else if (email === "admin" && password === "admin") {
+          // Mantenemos la compatibilidad con el login admin/admin
+          toast.success("¡Bienvenido entrenador administrador!");
+          localStorage.setItem('trainerLoggedIn', 'true');
+          localStorage.setItem('trainerEmail', 'admin');
+          localStorage.setItem('trainerName', 'Administrador');
+          navigate("/dashboard");
+          return;
+        } else {
+          toast.error("Credenciales inválidas");
+        }
       }
       
       // Para clientes, usamos autenticación de Supabase
@@ -107,9 +130,6 @@ const Login = () => {
             navigate("/client-portal");
           }
         }
-      } else {
-        // Mensaje para credenciales incorrectas de entrenador
-        toast.error("Credenciales inválidas");
       }
     } catch (error: any) {
       console.error("Login error:", error);
@@ -121,6 +141,10 @@ const Login = () => {
 
   const handleOpenRegisterDialog = () => {
     setRegisterDialogOpen(true);
+  };
+
+  const handleOpenTrainerRegisterDialog = () => {
+    setTrainerRegisterDialogOpen(true);
   };
 
   const handleGoogleLogin = async () => {
@@ -192,6 +216,62 @@ const Login = () => {
     }
   };
 
+  const handleTrainerRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Validar campos
+      if (!trainerEmail || !trainerPassword || !trainerName) {
+        toast.error("Por favor completa todos los campos");
+        setIsLoading(false);
+        return;
+      }
+
+      if (trainerPassword !== trainerConfirmPassword) {
+        toast.error("Las contraseñas no coinciden");
+        setIsLoading(false);
+        return;
+      }
+
+      // Guardar en localStorage
+      const newTrainer = {
+        email: trainerEmail,
+        password: trainerPassword,
+        name: trainerName,
+        registeredAt: new Date().toISOString()
+      };
+
+      const storedTrainers = JSON.parse(localStorage.getItem('registeredTrainers') || '[]');
+      
+      // Verificar si el email ya está registrado
+      if (storedTrainers.some((t: any) => t.email === trainerEmail)) {
+        toast.error("Este email ya está registrado");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Agregar el nuevo entrenador y guardar
+      storedTrainers.push(newTrainer);
+      localStorage.setItem('registeredTrainers', JSON.stringify(storedTrainers));
+      
+      toast.success("Cuenta de entrenador creada correctamente");
+      setTrainerRegisterDialogOpen(false);
+      
+      // Opcional: iniciar sesión automáticamente
+      localStorage.setItem('trainerLoggedIn', 'true');
+      localStorage.setItem('trainerEmail', trainerEmail);
+      localStorage.setItem('trainerName', trainerName);
+      navigate("/dashboard");
+      
+    } catch (error: any) {
+      console.error("Trainer registration error:", error);
+      toast.error(`Error al registrar: ${error.message || "Inténtalo de nuevo"}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-fitBlue-50 to-white p-4">
       <div className="w-full max-w-md">
@@ -223,12 +303,13 @@ const Login = () => {
               <CardContent className="space-y-4">
                 <form onSubmit={(e) => handleLogin(e, "trainer")} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="trainer-email">Usuario</Label>
+                    <Label htmlFor="trainer-email">Email</Label>
                     <Input
                       id="trainer-email"
+                      type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Ingresa tu usuario"
+                      placeholder="Ingresa tu email"
                       required
                     />
                   </div>
@@ -250,6 +331,17 @@ const Login = () => {
                   >
                     {isLoading ? "Procesando..." : "Iniciar sesión"}
                   </Button>
+                  
+                  <p className="text-center text-sm">
+                    ¿No tienes una cuenta?{" "}
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto" 
+                      onClick={handleOpenTrainerRegisterDialog}
+                    >
+                      Regístrate como entrenador
+                    </Button>
+                  </p>
                 </form>
               </CardContent>
             </TabsContent>
@@ -373,6 +465,72 @@ const Login = () => {
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setRegisterDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Procesando..." : "Registrarme"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para registro de entrenadores */}
+      <Dialog open={trainerRegisterDialogOpen} onOpenChange={setTrainerRegisterDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registro de Entrenador</DialogTitle>
+            <DialogDescription>
+              Crea una cuenta para gestionar tus clientes, rutinas y dietas
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleTrainerRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="trainerName">Nombre completo</Label>
+              <Input
+                id="trainerName"
+                type="text"
+                value={trainerName}
+                onChange={(e) => setTrainerName(e.target.value)}
+                placeholder="Tu nombre completo"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="trainerEmail">Email</Label>
+              <Input
+                id="trainerEmail"
+                type="email"
+                value={trainerEmail}
+                onChange={(e) => setTrainerEmail(e.target.value)}
+                placeholder="tu@email.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="trainerPassword">Contraseña</Label>
+              <Input
+                id="trainerPassword"
+                type="password"
+                value={trainerPassword}
+                onChange={(e) => setTrainerPassword(e.target.value)}
+                placeholder="Contraseña"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="trainerConfirmPassword">Confirmar Contraseña</Label>
+              <Input
+                id="trainerConfirmPassword"
+                type="password"
+                value={trainerConfirmPassword}
+                onChange={(e) => setTrainerConfirmPassword(e.target.value)}
+                placeholder="Repite la contraseña"
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setTrainerRegisterDialogOpen(false)}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isLoading}>
