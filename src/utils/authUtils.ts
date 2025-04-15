@@ -86,26 +86,31 @@ export const signInWithGoogle = async () => {
 export const signInWithPassword = async (email: string, password: string) => {
   console.log("Iniciando sesión con email:", email);
   
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  
-  if (error) {
-    console.error("Error al iniciar sesión con email y contraseña:", error);
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      console.error("Error al iniciar sesión con email y contraseña:", error);
+      throw error;
+    }
+    
+    console.log("Inicio de sesión exitoso:", data);
+    
+    // Guardar información en localStorage
+    if (data.user) {
+      localStorage.setItem('clientLoggedIn', 'true');
+      localStorage.setItem('clientEmail', email);
+      localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error en signInWithPassword:", error);
     throw error;
   }
-  
-  console.log("Inicio de sesión exitoso:", data);
-  
-  // Guardar información en localStorage
-  if (data.user) {
-    localStorage.setItem('clientLoggedIn', 'true');
-    localStorage.setItem('clientEmail', email);
-    localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
-  }
-  
-  return data;
 };
 
 /**
@@ -114,29 +119,34 @@ export const signInWithPassword = async (email: string, password: string) => {
 export const signUpWithPassword = async (email: string, password: string) => {
   console.log("Registrando nuevo usuario con email:", email);
   
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: window.location.origin + '/client-register',
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin + '/client-register',
+      }
+    });
+    
+    if (error) {
+      console.error("Error al registrar usuario:", error);
+      throw error;
     }
-  });
-  
-  if (error) {
-    console.error("Error al registrar usuario:", error);
+    
+    console.log("Registro exitoso:", data);
+    
+    // Guardar información en localStorage incluyendo el ID
+    if (data.user) {
+      localStorage.setItem('clientLoggedIn', 'true');
+      localStorage.setItem('clientEmail', email);
+      localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error en signUpWithPassword:", error);
     throw error;
   }
-  
-  console.log("Registro exitoso:", data);
-  
-  // Guardar información en localStorage incluyendo el ID
-  if (data.user) {
-    localStorage.setItem('clientLoggedIn', 'true');
-    localStorage.setItem('clientEmail', email);
-    localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
-  }
-  
-  return data;
 };
 
 /**

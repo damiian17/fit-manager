@@ -12,7 +12,8 @@ import {
   getActiveSession, 
   hasClientProfile, 
   signUpWithPassword,
-  signInWithPassword
+  signInWithPassword,
+  signInWithGoogle
 } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import LoginForm from "@/components/auth/LoginForm";
@@ -83,20 +84,20 @@ const Login = () => {
           return;
         }
 
-        const { user, session, error: authError } = await signInWithPassword(email, password);
+        try {
+          const authResponse = await signInWithPassword(email, password);
 
-        if (authError) {
+          if (authResponse.user) {
+            toast.success(`¡Bienvenido entrenador ${data.name}!`);
+            localStorage.setItem('trainerLoggedIn', 'true');
+            localStorage.setItem('trainerEmail', email);
+            localStorage.setItem('trainerName', data.name);
+            navigate("/dashboard");
+            return;
+          }
+        } catch (authError: any) {
           toast.error(`Error al iniciar sesión: ${authError.message}`);
           setIsLoading(false);
-          return;
-        }
-
-        if (user) {
-          toast.success(`¡Bienvenido entrenador ${data.name}!`);
-          localStorage.setItem('trainerLoggedIn', 'true');
-          localStorage.setItem('trainerEmail', email);
-          localStorage.setItem('trainerName', data.name);
-          navigate("/dashboard");
           return;
         }
       }
@@ -104,28 +105,33 @@ const Login = () => {
       if (role === "client") {
         console.log("Intentando iniciar sesión con:", { email, password });
         
-        const { user, session } = await signInWithPassword(email, password);
+        try {
+          const { user, session } = await signInWithPassword(email, password);
 
-        if (user) {
-          toast.success("¡Inicio de sesión exitoso!");
-          
-          localStorage.setItem('clientEmail', user.email || '');
-          localStorage.setItem('clientLoggedIn', 'true');
-          localStorage.setItem('clientUserId', user.id);
-          
-          console.log("Información de usuario guardada en localStorage:", {
-            email: user.email,
-            id: user.id
-          });
-          
-          const hasProfile = await hasClientProfile(user.id);
-          console.log("¿El usuario tiene perfil?", hasProfile);
+          if (user) {
+            toast.success("¡Inicio de sesión exitoso!");
             
-          if (!hasProfile) {
-            navigate("/client-register");
-          } else {
-            navigate("/client-portal");
+            localStorage.setItem('clientEmail', user.email || '');
+            localStorage.setItem('clientLoggedIn', 'true');
+            localStorage.setItem('clientUserId', user.id);
+            
+            console.log("Información de usuario guardada en localStorage:", {
+              email: user.email,
+              id: user.id
+            });
+            
+            const hasProfile = await hasClientProfile(user.id);
+            console.log("¿El usuario tiene perfil?", hasProfile);
+              
+            if (!hasProfile) {
+              navigate("/client-register");
+            } else {
+              navigate("/client-portal");
+            }
           }
+        } catch (authError: any) {
+          console.error("Login error:", authError);
+          toast.error(`Error al iniciar sesión: ${authError.message || "Inténtalo de nuevo"}`);
         }
       }
     } catch (error: any) {
@@ -174,29 +180,34 @@ const Login = () => {
 
       console.log("Intentando registrar:", { email: registerEmail, password: registerPassword });
 
-      const { user, session } = await signUpWithPassword(registerEmail, registerPassword);
+      try {
+        const { user, session } = await signUpWithPassword(registerEmail, registerPassword);
 
-      console.log("Usuario registrado:", { user, session });
+        console.log("Usuario registrado:", { user, session });
 
-      if (user) {
-        localStorage.setItem('clientEmail', registerEmail);
-        localStorage.setItem('clientLoggedIn', 'true');
-        localStorage.setItem('clientUserId', user.id);
-        
-        console.log("Información de usuario guardada en localStorage:", {
-          email: registerEmail,
-          id: user.id
-        });
-        
-        if (session) {
-          toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
-          setRegisterDialogOpen(false);
-          navigate("/client-register");
-        } else {
-          toast.success("Cuenta creada. Verifica tu email para confirmar tu cuenta (si es necesario).");
-          setRegisterDialogOpen(false);
-          navigate("/client-register");
+        if (user) {
+          localStorage.setItem('clientEmail', registerEmail);
+          localStorage.setItem('clientLoggedIn', 'true');
+          localStorage.setItem('clientUserId', user.id);
+          
+          console.log("Información de usuario guardada en localStorage:", {
+            email: registerEmail,
+            id: user.id
+          });
+          
+          if (session) {
+            toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
+            setRegisterDialogOpen(false);
+            navigate("/client-register");
+          } else {
+            toast.success("Cuenta creada. Verifica tu email para confirmar tu cuenta (si es necesario).");
+            setRegisterDialogOpen(false);
+            navigate("/client-register");
+          }
         }
+      } catch (authError: any) {
+        console.error("Registration error:", authError);
+        toast.error(`Error al registrar: ${authError.message}`);
       }
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -223,36 +234,36 @@ const Login = () => {
         return;
       }
 
-      const { user, session, error: signUpError } = await signUpWithPassword(trainerEmail, trainerPassword);
+      try {
+        const { user, session } = await signUpWithPassword(trainerEmail, trainerPassword);
 
-      if (signUpError) {
-        toast.error(`Error al registrar: ${signUpError.message}`);
+        if (user) {
+          const { error: trainerInsertError } = await supabase
+            .from('trainers')
+            .insert({
+              id: user.id,
+              name: trainerName,
+              email: trainerEmail
+            });
+
+          if (trainerInsertError) {
+            toast.error(`Error guardando datos de entrenador: ${trainerInsertError.message}`);
+            setIsLoading(false);
+            return;
+          }
+
+          toast.success("Cuenta de entrenador creada correctamente");
+          setTrainerRegisterDialogOpen(false);
+          
+          localStorage.setItem('trainerLoggedIn', 'true');
+          localStorage.setItem('trainerEmail', trainerEmail);
+          localStorage.setItem('trainerName', trainerName);
+          navigate("/dashboard");
+        }
+      } catch (authError: any) {
+        toast.error(`Error al registrar: ${authError.message}`);
         setIsLoading(false);
         return;
-      }
-
-      if (user) {
-        const { error: trainerInsertError } = await supabase
-          .from('trainers')
-          .insert({
-            id: user.id,
-            name: trainerName,
-            email: trainerEmail
-          });
-
-        if (trainerInsertError) {
-          toast.error(`Error guardando datos de entrenador: ${trainerInsertError.message}`);
-          setIsLoading(false);
-          return;
-        }
-
-        toast.success("Cuenta de entrenador creada correctamente");
-        setTrainerRegisterDialogOpen(false);
-        
-        localStorage.setItem('trainerLoggedIn', 'true');
-        localStorage.setItem('trainerEmail', trainerEmail);
-        localStorage.setItem('trainerName', trainerName);
-        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("Trainer registration error:", error);
