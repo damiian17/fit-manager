@@ -1,5 +1,5 @@
 
-import { GeneratedDiet, WebhookResponse } from "@/types/diet";
+import { GeneratedDiet, WebhookResponse, DailyMeal, DietOption, SummaryItem } from "@/types/diet";
 
 // Example generated diet data for the original format
 export const generatedDietData: GeneratedDiet = {
@@ -79,8 +79,72 @@ export const generatedDietData: GeneratedDiet = {
   totalMacros: { calories: 3200, protein: 210, carbs: 280, fat: 120 }
 };
 
-// Example webhook response data
+// Mock data for the new webhook response format
 export const mockWebhookResponse: WebhookResponse = [
+  {
+    "dia": "Lunes",
+    "comida1": {
+      "nombre": "Queso fresco batido desnatadado con avena y fruta",
+      "ingredientes": "• 200 ml de queso fresco batido desnatado\n• 50 g de avena\n• 1 plátano de 100 g aprox.",
+      "kcals": 384,
+      "grupos": "Cereales, Lácteos"
+    },
+    "comida2": {
+      "nombre": "Bocadillo de queso fresco con tomate y aceite",
+      "ingredientes": "• 125 g de pan integral\n• 60 g de queso fresco de burgos desnatado (una tarrina pequeña aprox)\n• 5 g de aceite de oliva\n• Tomate al gusto",
+      "kcals": 407,
+      "grupos": "Aceite de oliva, Lácteos, Pan"
+    },
+    "comida3": {
+      "nombre": "Hélices de pasta con soja texturizada y tomate",
+      "ingredientes": "• 100 g de pasta\n• 50 g de soja texturizada\n• 100 g de tomate frito\n• 15 ml de aceite de oliva\n• Verduras al gusto",
+      "kcals": 730,
+      "grupos": "Aceite de oliva, Cereales, Procesados veganos"
+    },
+    "comida4": {
+      "nombre": "Tosta de guacamole y pollo",
+      "ingredientes": "• 100 g de pan\n• 100 g de guacamole\n• 100 g de pechuga de pollo\n• Verduras al gusto",
+      "kcals": 492,
+      "grupos": "Aguacate, Carne blanca, Pan"
+    },
+    "kcalTotales": 2013,
+    "kcalObjetivo": 2877,
+    "variacion": "94%"
+  },
+  {
+    "dia": "Martes",
+    "comida1": {
+      "nombre": "Tostadas con hummus",
+      "ingredientes": "• 125 g de pan\n• 50 g de hummus\n• Verduras al gusto",
+      "kcals": 421,
+      "grupos": "Legumbre, Pan"
+    },
+    "comida2": {
+      "nombre": "Bocadillo de lomo",
+      "ingredientes": "• 125 g de pan integral\n• 60 g de lomo embuchado\n• Tomate",
+      "kcals": 397,
+      "grupos": "Fiambres, Pan"
+    },
+    "comida3": {
+      "nombre": "Cuscús con garbanzos y patata",
+      "ingredientes": "• 100 g de cuscús\n• 200 g de patata\n• 200 g de garbanzos ya cocidos\n• 25 g de uvas pasas\n• 10 ml de aceite de oliva\n• Verduras al gusto",
+      "kcals": 907,
+      "grupos": "Aceite de oliva, Cereales, Legumbre, Patata"
+    },
+    "comida4": {
+      "nombre": "Tosta de salmón ahumado y queso de untar",
+      "ingredientes": "• 100 g de pan\n• 50 g de salmón ahumado\n• 30 g de queso de untar\n• Verduras al gusto",
+      "kcals": 422,
+      "grupos": "Lácteos, Pan, Pescado azul"
+    },
+    "kcalTotales": 2147,
+    "kcalObjetivo": 2877,
+    "variacion": "98%"
+  }
+];
+
+// Example of the old format for backwards compatibility testing
+export const oldFormatWebhookResponse = [
   {
     "opcion": "Opcion1",
     "caloriasObjetivo": {
@@ -311,4 +375,4 @@ export const mockWebhookResponse: WebhookResponse = [
       }
     }
   }
-];
+] as (DietOption | SummaryItem)[];
