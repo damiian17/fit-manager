@@ -1,16 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Salad, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getDiets, getClientById } from "@/utils/clientStorage";
 import { toast } from "sonner";
-import { Diet } from "@/services/supabaseService";
+import { Diet, getDietById } from "@/services/supabaseService";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
+import { supabase } from "@/integrations/supabase/client";
 
-// Empty state for when there are no diet plans yet
 const EmptyState = () => (
   <Card className="text-center p-6">
     <div className="flex flex-col items-center justify-center space-y-4 py-8">
@@ -44,49 +42,61 @@ const Diets = () => {
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
 
   useEffect(() => {
-    // Load diets from Supabase
     const loadDiets = async () => {
       try {
         setIsLoading(true);
         
-        // Get all diets
-        const diets = await getDiets();
+        const { data: { session } } = await supabase.auth.getSession();
+        const trainerId = session?.user?.id;
         
-        // Group diets by client
+        if (!trainerId) {
+          console.error("No trainer ID found in session");
+          toast.error("Error: No se pudo identificar al entrenador");
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data: supabaseDiets, error } = await supabase
+          .from('diets')
+          .select('*')
+          .eq('trainer_id', trainerId)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching diets from Supabase:", error);
+          toast.error("Error al cargar los planes dietéticos");
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Fetched diets from Supabase:", supabaseDiets);
+        
         const groupedDiets: { [key: string]: GroupedDiets } = {};
         
-        // Process each diet
-        for (const diet of diets) {
-          // Changed client_id to clientId to match the correct property name
-          const clientId = diet.clientId.toString();
+        for (const diet of supabaseDiets || []) {
+          const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
           
           if (!groupedDiets[clientId]) {
-            // Fetch client information
-            const client = await getClientById(clientId);
-            
             groupedDiets[clientId] = {
               id: clientId,
-              name: client ? client.name : `Cliente ${clientId}`,
+              name: diet.client_name || "Cliente sin asignar",
               diets: []
             };
           }
           
-          // Convert the Diet type from clientStorage to the Diet type from supabaseService
-          // to ensure compatibility with the DietDetailView component
           const convertedDiet: Diet = {
             id: diet.id,
             name: diet.name,
-            client_id: diet.clientId,
-            client_name: diet.clientName,
-            created_at: diet.createdAt,
-            diet_data: {},  // Initialize with empty object
-            form_data: {}   // Initialize with empty object
+            client_id: diet.client_id || "",
+            client_name: diet.client_name,
+            created_at: diet.created_at || new Date().toISOString(),
+            diet_data: diet.diet_data || [],
+            form_data: diet.form_data || {}
           };
           
           groupedDiets[clientId].diets.push(convertedDiet);
         }
         
-        // Convert grouped diets object to array
         setClientDiets(Object.values(groupedDiets));
       } catch (error) {
         console.error("Error loading diets:", error);
@@ -99,15 +109,27 @@ const Diets = () => {
     loadDiets();
   }, []);
 
-  const handleViewDietDetails = (diet: Diet) => {
-    setSelectedDiet(diet);
+  const handleViewDietDetails = async (diet: Diet) => {
+    try {
+      console.log("Viewing diet details for:", diet.id);
+      const dietDetails = await getDietById(diet.id);
+      
+      if (dietDetails) {
+        console.log("Diet details fetched successfully:", dietDetails);
+        setSelectedDiet(dietDetails);
+      } else {
+        toast.error("No se pudieron cargar los datos de la dieta");
+      }
+    } catch (error) {
+      console.error("Error loading diet details:", error);
+      toast.error("Error al cargar los detalles de la dieta");
+    }
   };
 
   const handleBackFromDetails = () => {
     setSelectedDiet(null);
   };
 
-  // Si hay una dieta seleccionada, mostrar la vista detallada
   if (selectedDiet) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

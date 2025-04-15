@@ -24,6 +24,7 @@ export interface Diet {
   diet_data: any;
   form_data: any;
   created_at: string;
+  trainer_id?: string;
 }
 
 export interface Workout {
@@ -68,6 +69,37 @@ export const getClientDiets = async (clientId: string): Promise<Diet[]> => {
   return data || [];
 };
 
+export const getDietById = async (dietId: string): Promise<Diet | null> => {
+  const { data, error } = await supabase
+    .from('diets')
+    .select('*')
+    .eq('id', dietId)
+    .single();
+    
+  if (error) {
+    console.error("Error fetching diet by ID:", error);
+    return null;
+  }
+  
+  return data;
+};
+
+// Get diets by trainer ID
+export const getTrainerDiets = async (trainerId: string): Promise<Diet[]> => {
+  const { data, error } = await supabase
+    .from('diets')
+    .select('*')
+    .eq('trainer_id', trainerId)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching trainer diets:", error);
+    return [];
+  }
+  
+  return data || [];
+};
+
 // Workout operations
 export const getClientWorkouts = async (clientId: string): Promise<Workout[]> => {
   const { data, error } = await supabase
@@ -86,9 +118,19 @@ export const getClientWorkouts = async (clientId: string): Promise<Workout[]> =>
 
 // Diet saving operation
 export const saveDiet = async (dietData: Omit<Diet, 'id' | 'created_at'>): Promise<Diet | null> => {
+  // Get current user/trainer ID
+  const { data: { session } } = await supabase.auth.getSession();
+  const trainerId = session?.user?.id;
+  
+  // Add trainer ID to the diet data
+  const dietWithTrainer = {
+    ...dietData,
+    trainer_id: trainerId
+  };
+  
   const { data, error } = await supabase
     .from('diets')
-    .insert(dietData)
+    .insert(dietWithTrainer)
     .select()
     .single();
   

@@ -47,6 +47,16 @@ const ClientRegister = () => {
     const checkSession = async () => {
       try {
         console.log("Verificando sesión de usuario...");
+        // Verify if there's an active session first
+        const session = await getActiveSession();
+        
+        if (!session) {
+          console.log("No active session found, redirecting to login");
+          setSessionError("No se ha encontrado una sesión activa. Por favor, inicia sesión primero.");
+          setTimeout(() => navigate("/login"), 1500);
+          return;
+        }
+        
         // Intentar obtener ID del localStorage primero (más confiable)
         const storedUserId = localStorage.getItem('clientUserId');
         const storedEmail = localStorage.getItem('clientEmail');
@@ -58,9 +68,6 @@ const ClientRegister = () => {
           setUserId(storedUserId);
           console.log("Usando ID de usuario del localStorage:", storedUserId);
         }
-        
-        // Obtener sesión actual como respaldo
-        const session = await getActiveSession();
         
         if (session && session.user) {
           // Si hay sesión, usar los datos del usuario autenticado
@@ -102,10 +109,12 @@ const ClientRegister = () => {
         } else {
           console.log("No hay sesión activa ni datos válidos en localStorage");
           setSessionError("No se ha podido encontrar una sesión activa. Por favor, inicia sesión primero.");
+          setTimeout(() => navigate("/login"), 1500);
         }
       } catch (error) {
         console.error("Error verificando sesión:", error);
         setSessionError("Error al verificar la sesión. Por favor, inicia sesión nuevamente.");
+        setTimeout(() => navigate("/login"), 1500);
       }
     };
     
@@ -219,7 +228,7 @@ const ClientRegister = () => {
                 </AlertDescription>
               </Alert>
               <Button 
-                onClick={handleReturnToLogin} 
+                onClick={() => navigate("/login")} 
                 className="w-full"
               >
                 Volver a iniciar sesión
