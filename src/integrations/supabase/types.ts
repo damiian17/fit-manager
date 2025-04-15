@@ -72,7 +72,6 @@ export type Database = {
           form_data: Json
           id: string
           name: string
-          trainer_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -83,7 +82,6 @@ export type Database = {
           form_data: Json
           id?: string
           name: string
-          trainer_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -94,7 +92,6 @@ export type Database = {
           form_data?: Json
           id?: string
           name?: string
-          trainer_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -105,45 +102,7 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "diets_trainer_id_fkey"
-            columns: ["trainer_id"]
-            isOneToOne: false
-            referencedRelation: "trainer_client_diets"
-            referencedColumns: ["trainer_id"]
-          },
-          {
-            foreignKeyName: "diets_trainer_id_fkey"
-            columns: ["trainer_id"]
-            isOneToOne: false
-            referencedRelation: "trainers"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      trainers: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       workouts: {
         Row: {
@@ -188,38 +147,12 @@ export type Database = {
       }
     }
     Views: {
-      trainer_client_diets: {
-        Row: {
-          client_id: string | null
-          client_name: string | null
-          diet_created_at: string | null
-          diet_data: Json | null
-          diet_id: string | null
-          diet_name: string | null
-          form_data: Json | null
-          trainer_email: string | null
-          trainer_id: string | null
-          trainer_name: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "diets_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       get_user_id_by_email: {
         Args: { email_input: string }
         Returns: string
-      }
-      save_trainer_profile: {
-        Args: { trainer_data: Json }
-        Returns: Json
       }
     }
     Enums: {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -13,10 +14,8 @@ import {
   hasClientProfile, 
   signUpWithPassword,
   signInWithPassword,
-  signInWithGoogle,
-  saveTrainerProfile
+  signInWithGoogle
 } from "@/utils/authUtils";
-import { supabase } from "@/integrations/supabase/client";
 import LoginForm from "@/components/auth/LoginForm";
 
 const Login = () => {
@@ -35,6 +34,7 @@ const Login = () => {
   const [trainerName, setTrainerName] = useState("");
   const navigate = useNavigate();
 
+  // Verificar si el usuario ya está autenticado
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -44,13 +44,16 @@ const Login = () => {
         if (session) {
           console.log("Sesión activa encontrada:", session);
           
+          // Guardar datos en localStorage
           localStorage.setItem('clientEmail', session.user.email || '');
           localStorage.setItem('clientLoggedIn', 'true');
           localStorage.setItem('clientUserId', session.user.id);
           
+          // Verificar si el usuario tiene perfil
           const hasProfile = await hasClientProfile(session.user.id);
           console.log("¿El usuario tiene perfil?", hasProfile);
             
+          // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
           if (!hasProfile) {
             navigate("/client-register");
           } else {
@@ -72,70 +75,60 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // Para entrenadores, verificamos en localStorage si están registrados
       if (role === "trainer") {
-        try {
-          const { user, session } = await signInWithPassword(email, password);
-          
-          if (!user) {
-            toast.error("Credenciales de entrenador inválidas");
-            setIsLoading(false);
-            return;
-          }
-          
-          const { data, error } = await supabase
-            .from('trainers')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-            
-          if (error || !data) {
-            toast.error("No tienes perfil de entrenador");
-            setIsLoading(false);
-            return;
-          }
-          
-          toast.success(`¡Bienvenido entrenador ${data.name}!`);
+        const storedTrainers = JSON.parse(localStorage.getItem('registeredTrainers') || '[]');
+        const trainer = storedTrainers.find((t: any) => t.email === email && t.password === password);
+        
+        if (trainer) {
+          toast.success(`¡Bienvenido entrenador ${trainer.name}!`);
           localStorage.setItem('trainerLoggedIn', 'true');
           localStorage.setItem('trainerEmail', email);
-          localStorage.setItem('trainerName', data.name);
+          localStorage.setItem('trainerName', trainer.name);
           navigate("/dashboard");
-        } catch (authError: any) {
-          toast.error(`Error al iniciar sesión: ${authError.message}`);
-          setIsLoading(false);
           return;
+        } else if (email === "admin" && password === "admin") {
+          // Mantenemos la compatibilidad con el login admin/admin
+          toast.success("¡Bienvenido entrenador administrador!");
+          localStorage.setItem('trainerLoggedIn', 'true');
+          localStorage.setItem('trainerEmail', 'admin');
+          localStorage.setItem('trainerName', 'Administrador');
+          navigate("/dashboard");
+          return;
+        } else {
+          toast.error("Credenciales inválidas");
         }
       }
       
+      // Para clientes, usamos autenticación de Supabase
       if (role === "client") {
         console.log("Intentando iniciar sesión con:", { email, password });
         
-        try {
-          const { user, session } = await signInWithPassword(email, password);
+        const { user, session } = await signInWithPassword(email, password);
 
-          if (user) {
-            toast.success("¡Inicio de sesión exitoso!");
+        if (user) {
+          toast.success("¡Inicio de sesión exitoso!");
+          
+          // Guardar datos en localStorage
+          localStorage.setItem('clientEmail', user.email || '');
+          localStorage.setItem('clientLoggedIn', 'true');
+          localStorage.setItem('clientUserId', user.id);
+          
+          console.log("Información de usuario guardada en localStorage:", {
+            email: user.email,
+            id: user.id
+          });
+          
+          // Verificar si el usuario tiene perfil
+          const hasProfile = await hasClientProfile(user.id);
+          console.log("¿El usuario tiene perfil?", hasProfile);
             
-            localStorage.setItem('clientEmail', user.email || '');
-            localStorage.setItem('clientLoggedIn', 'true');
-            localStorage.setItem('clientUserId', user.id);
-            
-            console.log("Información de usuario guardada en localStorage:", {
-              email: user.email,
-              id: user.id
-            });
-            
-            const hasProfile = await hasClientProfile(user.id);
-            console.log("¿El usuario tiene perfil?", hasProfile);
-              
-            if (!hasProfile) {
-              navigate("/client-register");
-            } else {
-              navigate("/client-portal");
-            }
+          // Si no tiene perfil, redirigir a completar registro, si lo tiene, al portal
+          if (!hasProfile) {
+            navigate("/client-register");
+          } else {
+            navigate("/client-portal");
           }
-        } catch (authError: any) {
-          console.error("Login error:", authError);
-          toast.error(`Error al iniciar sesión: ${authError.message || "Inténtalo de nuevo"}`);
         }
       }
     } catch (error: any) {
@@ -158,6 +151,7 @@ const Login = () => {
     try {
       setIsLoading(true);
       await signInWithGoogle();
+      // No necesitamos manejar la redirección aquí ya que es manejada por OAuth
     } catch (error: any) {
       console.error("Error al iniciar sesión con Google:", error);
       toast.error(`Error al iniciar sesión con Google: ${error.message}`);
@@ -170,6 +164,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // Validar email y contraseña
       if (!registerEmail || !registerPassword) {
         toast.error("Por favor ingresa un email y contraseña");
         setIsLoading(false);
@@ -184,34 +179,34 @@ const Login = () => {
 
       console.log("Intentando registrar:", { email: registerEmail, password: registerPassword });
 
-      try {
-        const { user, session } = await signUpWithPassword(registerEmail, registerPassword);
+      // Usar la función de registro desde authUtils
+      const { user, session } = await signUpWithPassword(registerEmail, registerPassword);
 
-        console.log("Usuario registrado:", { user, session });
+      console.log("Usuario registrado:", { user, session });
 
-        if (user) {
-          localStorage.setItem('clientEmail', registerEmail);
-          localStorage.setItem('clientLoggedIn', 'true');
-          localStorage.setItem('clientUserId', user.id);
-          
-          console.log("Información de usuario guardada en localStorage:", {
-            email: registerEmail,
-            id: user.id
-          });
-          
-          if (session) {
-            toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
-            setRegisterDialogOpen(false);
-            navigate("/client-register");
-          } else {
-            toast.success("Cuenta creada. Verifica tu email para confirmar tu cuenta (si es necesario).");
-            setRegisterDialogOpen(false);
-            navigate("/client-register");
-          }
+      if (user) {
+        // Guardar el email para el registro del perfil y el ID para facilitar el registro
+        localStorage.setItem('clientEmail', registerEmail);
+        localStorage.setItem('clientLoggedIn', 'true');
+        localStorage.setItem('clientUserId', user.id);
+        
+        console.log("Información de usuario guardada en localStorage:", {
+          email: registerEmail,
+          id: user.id
+        });
+        
+        // Manejar el caso de registration_confirmed y registration_sent
+        if (session) {
+          // Si hay una sesión activa, usarla directamente
+          toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
+          setRegisterDialogOpen(false);
+          navigate("/client-register");
+        } else {
+          // Si no hay sesión (confirmación pendiente), mostrar mensaje específico
+          toast.success("Cuenta creada. Verifica tu email para confirmar tu cuenta (si es necesario).");
+          setRegisterDialogOpen(false);
+          navigate("/client-register");
         }
-      } catch (authError: any) {
-        console.error("Registration error:", authError);
-        toast.error(`Error al registrar: ${authError.message}`);
       }
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -226,6 +221,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // Validar campos
       if (!trainerEmail || !trainerPassword || !trainerName) {
         toast.error("Por favor completa todos los campos");
         setIsLoading(false);
@@ -238,34 +234,36 @@ const Login = () => {
         return;
       }
 
-      try {
-        const { user, session } = await signUpWithPassword(trainerEmail, trainerPassword);
+      // Guardar en localStorage
+      const newTrainer = {
+        email: trainerEmail,
+        password: trainerPassword,
+        name: trainerName,
+        registeredAt: new Date().toISOString()
+      };
 
-        if (user) {
-          try {
-            await saveTrainerProfile({
-              name: trainerName,
-              email: trainerEmail
-            }, user.id);
-
-            toast.success("Cuenta de entrenador creada correctamente");
-            setTrainerRegisterDialogOpen(false);
-            
-            localStorage.setItem('trainerLoggedIn', 'true');
-            localStorage.setItem('trainerEmail', trainerEmail);
-            localStorage.setItem('trainerName', trainerName);
-            navigate("/dashboard");
-          } catch (profileError: any) {
-            toast.error(`Error guardando datos de entrenador: ${profileError.message}`);
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch (authError: any) {
-        toast.error(`Error al registrar: ${authError.message}`);
+      const storedTrainers = JSON.parse(localStorage.getItem('registeredTrainers') || '[]');
+      
+      // Verificar si el email ya está registrado
+      if (storedTrainers.some((t: any) => t.email === trainerEmail)) {
+        toast.error("Este email ya está registrado");
         setIsLoading(false);
         return;
       }
+      
+      // Agregar el nuevo entrenador y guardar
+      storedTrainers.push(newTrainer);
+      localStorage.setItem('registeredTrainers', JSON.stringify(storedTrainers));
+      
+      toast.success("Cuenta de entrenador creada correctamente");
+      setTrainerRegisterDialogOpen(false);
+      
+      // Opcional: iniciar sesión automáticamente
+      localStorage.setItem('trainerLoggedIn', 'true');
+      localStorage.setItem('trainerEmail', trainerEmail);
+      localStorage.setItem('trainerName', trainerName);
+      navigate("/dashboard");
+      
     } catch (error: any) {
       console.error("Trainer registration error:", error);
       toast.error(`Error al registrar: ${error.message || "Inténtalo de nuevo"}`);
@@ -422,6 +420,7 @@ const Login = () => {
         </Card>
       </div>
 
+      {/* Dialog para registro de clientes */}
       <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -476,6 +475,7 @@ const Login = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog para registro de entrenadores */}
       <Dialog open={trainerRegisterDialogOpen} onOpenChange={setTrainerRegisterDialogOpen}>
         <DialogContent>
           <DialogHeader>

@@ -58,9 +58,6 @@ export const signOut = async () => {
   localStorage.removeItem('clientLoggedIn');
   localStorage.removeItem('clientEmail');
   localStorage.removeItem('clientUserId'); // También limpiar el ID de usuario
-  localStorage.removeItem('trainerLoggedIn');
-  localStorage.removeItem('trainerEmail');
-  localStorage.removeItem('trainerName');
   await supabase.auth.signOut();
 };
 
@@ -89,31 +86,26 @@ export const signInWithGoogle = async () => {
 export const signInWithPassword = async (email: string, password: string) => {
   console.log("Iniciando sesión con email:", email);
   
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      console.error("Error al iniciar sesión con email y contraseña:", error);
-      throw error;
-    }
-    
-    console.log("Inicio de sesión exitoso:", data);
-    
-    // Guardar información en localStorage
-    if (data.user) {
-      localStorage.setItem('clientLoggedIn', 'true');
-      localStorage.setItem('clientEmail', email);
-      localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error en signInWithPassword:", error);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  
+  if (error) {
+    console.error("Error al iniciar sesión con email y contraseña:", error);
     throw error;
   }
+  
+  console.log("Inicio de sesión exitoso:", data);
+  
+  // Guardar información en localStorage
+  if (data.user) {
+    localStorage.setItem('clientLoggedIn', 'true');
+    localStorage.setItem('clientEmail', email);
+    localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
+  }
+  
+  return data;
 };
 
 /**
@@ -122,34 +114,29 @@ export const signInWithPassword = async (email: string, password: string) => {
 export const signUpWithPassword = async (email: string, password: string) => {
   console.log("Registrando nuevo usuario con email:", email);
   
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin + '/client-register',
-      }
-    });
-    
-    if (error) {
-      console.error("Error al registrar usuario:", error);
-      throw error;
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: window.location.origin + '/client-register',
     }
-    
-    console.log("Registro exitoso:", data);
-    
-    // Guardar información en localStorage incluyendo el ID
-    if (data.user) {
-      localStorage.setItem('clientLoggedIn', 'true');
-      localStorage.setItem('clientEmail', email);
-      localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error en signUpWithPassword:", error);
+  });
+  
+  if (error) {
+    console.error("Error al registrar usuario:", error);
     throw error;
   }
+  
+  console.log("Registro exitoso:", data);
+  
+  // Guardar información en localStorage incluyendo el ID
+  if (data.user) {
+    localStorage.setItem('clientLoggedIn', 'true');
+    localStorage.setItem('clientEmail', email);
+    localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
+  }
+  
+  return data;
 };
 
 /**
@@ -273,53 +260,6 @@ export const saveClientProfile = async (clientData: any, userId?: string) => {
     return data;
   } catch (error) {
     console.error("Error inesperado guardando perfil:", error);
-    throw error;
-  }
-};
-
-/**
- * Crea o actualiza el perfil de un entrenador
- * @param trainerData Datos del entrenador a guardar
- * @param userId ID del usuario (opcional)
- */
-export const saveTrainerProfile = async (trainerData: any, userId?: string) => {
-  try {
-    // Si no se proporciona el ID del usuario, usar el usuario actual
-    let finalUserId = userId;
-    
-    if (!finalUserId) {
-      // Obtener el usuario actual
-      const currentUser = await getCurrentUser();
-      finalUserId = currentUser?.id;
-      
-      if (!finalUserId) {
-        throw new Error("No se pudo determinar el ID del usuario");
-      }
-    }
-    
-    console.log("Guardando perfil de entrenador con ID:", finalUserId);
-    
-    // Preparar datos para guardar
-    const profileData = {
-      id: finalUserId,
-      ...trainerData
-    };
-    
-    // Usar una función RPC para guardar el perfil del entrenador
-    // Esto nos permite eludir las políticas RLS ya que la función se ejecuta con privilegios elevados
-    const { data, error } = await supabase.rpc('save_trainer_profile', {
-      trainer_data: profileData
-    });
-    
-    if (error) {
-      console.error("Error guardando perfil del entrenador:", error);
-      throw error;
-    }
-    
-    console.log("Perfil de entrenador guardado exitosamente:", data);
-    return data;
-  } catch (error) {
-    console.error("Error inesperado guardando perfil de entrenador:", error);
     throw error;
   }
 };
