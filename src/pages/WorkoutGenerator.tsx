@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -44,6 +45,7 @@ const WorkoutGenerator = () => {
     duration: "",
     equipment: [] as string[],
   });
+  const [generatedWorkout, setGeneratedWorkout] = useState<any>(null);
 
   // Sample workout days
   const workoutDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -126,8 +128,24 @@ const WorkoutGenerator = () => {
     setIsGenerating(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Enviar datos al webhook proporcionado
+      const response = await fetch("https://primary-production-d78e.up.railway.app/webhook-test/b7c2f6e2-cb34-4f05-971b-2524335d4d48", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error en la respuesta del servidor");
+      }
+
+      const data = await response.json();
+      console.log("Respuesta del webhook:", data);
+      
+      // Guardar la respuesta del webhook
+      setGeneratedWorkout(data);
       setWorkoutGenerated(true);
       toast.success("Rutina generada correctamente");
     } catch (error) {
@@ -176,12 +194,14 @@ const WorkoutGenerator = () => {
         return;
       }
       
-      // Create and save workout
+      // Create and save workout with data from the webhook response
       const newWorkout = {
         name: formData.workoutName,
         clientId: clientId,
         clientName: formData.clientName,
         createdAt: new Date().toISOString(),
+        workout_data: generatedWorkout, // Usar los datos recibidos del webhook
+        form_data: formData,
       };
       
       await saveWorkout(newWorkout);
@@ -193,40 +213,68 @@ const WorkoutGenerator = () => {
     }
   };
 
-  // Example generated workout data
-  const generatedWorkout = {
-    days: [
-      {
-        name: "Día 1 - Pecho y Tríceps",
-        exercises: [
-          { name: "Press de banca", sets: 4, reps: "8-10", rest: "90 sec", note: "Aumentar peso gradualmente" },
-          { name: "Press inclinado con mancuernas", sets: 3, reps: "10-12", rest: "60 sec" },
-          { name: "Aperturas en máquina", sets: 3, reps: "12-15", rest: "60 sec" },
-          { name: "Fondos en paralelas", sets: 3, reps: "10-12", rest: "60 sec" },
-          { name: "Extensiones de tríceps con polea", sets: 3, reps: "12-15", rest: "60 sec" },
-        ]
-      },
-      {
-        name: "Día 2 - Espalda y Bíceps",
-        exercises: [
-          { name: "Dominadas", sets: 4, reps: "máximas", rest: "90 sec", note: "Usar asistencia si es necesario" },
-          { name: "Remo con barra", sets: 3, reps: "8-10", rest: "90 sec" },
-          { name: "Remo en máquina", sets: 3, reps: "10-12", rest: "60 sec" },
-          { name: "Curl de bíceps con barra", sets: 3, reps: "10-12", rest: "60 sec" },
-          { name: "Curl martillo", sets: 3, reps: "12-15", rest: "60 sec" },
-        ]
-      },
-      {
-        name: "Día 3 - Piernas",
-        exercises: [
-          { name: "Sentadillas", sets: 4, reps: "8-10", rest: "120 sec", note: "Mantener la espalda recta" },
-          { name: "Prensa de piernas", sets: 3, reps: "10-12", rest: "90 sec" },
-          { name: "Extensiones de cuádriceps", sets: 3, reps: "12-15", rest: "60 sec" },
-          { name: "Curl femoral", sets: 3, reps: "12-15", rest: "60 sec" },
-          { name: "Elevaciones de gemelos", sets: 4, reps: "15-20", rest: "60 sec" },
-        ]
-      },
-    ]
+  // Renderizar secciones de entrenamiento basado en la respuesta del webhook
+  const renderWorkoutSections = () => {
+    if (!generatedWorkout) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No hay datos de rutina disponibles</p>
+        </div>
+      );
+    }
+
+    // Analizar la estructura de la respuesta del webhook y renderizar adecuadamente
+    // Este es un ejemplo genérico que debería ser adaptado según la estructura real del webhook
+    return (
+      <div className="space-y-6">
+        {generatedWorkout.days && generatedWorkout.days.map((day: any, index: number) => (
+          <AccordionItem key={index} value={`day-${index}`}>
+            <AccordionTrigger className="text-left font-semibold">
+              <div className="flex items-center">
+                <Dumbbell className="mr-2 h-5 w-5 text-fitBlue-600" />
+                {day.name || `Día ${index + 1}`}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              {day.exercises && day.exercises.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-800">
+                        <th className="py-2 px-4 text-left font-medium">Ejercicio</th>
+                        <th className="py-2 px-4 text-center font-medium">Series</th>
+                        <th className="py-2 px-4 text-center font-medium">Reps</th>
+                        <th className="py-2 px-4 text-center font-medium">Descanso</th>
+                        <th className="py-2 px-4 text-left font-medium">Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {day.exercises.map((exercise: any, exIndex: number) => (
+                        <tr key={exIndex} className="border-t border-gray-200 dark:border-gray-700">
+                          <td className="py-3 px-4 font-medium">{exercise.name}</td>
+                          <td className="py-3 px-4 text-center">{exercise.sets}</td>
+                          <td className="py-3 px-4 text-center">{exercise.reps}</td>
+                          <td className="py-3 px-4 text-center">{exercise.rest}</td>
+                          <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{exercise.note || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="py-3 px-4 text-gray-500">No hay ejercicios disponibles para este día</p>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+
+        {!generatedWorkout.days && (
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">La rutina ha sido generada pero no tiene un formato reconocible. Revisa la consola para ver la estructura completa.</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -466,7 +514,6 @@ const WorkoutGenerator = () => {
                       className="w-full bg-fitBlue-600 hover:bg-fitBlue-700" 
                       disabled={isGenerating}
                     >
-                      <Sparkles className="mr-2 h-4 w-4" />
                       {isGenerating ? (
                         <>
                           <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -476,7 +523,10 @@ const WorkoutGenerator = () => {
                           Generando rutina...
                         </>
                       ) : (
-                        "Generar Rutina"
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generar Rutina
+                        </>
                       )}
                     </Button>
                   </form>
@@ -515,42 +565,7 @@ const WorkoutGenerator = () => {
                     </div>
 
                     <Accordion type="single" collapsible className="w-full">
-                      {generatedWorkout.days.map((day, index) => (
-                        <AccordionItem key={index} value={`day-${index}`}>
-                          <AccordionTrigger className="text-left font-semibold">
-                            <div className="flex items-center">
-                              <Dumbbell className="mr-2 h-5 w-5 text-fitBlue-600" />
-                              {day.name}
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="bg-gray-50 dark:bg-gray-800">
-                                    <th className="py-2 px-4 text-left font-medium">Ejercicio</th>
-                                    <th className="py-2 px-4 text-center font-medium">Series</th>
-                                    <th className="py-2 px-4 text-center font-medium">Reps</th>
-                                    <th className="py-2 px-4 text-center font-medium">Descanso</th>
-                                    <th className="py-2 px-4 text-left font-medium">Notas</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {day.exercises.map((exercise, exIndex) => (
-                                    <tr key={exIndex} className="border-t border-gray-200 dark:border-gray-700">
-                                      <td className="py-3 px-4 font-medium">{exercise.name}</td>
-                                      <td className="py-3 px-4 text-center">{exercise.sets}</td>
-                                      <td className="py-3 px-4 text-center">{exercise.reps}</td>
-                                      <td className="py-3 px-4 text-center">{exercise.rest}</td>
-                                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{exercise.note || "-"}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
+                      {renderWorkoutSections()}
                     </Accordion>
                     
                     <div className="mt-6 p-4 border border-gray-200 rounded-lg">
