@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Dumbbell, Salad, ArrowRight, LogIn, UserPlus, LogOut } from "lucide-react";
+import { User, Dumbbell, Salad, ArrowRight, LogIn, UserPlus, LogOut, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { getClientByEmail, getClientDiets, getClientWorkouts, type Diet, type Workout } from "@/services/supabaseService";
 import { DietCard } from "@/components/client-portal/DietCard";
@@ -22,6 +23,7 @@ const ClientPortal = () => {
   const [activeTab, setActiveTab] = useState("workouts");
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
+  const [isGeneratingWorkout, setIsGeneratingWorkout] = useState(false);
   
   const navigate = useNavigate();
   
@@ -109,6 +111,46 @@ const ClientPortal = () => {
     setSelectedWorkout(null);
   };
   
+  const handleGenerateWorkout = async () => {
+    const webhookUrl = "https://primary-production-d78e.up.railway.app/webhook-test/b7c2f6e2-cb34-4f05-971b-2524335d4d48";
+    
+    setIsGeneratingWorkout(true);
+    
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        mode: "no-cors", // Necessary for cross-origin requests without CORS
+        body: JSON.stringify({
+          clientId: clientData?.id || "unknown",
+          clientName: clientData?.name || "Cliente",
+          timestamp: new Date().toISOString(),
+          source: "client-portal",
+          action: "generate-workout"
+        }),
+      });
+      
+      toast.success("Solicitud de rutina enviada correctamente");
+      
+      // Refresh workouts after a short delay
+      setTimeout(() => {
+        if (clientData) {
+          getClientWorkouts(clientData.id).then(newWorkouts => {
+            setWorkouts(newWorkouts);
+          });
+        }
+        setIsGeneratingWorkout(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Error al enviar la solicitud al webhook:", error);
+      toast.error("Error al solicitar la rutina");
+      setIsGeneratingWorkout(false);
+    }
+  };
+  
   const renderDietContent = () => {
     if (selectedDiet) {
       return <DietDetailView diet={selectedDiet} onBack={handleBackToList} />;
@@ -144,27 +186,51 @@ const ClientPortal = () => {
       return <WorkoutDetailView workout={selectedWorkout} onBack={handleBackToList} />;
     }
     
-    if (workouts.length === 0) {
-      return (
-        <div className="text-center py-8">
-          <Dumbbell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium">No tienes rutinas asignadas</h3>
-          <p className="text-sm text-gray-500 mt-2">
-            Tu entrenador te asignará rutinas personalizadas pronto
-          </p>
-        </div>
-      );
-    }
-    
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {workouts.map((workout) => (
-          <WorkoutCard 
-            key={workout.id} 
-            workout={workout} 
-            onViewDetails={handleViewWorkoutDetails} 
-          />
-        ))}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Mis Rutinas de Entrenamiento</h3>
+          <Button 
+            onClick={handleGenerateWorkout} 
+            disabled={isGeneratingWorkout}
+            className="bg-fitBlue-600 hover:bg-fitBlue-700"
+          >
+            {isGeneratingWorkout ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generando...
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" />
+                Generar Rutina
+              </>
+            )}
+          </Button>
+        </div>
+        
+        {workouts.length === 0 ? (
+          <div className="text-center py-8">
+            <Dumbbell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium">No tienes rutinas asignadas</h3>
+            <p className="text-sm text-gray-500 mt-2">
+              Tu entrenador te asignará rutinas personalizadas pronto
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {workouts.map((workout) => (
+              <WorkoutCard 
+                key={workout.id} 
+                workout={workout} 
+                onViewDetails={handleViewWorkoutDetails} 
+              />
+            ))}
+          </div>
+        )}
       </div>
     );
   };
