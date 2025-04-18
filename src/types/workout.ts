@@ -11,7 +11,8 @@ export interface ExerciseData {
 }
 
 export interface DayWorkout {
-  Dia: string;
+  Dia?: string;
+  Día?: string;
   Ejercicios: ExerciseData[];
 }
 

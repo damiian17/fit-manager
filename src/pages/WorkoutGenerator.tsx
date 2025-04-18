@@ -25,6 +25,7 @@ import { ChevronLeft, Sparkles, FileDown, Mail, Dumbbell, ArrowRight } from "luc
 import { toast } from "sonner";
 import { getClients, saveClient, saveWorkout, getClientById, Client } from "@/utils/clientStorage";
 import { WorkoutDay } from "@/components/workout-generator/WorkoutDay";
+import { DayWorkout } from "@/types/workout";
 
 const WorkoutGenerator = () => {
   const navigate = useNavigate();
@@ -46,8 +47,9 @@ const WorkoutGenerator = () => {
     equipment: [] as string[],
   });
   const [generatedWorkout, setGeneratedWorkout] = useState<any>(null);
+  const [workoutDays, setWorkoutDays] = useState<DayWorkout[]>([]);
 
-  const workoutDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  const availableDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   
   const equipmentOptions = [
     "Mancuernas", "Barras", "Máquinas de gimnasio", "Bandas elásticas", 
@@ -137,7 +139,21 @@ const WorkoutGenerator = () => {
       const data = await response.json();
       console.log("Respuesta del webhook:", data);
       
-      setGeneratedWorkout(data[0]);
+      let extractedWorkoutDays: DayWorkout[] = [];
+      
+      if (data && data.output) {
+        const outputKeys = Object.keys(data.output);
+        
+        for (const key of outputKeys) {
+          if (Array.isArray(data.output[key]) && data.output[key].length > 0) {
+            extractedWorkoutDays = data.output[key];
+            break;
+          }
+        }
+      }
+      
+      setGeneratedWorkout(data);
+      setWorkoutDays(extractedWorkoutDays);
       setWorkoutGenerated(true);
       toast.success("Rutina generada correctamente");
     } catch (error) {
@@ -200,17 +216,7 @@ const WorkoutGenerator = () => {
   };
 
   const renderWorkoutSections = () => {
-    if (!generatedWorkout?.output) {
-      return (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No hay datos de rutina disponibles</p>
-        </div>
-      );
-    }
-
-    const workoutDays = generatedWorkout.output.Rutina_4_Dias || generatedWorkout.output.RutinaSemanal;
-
-    if (!workoutDays || workoutDays.length === 0) {
+    if (workoutDays.length === 0) {
       return (
         <div className="text-center py-8">
           <p className="text-gray-500">No hay datos de rutina disponibles</p>
@@ -408,7 +414,7 @@ const WorkoutGenerator = () => {
                     <div className="space-y-2">
                       <Label>Días disponibles por semana</Label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                        {workoutDays.map((day) => (
+                        {availableDays.map((day) => (
                           <div key={day} className="flex items-center space-x-2">
                             <Checkbox
                               id={`day-${day}`}
@@ -514,9 +520,9 @@ const WorkoutGenerator = () => {
                       </ul>
                     </div>
 
-                    <Accordion type="single" collapsible className="w-full">
+                    <div className="space-y-6">
                       {renderWorkoutSections()}
-                    </Accordion>
+                    </div>
                     
                     <div className="mt-6 p-4 border border-gray-200 rounded-lg">
                       <h3 className="font-semibold mb-2">Instrucciones generales</h3>
