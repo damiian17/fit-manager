@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Salad, ChevronRight, PlusCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Diet, getDietById } from "@/services/supabaseService";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
@@ -40,6 +41,7 @@ const Diets = () => {
   const [clientDiets, setClientDiets] = useState<GroupedDiets[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
+  const navigate = useNavigate();
 
   const loadDiets = async () => {
     try {
@@ -156,6 +158,27 @@ const Diets = () => {
       console.error("Error deleting diet:", error);
       toast.error("Error al eliminar el plan dietético");
     }
+  };
+  
+  const handleEditMeal = (day: string, mealKey: string, meal: any) => {
+    if (!selectedDiet) return;
+    
+    navigate(`/diets/edit/${selectedDiet.id}`, { 
+      state: { 
+        dietData: selectedDiet.diet_data,
+        formData: selectedDiet.form_data,
+        clientInfo: {
+          id: selectedDiet.client_id,
+          name: selectedDiet.client_name,
+          dietName: selectedDiet.name
+        },
+        editingMeal: {
+          day,
+          mealKey,
+          meal
+        }
+      } 
+    });
   };
 
   if (selectedDiet) {

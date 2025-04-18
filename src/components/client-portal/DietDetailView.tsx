@@ -161,10 +161,23 @@ export const DietDetailView = ({
     });
   };
   
-  const handleEditMeal = (day: string, mealKey: string) => {
-    // For now, we'll just navigate to the diet edit page
-    // In the future, this could be enhanced to edit specific meals
-    handleEditDiet();
+  const handleEditMeal = (day: string, mealKey: string, meal: any) => {
+    navigate(`/diets/edit/${diet.id}`, { 
+      state: { 
+        dietData: diet.diet_data,
+        formData: diet.form_data,
+        clientInfo: {
+          id: diet.client_id,
+          name: diet.client_name,
+          dietName: diet.name
+        },
+        editingMeal: {
+          day,
+          mealKey,
+          meal
+        }
+      } 
+    });
   };
 
   if (isLoading) {
@@ -308,7 +321,7 @@ export const DietDetailView = ({
                                   <Button 
                                     variant="ghost" 
                                     size="sm" 
-                                    onClick={() => handleEditMeal(day.dia, mealKey)}
+                                    onClick={() => handleEditMeal(day.dia, mealKey, meal)}
                                     className="text-fitBlue-600"
                                   >
                                     <Edit className="h-4 w-4 mr-1" />
