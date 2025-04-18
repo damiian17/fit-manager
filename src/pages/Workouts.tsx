@@ -8,6 +8,7 @@ import { getWorkouts, getClientById } from "@/utils/clientStorage";
 import { toast } from "sonner";
 import { Workout } from "@/services/supabaseService";
 import { WorkoutDetailView } from "@/components/client-portal/WorkoutDetailView";
+import { supabase } from "@/integrations/supabase/client";
 
 const EmptyState = () => (
   <Card className="text-center p-6">
@@ -80,6 +81,7 @@ const Workouts = () => {
   }, []);
 
   const handleViewWorkoutDetails = (workout: Workout) => {
+    console.log("Viewing workout details:", workout);
     setSelectedWorkout(workout);
   };
 
@@ -108,10 +110,29 @@ const Workouts = () => {
     setSelectedWorkout(updatedWorkout);
   };
 
-  const handleDeleteWorkout = () => {
-    console.log("Workout deleted, refreshing list...");
-    setSelectedWorkout(null);
-    loadWorkouts();
+  const handleDeleteWorkout = async () => {
+    if (!selectedWorkout) return;
+    try {
+      console.log("Deleting workout with ID:", selectedWorkout.id);
+      
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', selectedWorkout.id);
+
+      if (error) {
+        console.error("Error from Supabase:", error);
+        toast.error("Error al eliminar la rutina");
+        return;
+      }
+
+      toast.success("Rutina eliminada correctamente");
+      setSelectedWorkout(null);
+      loadWorkouts();
+    } catch (error) {
+      console.error("Error deleting workout:", error);
+      toast.error("Error al eliminar la rutina");
+    }
   };
 
   if (selectedWorkout) {

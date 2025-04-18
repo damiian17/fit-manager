@@ -133,10 +133,29 @@ const Diets = () => {
     setSelectedDiet(null);
   };
 
-  const handleDeleteDiet = () => {
-    console.log("Diet deleted, refreshing list...");
-    setSelectedDiet(null);
-    loadDiets();
+  const handleDeleteDiet = async () => {
+    if (!selectedDiet) return;
+    try {
+      console.log("Deleting diet with ID:", selectedDiet.id);
+      
+      const { error } = await supabase
+        .from('diets')
+        .delete()
+        .eq('id', selectedDiet.id);
+
+      if (error) {
+        console.error("Error from Supabase:", error);
+        toast.error("Error al eliminar el plan dietético");
+        return;
+      }
+
+      toast.success("Plan dietético eliminado correctamente");
+      setSelectedDiet(null);
+      loadDiets();
+    } catch (error) {
+      console.error("Error deleting diet:", error);
+      toast.error("Error al eliminar el plan dietético");
+    }
   };
 
   if (selectedDiet) {

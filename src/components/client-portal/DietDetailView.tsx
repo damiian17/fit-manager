@@ -96,7 +96,8 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
 
       if (error) {
         console.error("Error from Supabase:", error);
-        throw error;
+        toast.error("Error al eliminar el plan dietético");
+        return;
       }
 
       toast.success("Plan dietético eliminado correctamente");

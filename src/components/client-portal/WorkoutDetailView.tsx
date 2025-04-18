@@ -47,6 +47,7 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
   
   const extractWorkoutDays = (): DayWorkout[] => {
     if (!workoutData.workout_data || !workoutData.workout_data.output) {
+      console.log("No workout data available:", workoutData);
       return [];
     }
     
@@ -59,10 +60,12 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
       }
     }
     
+    console.log("No workout days found in:", output);
     return [];
   };
   
   const workoutDays = extractWorkoutDays();
+  console.log("Extracted workout days:", workoutDays);
   
   const formData = workoutData.form_data || {};
   
@@ -141,7 +144,8 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
 
       if (error) {
         console.error("Error from Supabase:", error);
-        throw error;
+        toast.error("Error al eliminar la rutina");
+        return;
       }
 
       toast.success("Rutina eliminada correctamente");

@@ -101,6 +101,7 @@ const ClientPortal = () => {
   };
   
   const handleViewWorkoutDetails = (workout: Workout) => {
+    console.log("Viewing workout details:", workout);
     setSelectedWorkout(workout);
   };
   
@@ -109,9 +110,33 @@ const ClientPortal = () => {
     setSelectedWorkout(null);
   };
   
+  const handleDietDeleted = async () => {
+    setSelectedDiet(null);
+    toast.success("Dieta eliminada correctamente");
+    // Refresh the diets
+    if (clientData?.id) {
+      const updatedDiets = await getClientDiets(clientData.id);
+      setDiets(updatedDiets);
+    }
+  };
+  
+  const handleWorkoutDeleted = async () => {
+    setSelectedWorkout(null);
+    toast.success("Rutina eliminada correctamente");
+    // Refresh the workouts
+    if (clientData?.id) {
+      const updatedWorkouts = await getClientWorkouts(clientData.id);
+      setWorkouts(updatedWorkouts);
+    }
+  };
+  
   const renderDietContent = () => {
     if (selectedDiet) {
-      return <DietDetailView diet={selectedDiet} onBack={handleBackToList} />;
+      return <DietDetailView 
+        diet={selectedDiet} 
+        onBack={handleBackToList} 
+        onDelete={handleDietDeleted}
+      />;
     }
     
     if (diets.length === 0) {
@@ -141,7 +166,11 @@ const ClientPortal = () => {
   
   const renderWorkoutContent = () => {
     if (selectedWorkout) {
-      return <WorkoutDetailView workout={selectedWorkout} onBack={handleBackToList} />;
+      return <WorkoutDetailView 
+        workout={selectedWorkout} 
+        onBack={handleBackToList}
+        onDelete={handleWorkoutDeleted}
+      />;
     }
     
     if (workouts.length === 0) {
