@@ -27,7 +27,7 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         .from('trainer_invite_codes')
         .select('trainer_id, is_used')
         .eq('code', code.toUpperCase())
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         toast.error("Código de invitación inválido");

@@ -69,7 +69,7 @@ export const signOut = async () => {
     // Limpiar las cookies de Supabase
     document.cookie.split(';').forEach(cookie => {
       const [name] = cookie.trim().split('=');
-      if (name.includes('sb-')) {
+      if (name) {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
       }
     });
@@ -81,6 +81,31 @@ export const signOut = async () => {
     return true;
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
+    return false;
+  }
+};
+
+/**
+ * Limpia todos los datos locales sin cerrar sesión en Supabase
+ * Útil para forzar una limpieza completa
+ */
+export const clearAllLocalData = () => {
+  try {
+    // Limpiar localStorage completamente
+    localStorage.clear();
+    
+    // Limpiar las cookies de Supabase
+    document.cookie.split(';').forEach(cookie => {
+      const [name] = cookie.trim().split('=');
+      if (name) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      }
+    });
+    
+    console.log("Datos locales eliminados completamente");
+    return true;
+  } catch (error) {
+    console.error("Error al limpiar datos locales:", error);
     return false;
   }
 };

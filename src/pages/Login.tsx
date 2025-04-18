@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import LoginHeader from "@/components/auth/LoginHeader";
@@ -14,10 +14,12 @@ import {
   signUpWithPassword,
   signInWithPassword,
   signInWithGoogle,
-  saveTrainerProfile
+  saveTrainerProfile,
+  clearAllLocalData
 } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import LoginForm from "@/components/auth/LoginForm";
+import { Trash2 } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -36,23 +38,15 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const cleanupPreviousSessions = async () => {
-      const keysToClean = [
-        'sb-yehxlphlddyzrnewfelr-auth-token',
-        'clientLoggedIn',
-        'clientEmail',
-        'clientUserId',
-        'trainerLoggedIn',
-        'trainerEmail',
-        'trainerName'
-      ];
+    const cleanupPreviousSessions = () => {
+      localStorage.removeItem('clientLoggedIn');
+      localStorage.removeItem('clientEmail');
+      localStorage.removeItem('clientUserId');
+      localStorage.removeItem('trainerLoggedIn');
+      localStorage.removeItem('trainerEmail');
+      localStorage.removeItem('trainerName');
       
-      const session = await getActiveSession();
-      
-      if (!session) {
-        keysToClean.forEach(key => localStorage.removeItem(key));
-        console.log("Datos de sesión local limpiados preventivamente en Login");
-      }
+      console.log("Datos de sesión local limpiados preventivamente en Login");
     };
     
     cleanupPreviousSessions();
@@ -87,6 +81,14 @@ const Login = () => {
     
     checkSession();
   }, [navigate]);
+
+  const handleClearAllData = () => {
+    clearAllLocalData();
+    supabase.auth.signOut().then(() => {
+      toast.success("Todos los datos locales han sido eliminados");
+      window.location.reload();
+    });
+  };
 
   const handleLogin = async (e: React.FormEvent, role: "trainer" | "client" = activeTab) => {
     e.preventDefault();
@@ -440,6 +442,18 @@ const Login = () => {
               </CardContent>
             </TabsContent>
           </Tabs>
+          
+          <CardFooter className="pt-0 pb-4 flex justify-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 flex items-center gap-1"
+              onClick={handleClearAllData}
+            >
+              <Trash2 className="h-4 w-4" />
+              Limpiar datos locales
+            </Button>
+          </CardFooter>
         </Card>
       </div>
 

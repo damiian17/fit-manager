@@ -12,6 +12,20 @@ const Index = () => {
       try {
         console.log("Checking session on Index page...");
         
+        // Limpiar los datos de localStorage que podrían estar causando conflictos
+        if (!localStorage.getItem('loginPageVisited')) {
+          console.log("First visit since page load, clearing localStorage items");
+          localStorage.removeItem('clientLoggedIn');
+          localStorage.removeItem('clientEmail');
+          localStorage.removeItem('clientUserId');
+          localStorage.removeItem('trainerLoggedIn');
+          localStorage.removeItem('trainerEmail');
+          localStorage.removeItem('trainerName');
+          
+          // Marcar que ya visitamos la página de login
+          localStorage.setItem('loginPageVisited', 'true');
+        }
+        
         // Check if there's an active session
         const { data: { session } } = await supabase.auth.getSession();
         
