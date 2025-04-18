@@ -39,19 +39,24 @@ export const WorkoutDay = ({
 }: WorkoutDayProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
+  // Función para extraer el nombre del día de forma robusta
   const extractDayName = (day: any): string => {
+    // Caso 1: Si tiene una propiedad "Día" directamente
     if (day.Día && typeof day.Día === 'string') {
       return day.Día;
     }
     
+    // Caso 2: Si es un objeto con una clave que incluye "Día"
     for (const key in day) {
       if (key !== 'Ejercicios') {
         if (key.startsWith('Día') && key.includes(':')) {
+          // Formato "Día X: Nombre"
           const parts = key.split(':');
           if (parts.length > 1) {
             return parts[1].trim();
           }
         } else if (key.startsWith('Día')) {
+          // Otro formato que comience con "Día"
           const parts = key.split(' ');
           if (parts.length > 2) {
             return parts.slice(2).join(' ');
@@ -63,23 +68,30 @@ export const WorkoutDay = ({
     return '';
   };
   
+  // Extraer el nombre del día
   const dayName = extractDayName(day);
-  const dayTitle = dayName ? `Día ${dayIndex + 1} - ${dayName}` : `Día ${dayIndex + 1}`;
+  
+  // Construir el título del día
+  const dayTitle = dayName 
+    ? `Día ${dayIndex + 1} - ${dayName}` 
+    : `Día ${dayIndex + 1}`;
+  
+  // Ensure Ejercicios exists and is an array before attempting to map over it
   const ejercicios = day.Ejercicios || [];
   
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value={dayTitle}>
-        <AccordionTrigger className="hover:bg-gray-50 px-4 py-4 rounded-lg">
-          <div className="flex items-center gap-3">
-            <Dumbbell className="h-5 w-5 text-fitBlue-600 shrink-0" />
+        <AccordionTrigger className="hover:bg-gray-50 px-4 py-3 rounded-lg">
+          <div className="flex items-center gap-2 text-left">
+            <Dumbbell className="h-5 w-5 text-fitBlue-600" />
             <h3 className="text-xl font-semibold">{dayTitle}</h3>
           </div>
         </AccordionTrigger>
-        <AccordionContent className="px-4 pt-4 pb-6">
-          <div className="space-y-6">
+        <AccordionContent className="px-4 pt-2 pb-4">
+          <div className="space-y-4">
             {editable && (
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 mb-4">
                 {onEditDay && (
                   <Button
                     variant="outline"
@@ -87,7 +99,7 @@ export const WorkoutDay = ({
                     onClick={onEditDay}
                     className="text-blue-600"
                   >
-                    <Pencil className="h-4 w-4 mr-2" />
+                    <Pencil className="h-4 w-4 mr-1" />
                     Editar día
                   </Button>
                 )}
@@ -98,26 +110,22 @@ export const WorkoutDay = ({
                     onClick={() => setIsDeleteDialogOpen(true)}
                     className="text-red-600"
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash2 className="h-4 w-4 mr-1" />
                     Eliminar día
                   </Button>
                 )}
               </div>
             )}
             {Array.isArray(ejercicios) && ejercicios.length > 0 ? (
-              <div className="grid gap-6">
-                {ejercicios.map((exercise, index) => (
-                  <ExerciseCard 
-                    key={index} 
-                    exercise={exercise} 
-                    onEdit={editable && onEditExercise ? () => onEditExercise(dayIndex, index) : undefined}
-                  />
-                ))}
-              </div>
+              ejercicios.map((exercise, index) => (
+                <ExerciseCard 
+                  key={index} 
+                  exercise={exercise} 
+                  onEdit={editable && onEditExercise ? () => onEditExercise(dayIndex, index) : undefined}
+                />
+              ))
             ) : (
-              <p className="text-center text-gray-500 py-8">
-                No hay ejercicios disponibles para este día
-              </p>
+              <p className="text-center text-gray-500 py-4">No hay ejercicios disponibles para este día</p>
             )}
           </div>
         </AccordionContent>

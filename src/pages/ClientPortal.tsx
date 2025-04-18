@@ -115,6 +115,31 @@ const ClientPortal = () => {
     setSelectedWorkout(workout);
   };
   
+  const handleBackToList = () => {
+    setSelectedDiet(null);
+    setSelectedWorkout(null);
+  };
+  
+  const handleDietDeleted = async () => {
+    setSelectedDiet(null);
+    toast.success("Dieta eliminada correctamente");
+    // Refresh the diets
+    if (clientData?.id) {
+      const updatedDiets = await getClientDiets(clientData.id);
+      setDiets(updatedDiets);
+    }
+  };
+  
+  const handleWorkoutDeleted = async () => {
+    setSelectedWorkout(null);
+    toast.success("Rutina eliminada correctamente");
+    // Refresh the workouts
+    if (clientData?.id) {
+      const updatedWorkouts = await getClientWorkouts(clientData.id);
+      setWorkouts(updatedWorkouts);
+    }
+  };
+
   const handleRequestChange = async (message: string, type: 'diet' | 'workout') => {
     try {
       if (!clientData) {
@@ -162,84 +187,82 @@ const ClientPortal = () => {
     }
   };
   
-  const renderContent = () => {
+  const renderDietContent = () => {
     if (selectedDiet) {
+      return <DietDetailView 
+        diet={selectedDiet} 
+        onBack={handleBackToList} 
+        onDelete={handleDietDeleted}
+        isClientView={true}
+        onRequestChange={(message) => handleRequestChange(message, 'diet')}
+      />;
+    }
+    
+    if (diets.length === 0) {
       return (
-        <DietDetailView 
-          diet={selectedDiet} 
-          onBack={() => setSelectedDiet(null)} 
-          isClientView={true}
-          onRequestChange={(message) => handleRequestChange(message, 'diet')}
-        />
+        <div className="text-center py-8">
+          <Salad className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium">No tienes dietas asignadas</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Tu entrenador te asignará dietas personalizadas pronto
+          </p>
+        </div>
       );
     }
-
-    if (selectedWorkout) {
-      return (
-        <WorkoutDetailView 
-          workout={selectedWorkout} 
-          onBack={() => setSelectedWorkout(null)}
-          isClientView={true}
-          onRequestChange={(message) => handleRequestChange(message, 'workout')}
-        />
-      );
-    }
-
+    
     return (
-      <div className="space-y-8">
-        {activeTab === "workouts" ? (
-          <div className="grid grid-cols-1 gap-6">
-            {workouts.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <Dumbbell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No tienes rutinas asignadas</h3>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Tu entrenador te asignará rutinas personalizadas pronto
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              workouts.map((workout) => (
-                <WorkoutCard 
-                  key={workout.id} 
-                  workout={workout} 
-                  onViewDetails={handleViewWorkoutDetails} 
-                />
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {diets.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <Salad className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No tienes dietas asignadas</h3>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Tu entrenador te asignará dietas personalizadas pronto
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              diets.map((diet) => (
-                <DietCard 
-                  key={diet.id} 
-                  diet={diet} 
-                  onViewDetails={handleViewDietDetails} 
-                />
-              ))
-            )}
-          </div>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {diets.map((diet) => (
+          <DietCard 
+            key={diet.id} 
+            diet={diet} 
+            onViewDetails={handleViewDietDetails} 
+          />
+        ))}
       </div>
     );
   };
-
+  
+  const renderWorkoutContent = () => {
+    if (selectedWorkout) {
+      return <WorkoutDetailView 
+        workout={selectedWorkout} 
+        onBack={handleBackToList}
+        onDelete={handleWorkoutDeleted}
+        isClientView={true}
+        onRequestChange={(message) => handleRequestChange(message, 'workout')}
+      />;
+    }
+    
+    if (workouts.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Dumbbell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium">No tienes rutinas asignadas</h3>
+          <p className="text-sm text-gray-500 mt-2">
+            Tu entrenador te asignará rutinas personalizadas pronto
+          </p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {workouts.map((workout) => (
+          <WorkoutCard 
+            key={workout.id} 
+            workout={workout} 
+            onViewDetails={handleViewWorkoutDetails} 
+          />
+        ))}
+      </div>
+    );
+  };
+  
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="text-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 grid place-items-center p-4">
+      <div className="w-full max-w-4xl">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-fitBlue-700">Portal del Cliente</h1>
           <p className="text-gray-600 mt-2">Accede a tus rutinas y dietas personalizadas</p>
         </div>
@@ -276,43 +299,33 @@ const ClientPortal = () => {
           </Card>
         ) : (
           <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <CardTitle>Mi Panel de Cliente</CardTitle>
-                  <CardDescription>
-                    {clientData?.name ? `Bienvenido, ${clientData.name}` : 'Aquí puedes ver tus rutinas y dietas asignadas'}
-                  </CardDescription>
-                </div>
-                <Button variant="outline" onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Cerrar Sesión
-                </Button>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Mi Panel de Cliente</CardTitle>
+                <CardDescription>
+                  {clientData?.name ? `Bienvenido, ${clientData.name}` : 'Aquí puedes ver tus rutinas y dietas asignadas'}
+                </CardDescription>
               </div>
+              <Button variant="outline" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+              </Button>
             </CardHeader>
             <CardContent>
               <Tabs 
                 defaultValue={activeTab} 
                 value={activeTab}
                 onValueChange={setActiveTab}
-                className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="workouts" className="text-base py-2">
-                    <Dumbbell className="w-4 h-4 mr-2" />
-                    Mis Rutinas
-                  </TabsTrigger>
-                  <TabsTrigger value="diets" className="text-base py-2">
-                    <Salad className="w-4 h-4 mr-2" />
-                    Mis Dietas
-                  </TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="workouts">Mis Rutinas</TabsTrigger>
+                  <TabsTrigger value="diets">Mis Dietas</TabsTrigger>
                 </TabsList>
-                
-                <TabsContent value="workouts" className="mt-0">
-                  {renderContent()}
+                <TabsContent value="workouts" className="mt-4">
+                  {renderWorkoutContent()}
                 </TabsContent>
-                <TabsContent value="diets" className="mt-0">
-                  {renderContent()}
+                <TabsContent value="diets" className="mt-4">
+                  {renderDietContent()}
                 </TabsContent>
               </Tabs>
             </CardContent>
