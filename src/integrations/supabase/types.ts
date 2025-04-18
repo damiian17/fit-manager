@@ -24,6 +24,7 @@ export type Database = {
           phone: string | null
           sex: string | null
           status: string | null
+          trainer_id: string | null
           updated_at: string | null
           weight: string | null
         }
@@ -41,6 +42,7 @@ export type Database = {
           phone?: string | null
           sex?: string | null
           status?: string | null
+          trainer_id?: string | null
           updated_at?: string | null
           weight?: string | null
         }
@@ -58,10 +60,26 @@ export type Database = {
           phone?: string | null
           sex?: string | null
           status?: string | null
+          trainer_id?: string | null
           updated_at?: string | null
           weight?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainer_client_diets"
+            referencedColumns: ["trainer_id"]
+          },
+          {
+            foreignKeyName: "clients_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       diets: {
         Row: {
@@ -161,7 +179,29 @@ export type Database = {
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainer_client_diets"
+            referencedColumns: ["trainer_id"]
+          },
+          {
+            foreignKeyName: "notifications_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trainers: {
         Row: {
@@ -195,6 +235,7 @@ export type Database = {
           form_data: Json
           id: string
           name: string
+          trainer_id: string | null
           updated_at: string | null
           workout_data: Json
         }
@@ -205,6 +246,7 @@ export type Database = {
           form_data: Json
           id?: string
           name: string
+          trainer_id?: string | null
           updated_at?: string | null
           workout_data: Json
         }
@@ -215,6 +257,7 @@ export type Database = {
           form_data?: Json
           id?: string
           name?: string
+          trainer_id?: string | null
           updated_at?: string | null
           workout_data?: Json
         }
@@ -224,6 +267,20 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workouts_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainer_client_diets"
+            referencedColumns: ["trainer_id"]
+          },
+          {
+            foreignKeyName: "workouts_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
             referencedColumns: ["id"]
           },
         ]

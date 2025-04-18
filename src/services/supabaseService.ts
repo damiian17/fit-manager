@@ -37,7 +37,19 @@ export interface Workout {
   created_at: string;
 }
 
-// Client operations
+export interface NotificationData {
+  id: string;
+  client_id: string;
+  client_name: string;
+  trainer_id: string;
+  message: string;
+  type: string;
+  item_id: string;
+  item_name: string;
+  status: string;
+  created_at: string;
+}
+
 export const getClientByEmail = async (email: string): Promise<Client | null> => {
   const { data, error } = await supabase
     .from('clients')
@@ -53,7 +65,6 @@ export const getClientByEmail = async (email: string): Promise<Client | null> =>
   return data;
 };
 
-// Diet operations
 export const getClientDiets = async (clientId: string): Promise<Diet[]> => {
   const { data, error } = await supabase
     .from('diets')
@@ -84,9 +95,7 @@ export const getDietById = async (dietId: string): Promise<Diet | null> => {
   return data;
 };
 
-// Get diets by trainer ID - Fixed to properly handle the case where trainerId is undefined
 export const getTrainerDiets = async (trainerId: string | undefined): Promise<Diet[]> => {
-  // If trainerId is undefined, return an empty array
   if (!trainerId) {
     console.error("Trainer ID is undefined");
     return [];
@@ -106,7 +115,6 @@ export const getTrainerDiets = async (trainerId: string | undefined): Promise<Di
   return data || [];
 };
 
-// Workout operations
 export const getClientWorkouts = async (clientId: string): Promise<Workout[]> => {
   const { data, error } = await supabase
     .from('workouts')
@@ -122,13 +130,10 @@ export const getClientWorkouts = async (clientId: string): Promise<Workout[]> =>
   return data || [];
 };
 
-// Diet saving operation
 export const saveDiet = async (dietData: Omit<Diet, 'id' | 'created_at'>): Promise<Diet | null> => {
-  // Get current user/trainer ID
   const { data: { session } } = await supabase.auth.getSession();
   const trainerId = session?.user?.id;
   
-  // Add trainer ID to the diet data
   const dietWithTrainer = {
     ...dietData,
     trainer_id: trainerId
@@ -148,7 +153,6 @@ export const saveDiet = async (dietData: Omit<Diet, 'id' | 'created_at'>): Promi
   return data;
 };
 
-// Workout saving operation
 export const saveWorkout = async (workoutData: Omit<Workout, 'id' | 'created_at'>): Promise<Workout | null> => {
   const { data, error } = await supabase
     .from('workouts')
@@ -162,4 +166,24 @@ export const saveWorkout = async (workoutData: Omit<Workout, 'id' | 'created_at'
   }
   
   return data;
+};
+
+export const getTrainerNotifications = async (trainerId: string | undefined): Promise<NotificationData[]> => {
+  if (!trainerId) {
+    console.error("Trainer ID is undefined");
+    return [];
+  }
+  
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('trainer_id', trainerId)
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching trainer notifications:", error);
+    return [];
+  }
+  
+  return data || [];
 };

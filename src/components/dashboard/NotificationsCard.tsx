@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,20 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-
-// Notification type
-export interface NotificationData {
-  id: string;
-  client_id: string;
-  client_name: string;
-  trainer_id: string;
-  message: string;
-  type: string;
-  item_id: string;
-  item_name: string;
-  status: string;
-  created_at: string;
-}
+import { NotificationData } from "@/services/supabaseService";
 
 interface NotificationsCardProps {
   trainerId?: string;
