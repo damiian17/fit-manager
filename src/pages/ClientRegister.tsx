@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,8 @@ import { toast } from "sonner";
 import { 
   getActiveSession, 
   getCurrentUser, 
-  saveClientProfile 
+  saveClientProfile,
+  signOut
 } from "@/utils/authUtils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import GoalsAndMedicalInputs from "@/components/clients/GoalsAndMedicalInputs";
@@ -47,13 +49,18 @@ const ClientRegister = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        console.log("Verificando sesión de usuario...");
+        console.log("Verificando sesión de usuario en ClientRegister...");
         // Verify if there's an active session first
         const session = await getActiveSession();
         
         if (!session) {
-          console.log("No active session found, redirecting to login");
+          console.log("No active session found in ClientRegister, redirecting to login");
           setSessionError("No se ha encontrado una sesión activa. Por favor, inicia sesión primero.");
+          
+          // Limpiar cualquier dato residual para evitar problemas
+          localStorage.clear();
+          
+          // Redirigir al login después de un breve retraso para permitir que se muestre el mensaje
           setTimeout(() => navigate("/login"), 1500);
           return;
         }
@@ -63,7 +70,7 @@ const ClientRegister = () => {
         const storedEmail = localStorage.getItem('clientEmail');
         const clientLoggedIn = localStorage.getItem('clientLoggedIn');
         
-        console.log("Datos del localStorage:", { storedUserId, storedEmail, clientLoggedIn });
+        console.log("Datos del localStorage en ClientRegister:", { storedUserId, storedEmail, clientLoggedIn });
         
         if (storedUserId) {
           setUserId(storedUserId);
@@ -110,11 +117,19 @@ const ClientRegister = () => {
         } else {
           console.log("No hay sesión activa ni datos válidos en localStorage");
           setSessionError("No se ha podido encontrar una sesión activa. Por favor, inicia sesión primero.");
+          
+          // Limpiar datos de sesión por seguridad
+          await signOut();
+          
           setTimeout(() => navigate("/login"), 1500);
         }
       } catch (error) {
         console.error("Error verificando sesión:", error);
         setSessionError("Error al verificar la sesión. Por favor, inicia sesión nuevamente.");
+        
+        // Limpiar datos de sesión para evitar problemas
+        await signOut();
+        
         setTimeout(() => navigate("/login"), 1500);
       }
     };
@@ -212,7 +227,9 @@ const ClientRegister = () => {
   };
 
   const handleReturnToLogin = () => {
-    navigate("/login");
+    signOut().then(() => {
+      navigate("/login");
+    });
   };
 
   return (
@@ -236,7 +253,7 @@ const ClientRegister = () => {
                 </AlertDescription>
               </Alert>
               <Button 
-                onClick={() => navigate("/login")} 
+                onClick={handleReturnToLogin}
                 className="w-full"
               >
                 Volver a iniciar sesión
@@ -257,6 +274,14 @@ const ClientRegister = () => {
                   <CardContent>
                     <InviteCodeInput onSuccess={setTrainerId} />
                   </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleReturnToLogin}
+                    >
+                      Volver a iniciar sesión
+                    </Button>
+                  </CardFooter>
                 </Card>
               )}
 

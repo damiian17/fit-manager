@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface InviteCodeInputProps {
@@ -13,37 +13,6 @@ interface InviteCodeInputProps {
 export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
-
-  // Limpiar cualquier sesión o datos que puedan estar causando problemas
-  useEffect(() => {
-    const cleanupStorageData = async () => {
-      try {
-        // Verificar si hay alguna sesión activa que pudiera estar causando conflictos
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          // Si no hay sesión activa, limpiar cualquier dato de localStorage que 
-          // pudiera estar causando problemas con el registro
-          const keysToRemove = [
-            'sb-yehxlphlddyzrnewfelr-auth-token',
-            'clientLoggedIn',
-            'clientEmail',
-            'clientUserId',
-            'trainerLoggedIn',
-            'trainerEmail',
-            'trainerName'
-          ];
-          
-          keysToRemove.forEach(key => localStorage.removeItem(key));
-          console.log("Datos de sesión local limpiados preventivamente");
-        }
-      } catch (error) {
-        console.error("Error al verificar/limpiar datos de sesión:", error);
-      }
-    };
-    
-    cleanupStorageData();
-  }, []);
 
   const verifyCode = async () => {
     if (!code.trim()) {

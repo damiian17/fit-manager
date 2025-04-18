@@ -40,8 +40,9 @@ const Index = () => {
             // If it's a trainer, go to dashboard
             navigate("/dashboard");
           } else {
-            // If we have a session but no role is defined, default to login
+            // Si hay sesión pero no se identificó el rol, ir a login para aclarar
             console.log("Session exists but no role defined, redirecting to login");
+            localStorage.clear(); // Limpiar para evitar problemas con datos antiguos
             navigate("/login");
           }
         } else {
