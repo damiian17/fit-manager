@@ -2,17 +2,27 @@
 import { ExerciseData } from "@/types/workout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Info } from "lucide-react";
+import { Clock, Info, Edit } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ExerciseCardProps {
   exercise: ExerciseData;
+  onEdit?: () => void;
 }
 
-export const ExerciseCard = ({ exercise }: ExerciseCardProps) => {
+export const ExerciseCard = ({ exercise, onEdit }: ExerciseCardProps) => {
   return (
     <Card className="overflow-hidden">
       <CardHeader className="bg-gray-50 dark:bg-gray-800 py-3">
-        <CardTitle className="text-lg">{exercise.Ejercicio}</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">{exercise.Ejercicio}</CardTitle>
+          {onEdit && (
+            <Button variant="ghost" size="sm" onClick={onEdit} className="text-fitBlue-600">
+              <Edit className="h-4 w-4 mr-1" />
+              Editar
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

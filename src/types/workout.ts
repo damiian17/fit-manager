@@ -21,3 +21,13 @@ export interface WorkoutResponse {
     [key: string]: DayWorkout[];
   };
 }
+
+export interface SavedWorkout {
+  id: string;
+  name: string;
+  client_id: string;
+  client_name: string;
+  workout_data: WorkoutResponse;
+  form_data: any;
+  created_at: string;
+}

@@ -32,6 +32,7 @@ export interface Workout {
   clientId: string;
   clientName: string;
   createdAt: string;
+  workoutData?: any; // Full workout data
   // Other workout properties
 }
 
@@ -283,8 +284,15 @@ export const getWorkouts = async () => {
   }
 };
 
-export const saveWorkout = async (workout: Omit<Workout, 'id' | 'createdAt'>) => {
+export const saveWorkout = async (workout: Omit<Workout, 'id' | 'createdAt'> & { workout_data: any, form_data: any }) => {
   try {
+    console.log("Saving workout data to Supabase:", workout);
+    
+    // Ensure workout_data is properly structured
+    const workoutDataToSave = workout.workout_data ? workout.workout_data : { 
+      output: {} 
+    };
+    
     // Save workout to Supabase
     const { data, error } = await supabase
       .from('workouts')
@@ -292,8 +300,8 @@ export const saveWorkout = async (workout: Omit<Workout, 'id' | 'createdAt'>) =>
         name: workout.name,
         client_id: workout.clientId,
         client_name: workout.clientName,
-        workout_data: {} as Json,
-        form_data: {} as Json
+        workout_data: workoutDataToSave as Json,
+        form_data: workout.form_data as Json
       })
       .select()
       .single();
@@ -303,6 +311,8 @@ export const saveWorkout = async (workout: Omit<Workout, 'id' | 'createdAt'>) =>
       throw error;
     }
     
+    console.log("Workout saved successfully:", data);
+    
     return {
       ...workout,
       id: data.id,
@@ -310,6 +320,54 @@ export const saveWorkout = async (workout: Omit<Workout, 'id' | 'createdAt'>) =>
     };
   } catch (error) {
     console.error("Unexpected error saving workout:", error);
+    throw error;
+  }
+};
+
+export const getWorkoutById = async (workoutId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('workouts')
+      .select('*')
+      .eq('id', workoutId)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching workout by ID:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Unexpected error fetching workout by ID:", error);
+    return null;
+  }
+};
+
+export const updateWorkout = async (workout: any) => {
+  try {
+    console.log("Updating workout in Supabase:", workout);
+    
+    const { data, error } = await supabase
+      .from('workouts')
+      .update({
+        name: workout.name,
+        workout_data: workout.workout_data as Json,
+        form_data: workout.form_data as Json
+      })
+      .eq('id', workout.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating workout in Supabase:", error);
+      throw error;
+    }
+    
+    console.log("Workout updated successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Unexpected error updating workout:", error);
     throw error;
   }
 };

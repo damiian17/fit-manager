@@ -200,6 +200,8 @@ const WorkoutGenerator = () => {
         form_data: formData,
       };
       
+      console.log("Saving workout with data:", newWorkout);
+      
       await saveWorkout(newWorkout);
       toast.success(`Rutina "${formData.workoutName}" guardada para ${formData.clientName || "el cliente"}`);
       navigate("/workouts");

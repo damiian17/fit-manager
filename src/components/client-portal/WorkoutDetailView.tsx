@@ -1,212 +1,129 @@
 
+import { useState } from "react";
 import { Workout } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, BarChart3 } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, BarChart3, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { WorkoutDay } from "@/components/workout-generator/WorkoutDay";
+import { DayWorkout, ExerciseData } from "@/types/workout";
+import { toast } from "sonner";
+import { updateWorkout } from "@/utils/clientStorage";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface WorkoutDetailViewProps {
   workout: Workout;
   onBack: () => void;
+  onUpdate?: (updatedWorkout: Workout) => void;
 }
 
-export const WorkoutDetailView = ({ workout, onBack }: WorkoutDetailViewProps) => {
-  // Extraer datos de la rutina si existen
-  const workoutData = workout.workout_data || {};
-  const formData = workout.form_data || {};
+export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailViewProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<ExerciseData | null>(null);
+  const [editingDayIndex, setEditingDayIndex] = useState<number>(0);
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState<number>(0);
+  const [workoutData, setWorkoutData] = useState(workout);
   
-  // Intentar extraer información relevante
+  // Extract workout days from workout data
+  const extractWorkoutDays = (): DayWorkout[] => {
+    if (!workoutData.workout_data || !workoutData.workout_data.output) {
+      return [];
+    }
+    
+    const output = workoutData.workout_data.output;
+    const keys = Object.keys(output);
+    
+    for (const key of keys) {
+      if (Array.isArray(output[key]) && output[key].length > 0) {
+        return output[key];
+      }
+    }
+    
+    return [];
+  };
+  
+  const workoutDays = extractWorkoutDays();
+  
+  // Extract form data
+  const formData = workoutData.form_data || {};
+  
+  // Get information from form data
   const workoutType = formData.workoutType || "General";
   const duration = formData.duration || "N/A";
-  const level = formData.level || "Intermedio";
-  const goal = formData.goal || "Mantenimiento";
+  const level = formData.fitnessLevel || "Intermedio";
+  const goal = formData.goals || "Mantenimiento";
   
-  // Función para renderizar los ejercicios
-  const renderExercises = () => {
-    if (!workoutData.exercises || !Array.isArray(workoutData.exercises) || workoutData.exercises.length === 0) {
-      return (
-        <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
-          <p className="text-gray-500 dark:text-gray-400">
-            No hay ejercicios disponibles para esta rutina. La información detallada estará disponible próximamente.
-          </p>
-        </div>
-      );
+  const handleEditExercise = (dayIndex: number, exerciseIndex: number) => {
+    if (workoutDays.length > dayIndex && workoutDays[dayIndex].Ejercicios.length > exerciseIndex) {
+      setEditingDayIndex(dayIndex);
+      setEditingExerciseIndex(exerciseIndex);
+      setEditingExercise({...workoutDays[dayIndex].Ejercicios[exerciseIndex]});
+      setIsEditing(true);
     }
-    
-    return (
-      <div className="space-y-6">
-        {workoutData.exercises.map((exercise: any, index: number) => (
-          <Card key={index} className="overflow-hidden">
-            <CardHeader className="bg-gray-50 dark:bg-gray-800 py-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">{exercise.name || `Ejercicio ${index + 1}`}</CardTitle>
-                {exercise.muscleGroup && (
-                  <Badge variant="outline" className="bg-fitBlue-50 text-fitBlue-700">
-                    {exercise.muscleGroup}
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  {exercise.description && (
-                    <div className="mb-3">
-                      <h4 className="text-sm font-medium mb-1">Descripción:</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{exercise.description}</p>
-                    </div>
-                  )}
-                  
-                  {exercise.instructions && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-1">Instrucciones:</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{exercise.instructions}</p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  {exercise.sets && (
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium w-20">Series:</span>
-                      <span className="text-sm">{exercise.sets}</span>
-                    </div>
-                  )}
-                  
-                  {exercise.reps && (
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium w-20">Repeticiones:</span>
-                      <span className="text-sm">{exercise.reps}</span>
-                    </div>
-                  )}
-                  
-                  {exercise.rest && (
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium w-20">Descanso:</span>
-                      <span className="text-sm">{exercise.rest}</span>
-                    </div>
-                  )}
-                  
-                  {exercise.weight && (
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium w-20">Peso:</span>
-                      <span className="text-sm">{exercise.weight}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {exercise.notes && (
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                  <h4 className="text-sm font-medium mb-1">Notas:</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{exercise.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
   };
-
-  // Función para renderizar secciones de la rutina
-  const renderWorkoutSections = () => {
-    if (!workoutData.sections || !Array.isArray(workoutData.sections) || workoutData.sections.length === 0) {
-      return renderExercises();
-    }
+  
+  const handleSaveExercise = async () => {
+    if (!editingExercise) return;
     
-    return (
-      <div className="space-y-8">
-        {workoutData.sections.map((section: any, index: number) => (
-          <div key={index}>
-            <h3 className="text-xl font-semibold mb-4">{section.name || `Sección ${index + 1}`}</h3>
-            {section.description && (
-              <p className="text-gray-600 dark:text-gray-400 mb-4">{section.description}</p>
-            )}
-            
-            <div className="space-y-4">
-              {section.exercises && Array.isArray(section.exercises) ? (
-                section.exercises.map((exercise: any, exIndex: number) => (
-                  <Card key={exIndex} className="overflow-hidden">
-                    <CardHeader className="bg-gray-50 dark:bg-gray-800 py-3">
-                      <div className="flex justify-between items-center">
-                        <CardTitle className="text-lg">{exercise.name || `Ejercicio ${exIndex + 1}`}</CardTitle>
-                        {exercise.muscleGroup && (
-                          <Badge variant="outline" className="bg-fitBlue-50 text-fitBlue-700">
-                            {exercise.muscleGroup}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          {exercise.description && (
-                            <div className="mb-3">
-                              <h4 className="text-sm font-medium mb-1">Descripción:</h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{exercise.description}</p>
-                            </div>
-                          )}
-                          
-                          {exercise.instructions && (
-                            <div>
-                              <h4 className="text-sm font-medium mb-1">Instrucciones:</h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">{exercise.instructions}</p>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {exercise.sets && (
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium w-20">Series:</span>
-                              <span className="text-sm">{exercise.sets}</span>
-                            </div>
-                          )}
-                          
-                          {exercise.reps && (
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium w-20">Repeticiones:</span>
-                              <span className="text-sm">{exercise.reps}</span>
-                            </div>
-                          )}
-                          
-                          {exercise.rest && (
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium w-20">Descanso:</span>
-                              <span className="text-sm">{exercise.rest}</span>
-                            </div>
-                          )}
-                          
-                          {exercise.weight && (
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium w-20">Peso:</span>
-                              <span className="text-sm">{exercise.weight}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {exercise.notes && (
-                        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                          <h4 className="text-sm font-medium mb-1">Notas:</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{exercise.notes}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400 text-center p-4">
-                  No hay ejercicios en esta sección
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    try {
+      // Create a deep copy of the workout data
+      const updatedWorkoutData = JSON.parse(JSON.stringify(workoutData));
+      
+      // Get the workout days array
+      const output = updatedWorkoutData.workout_data.output;
+      const keys = Object.keys(output);
+      let targetKey = '';
+      
+      for (const key of keys) {
+        if (Array.isArray(output[key]) && output[key].length > 0) {
+          targetKey = key;
+          break;
+        }
+      }
+      
+      if (!targetKey) return;
+      
+      // Update the exercise
+      if (updatedWorkoutData.workout_data.output[targetKey][editingDayIndex] && 
+          updatedWorkoutData.workout_data.output[targetKey][editingDayIndex].Ejercicios) {
+        updatedWorkoutData.workout_data.output[targetKey][editingDayIndex].Ejercicios[editingExerciseIndex] = editingExercise;
+      }
+      
+      // Update the workout in Supabase
+      const updated = await updateWorkout(updatedWorkoutData);
+      
+      setWorkoutData(updated);
+      setIsEditing(false);
+      setEditingExercise(null);
+      
+      if (onUpdate) {
+        onUpdate(updated);
+      }
+      
+      toast.success("Ejercicio actualizado correctamente");
+    } catch (error) {
+      console.error("Error updating exercise:", error);
+      toast.error("Error al actualizar el ejercicio");
+    }
+  };
+  
+  const handleInputChange = (field: keyof ExerciseData, value: string) => {
+    if (editingExercise) {
+      setEditingExercise({
+        ...editingExercise,
+        [field]: value
+      });
+    }
   };
 
   return (
@@ -216,7 +133,7 @@ export const WorkoutDetailView = ({ workout, onBack }: WorkoutDetailViewProps) =
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver
         </Button>
-        <CardTitle>{workout.name}</CardTitle>
+        <CardTitle>{workoutData.name}</CardTitle>
         <CardDescription>
           Rutina de entrenamiento personalizada
         </CardDescription>
@@ -257,38 +174,128 @@ export const WorkoutDetailView = ({ workout, onBack }: WorkoutDetailViewProps) =
           
           <Separator />
           
-          {/* Descripción de la rutina */}
-          {workoutData.description && (
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Descripción</h3>
-              <p className="text-gray-600 dark:text-gray-400">{workoutData.description}</p>
-            </div>
-          )}
-          
-          {/* Notas adicionales */}
-          {workoutData.notes && (
-            <div className="p-4 bg-fitBlue-50 dark:bg-fitBlue-900/20 rounded-lg">
-              <h3 className="text-md font-semibold mb-2">Notas importantes</h3>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{workoutData.notes}</p>
-            </div>
-          )}
-          
           {/* Ejercicios o secciones de la rutina */}
           <div className="space-y-4">
             <h3 className="text-xl font-semibold">Ejercicios</h3>
-            {renderWorkoutSections()}
+            {workoutDays.length > 0 ? (
+              <div className="space-y-8">
+                {workoutDays.map((day, index) => (
+                  <WorkoutDay 
+                    key={index} 
+                    day={day} 
+                    dayIndex={index}
+                    onEditExercise={handleEditExercise}
+                    editable={true}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+                <p className="text-gray-500 dark:text-gray-400">
+                  No hay ejercicios disponibles para esta rutina.
+                </p>
+              </div>
+            )}
           </div>
-          
-          {/* Si no hay datos de ejercicios */}
-          {(!workoutData.exercises || workoutData.exercises.length === 0) && 
-           (!workoutData.sections || workoutData.sections.length === 0) && (
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="text-center text-gray-500 dark:text-gray-400">
-                Los detalles de esta rutina estarán disponibles próximamente.
-              </p>
-            </div>
-          )}
         </div>
+        
+        {/* Exercise edit dialog */}
+        <Dialog open={isEditing} onOpenChange={setIsEditing}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Editar Ejercicio</DialogTitle>
+            </DialogHeader>
+            
+            {editingExercise && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nombre">Nombre del Ejercicio</Label>
+                  <Input 
+                    id="nombre" 
+                    value={editingExercise.Ejercicio} 
+                    onChange={(e) => handleInputChange('Ejercicio', e.target.value)}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="seriesPrevias">Series Previas</Label>
+                    <Input 
+                      id="seriesPrevias" 
+                      value={editingExercise.SeriesPrevias} 
+                      onChange={(e) => handleInputChange('SeriesPrevias', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="descanso">Descanso</Label>
+                    <Input 
+                      id="descanso" 
+                      value={editingExercise.Descanso} 
+                      onChange={(e) => handleInputChange('Descanso', e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="anotaciones">Anotaciones</Label>
+                  <Textarea 
+                    id="anotaciones" 
+                    value={editingExercise.Anotaciones} 
+                    onChange={(e) => handleInputChange('Anotaciones', e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="serie1">Primera Serie</Label>
+                    <Input 
+                      id="serie1" 
+                      value={editingExercise.PrimeraSerie} 
+                      onChange={(e) => handleInputChange('PrimeraSerie', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="serie2">Segunda Serie</Label>
+                    <Input 
+                      id="serie2" 
+                      value={editingExercise.SegundaSerie} 
+                      onChange={(e) => handleInputChange('SegundaSerie', e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="serie3">Tercera Serie</Label>
+                    <Input 
+                      id="serie3" 
+                      value={editingExercise.TerceraSerie} 
+                      onChange={(e) => handleInputChange('TerceraSerie', e.target.value)}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="rir">RIR</Label>
+                  <Input 
+                    id="rir" 
+                    value={editingExercise.RIR} 
+                    onChange={(e) => handleInputChange('RIR', e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancelar</Button>
+              <Button type="button" onClick={handleSaveExercise} className="bg-fitBlue-600 hover:bg-fitBlue-700">
+                <Save className="mr-2 h-4 w-4" />
+                Guardar Cambios
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

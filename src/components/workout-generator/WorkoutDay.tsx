@@ -11,9 +11,12 @@ import {
 
 interface WorkoutDayProps {
   day: DayWorkout;
+  onEditExercise?: (dayIndex: number, exerciseIndex: number) => void;
+  dayIndex?: number;
+  editable?: boolean;
 }
 
-export const WorkoutDay = ({ day }: WorkoutDayProps) => {
+export const WorkoutDay = ({ day, onEditExercise, dayIndex = 0, editable = false }: WorkoutDayProps) => {
   // Use a consistent property name regardless of what came from API
   const dayTitle = day.Dia || day.Día || "Día de entrenamiento";
   
@@ -29,7 +32,11 @@ export const WorkoutDay = ({ day }: WorkoutDayProps) => {
         <AccordionContent className="px-4 pt-2 pb-4">
           <div className="space-y-4">
             {day.Ejercicios.map((exercise, index) => (
-              <ExerciseCard key={index} exercise={exercise} />
+              <ExerciseCard 
+                key={index} 
+                exercise={exercise} 
+                onEdit={editable && onEditExercise ? () => onEditExercise(dayIndex, index) : undefined}
+              />
             ))}
           </div>
         </AccordionContent>

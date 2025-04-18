@@ -93,14 +93,41 @@ const Workouts = () => {
   const handleBackFromDetails = () => {
     setSelectedWorkout(null);
   };
+  
+  // Add this function to handle workout updates
+  const handleWorkoutUpdate = (updatedWorkout: Workout) => {
+    if (!updatedWorkout) return;
+    
+    // Update the workout in the client state
+    const updatedClientWorkouts = clientWorkouts.map(client => {
+      if (client.id.toString() === updatedWorkout.client_id) {
+        const updatedWorkouts = client.workouts.map(workout => 
+          workout.id === updatedWorkout.id ? updatedWorkout : workout
+        );
+        
+        return {
+          ...client,
+          workouts: updatedWorkouts
+        };
+      }
+      return client;
+    });
+    
+    setClientWorkouts(updatedClientWorkouts);
+    setSelectedWorkout(updatedWorkout);
+  };
 
-  // Si hay una rutina seleccionada, mostrar la vista detallada
+  // If there's a selected workout, show the detailed view
   if (selectedWorkout) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <WorkoutDetailView workout={selectedWorkout} onBack={handleBackFromDetails} />
+          <WorkoutDetailView 
+            workout={selectedWorkout} 
+            onBack={handleBackFromDetails}
+            onUpdate={handleWorkoutUpdate}
+          />
         </main>
       </div>
     );
