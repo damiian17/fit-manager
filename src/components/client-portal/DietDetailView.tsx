@@ -1,19 +1,31 @@
-
 import { Diet } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { DailyMeal } from "@/types/diet";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DietDetailViewProps {
   diet: Diet;
   onBack: () => void;
+  onDelete?: () => void;
 }
 
-export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
+export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) => {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dietData, setDietData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Always define all state variables up front, regardless of format
@@ -83,6 +95,25 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
       }
     }
   }, [dietData]);
+
+  const handleDeleteDiet = async () => {
+    try {
+      const { error } = await supabase
+        .from('diets')
+        .delete()
+        .eq('id', diet.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Plan dietético eliminado correctamente");
+      onDelete?.();
+    } catch (error) {
+      console.error("Error deleting diet:", error);
+      toast.error("Error al eliminar el plan dietético");
+    }
+  };
   
   if (isLoading) {
     return (
@@ -125,10 +156,20 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     return (
       <Card>
         <CardHeader>
-          <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
+          <div className="flex justify-between items-start">
+            <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+              size="sm"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar dieta
+            </Button>
+          </div>
           <CardTitle>{diet.name}</CardTitle>
           <CardDescription>
             Plan dietético personalizado de {dailyMeals.length} días
@@ -209,6 +250,25 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
             ))}
           </Tabs>
         </CardContent>
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará permanentemente el plan dietético. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteDiet}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Card>
     );
   } else {
@@ -219,10 +279,20 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
     return (
       <Card>
         <CardHeader>
-          <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
+          <div className="flex justify-between items-start">
+            <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+              size="sm"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar dieta
+            </Button>
+          </div>
           <CardTitle>{diet.name}</CardTitle>
           <CardDescription>
             {summaryItem ? `Calorías objetivo: ${summaryItem.caloriasTotalesDiariasObjetivo} kcal` : 'Plan dietético personalizado'}
@@ -302,6 +372,25 @@ export const DietDetailView = ({ diet, onBack }: DietDetailViewProps) => {
             ))}
           </Tabs>
         </CardContent>
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará permanentemente el plan dietético. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteDiet}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Card>
     );
   }

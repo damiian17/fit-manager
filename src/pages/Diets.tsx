@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +37,6 @@ interface GroupedDiets {
 }
 
 const Diets = () => {
-  // Initialize state variables properly
   const [clientDiets, setClientDiets] = useState<GroupedDiets[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
@@ -73,10 +71,8 @@ const Diets = () => {
         
         console.log("Fetched diets from Supabase:", supabaseDiets);
         
-        // Initialize groupedDiets object
         const groupedDiets: { [key: string]: GroupedDiets } = {};
         
-        // Process fetched diets
         if (supabaseDiets && Array.isArray(supabaseDiets)) {
           for (const diet of supabaseDiets) {
             const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
@@ -136,12 +132,21 @@ const Diets = () => {
     setSelectedDiet(null);
   };
 
+  const handleDeleteDiet = () => {
+    setSelectedDiet(null);
+    loadDiets();
+  };
+
   if (selectedDiet) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navigation />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <DietDetailView diet={selectedDiet} onBack={handleBackFromDetails} />
+          <DietDetailView 
+            diet={selectedDiet} 
+            onBack={handleBackFromDetails}
+            onDelete={handleDeleteDiet}
+          />
         </main>
       </div>
     );

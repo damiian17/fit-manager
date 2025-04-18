@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,6 @@ import { toast } from "sonner";
 import { Workout } from "@/services/supabaseService";
 import { WorkoutDetailView } from "@/components/client-portal/WorkoutDetailView";
 
-// Empty state for when there are no workout plans yet
 const EmptyState = () => (
   <Card className="text-center p-6">
     <div className="flex flex-col items-center justify-center space-y-4 py-8">
@@ -44,23 +42,18 @@ const Workouts = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
   useEffect(() => {
-    // Load workouts from Supabase
     const loadWorkouts = async () => {
       try {
         setIsLoading(true);
         
-        // Get all workouts
         const workouts = await getWorkouts();
         
-        // Group workouts by client
         const groupedWorkouts: { [key: string]: GroupedWorkouts } = {};
         
-        // Process each workout
         for (const workout of workouts) {
           const clientId = workout.client_id.toString();
           
           if (!groupedWorkouts[clientId]) {
-            // Fetch client information
             const client = await getClientById(clientId);
             
             groupedWorkouts[clientId] = {
@@ -73,7 +66,6 @@ const Workouts = () => {
           groupedWorkouts[clientId].workouts.push(workout);
         }
         
-        // Convert grouped workouts object to array
         setClientWorkouts(Object.values(groupedWorkouts));
       } catch (error) {
         console.error("Error loading workouts:", error);
@@ -93,12 +85,10 @@ const Workouts = () => {
   const handleBackFromDetails = () => {
     setSelectedWorkout(null);
   };
-  
-  // Add this function to handle workout updates
+
   const handleWorkoutUpdate = (updatedWorkout: Workout) => {
     if (!updatedWorkout) return;
     
-    // Update the workout in the client state
     const updatedClientWorkouts = clientWorkouts.map(client => {
       if (client.id.toString() === updatedWorkout.client_id) {
         const updatedWorkouts = client.workouts.map(workout => 
@@ -117,7 +107,11 @@ const Workouts = () => {
     setSelectedWorkout(updatedWorkout);
   };
 
-  // If there's a selected workout, show the detailed view
+  const handleDeleteWorkout = () => {
+    setSelectedWorkout(null);
+    loadWorkouts();
+  };
+
   if (selectedWorkout) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -127,6 +121,7 @@ const Workouts = () => {
             workout={selectedWorkout} 
             onBack={handleBackFromDetails}
             onUpdate={handleWorkoutUpdate}
+            onDelete={handleDeleteWorkout}
           />
         </main>
       </div>

@@ -1,40 +1,50 @@
-
 import { useState } from "react";
 import { Workout } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, BarChart3, Save } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, BarChart3, Save, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { WorkoutDay } from "@/components/workout-generator/WorkoutDay";
 import { DayWorkout, ExerciseData } from "@/types/workout";
 import { toast } from "sonner";
 import { updateWorkout } from "@/utils/clientStorage";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WorkoutDetailViewProps {
   workout: Workout;
   onBack: () => void;
   onUpdate?: (updatedWorkout: Workout) => void;
+  onDelete?: () => void;
 }
 
-export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailViewProps) => {
+export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: WorkoutDetailViewProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ExerciseData | null>(null);
   const [editingDayIndex, setEditingDayIndex] = useState<number>(0);
   const [editingExerciseIndex, setEditingExerciseIndex] = useState<number>(0);
   const [workoutData, setWorkoutData] = useState(workout);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Extract workout days from workout data
   const extractWorkoutDays = (): DayWorkout[] => {
     if (!workoutData.workout_data || !workoutData.workout_data.output) {
       return [];
@@ -54,10 +64,8 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
   
   const workoutDays = extractWorkoutDays();
   
-  // Extract form data
   const formData = workoutData.form_data || {};
   
-  // Get information from form data
   const workoutType = formData.workoutType || "General";
   const duration = formData.duration || "N/A";
   const level = formData.fitnessLevel || "Intermedio";
@@ -76,10 +84,8 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
     if (!editingExercise) return;
     
     try {
-      // Create a deep copy of the workout data
       const updatedWorkoutData = JSON.parse(JSON.stringify(workoutData));
       
-      // Get the workout days array
       const output = updatedWorkoutData.workout_data.output;
       const keys = Object.keys(output);
       let targetKey = '';
@@ -93,13 +99,11 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
       
       if (!targetKey) return;
       
-      // Update the exercise
       if (updatedWorkoutData.workout_data.output[targetKey][editingDayIndex] && 
           updatedWorkoutData.workout_data.output[targetKey][editingDayIndex].Ejercicios) {
         updatedWorkoutData.workout_data.output[targetKey][editingDayIndex].Ejercicios[editingExerciseIndex] = editingExercise;
       }
       
-      // Update the workout in Supabase
       const updated = await updateWorkout(updatedWorkoutData);
       
       setWorkoutData(updated);
@@ -126,13 +130,42 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
     }
   };
 
+  const handleDeleteWorkout = async () => {
+    try {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', workout.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Rutina eliminada correctamente");
+      onDelete?.();
+    } catch (error) {
+      console.error("Error deleting workout:", error);
+      toast.error("Error al eliminar la rutina");
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver
-        </Button>
+        <div className="flex justify-between items-start">
+          <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={() => setIsDeleteDialogOpen(true)}
+            size="sm"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Eliminar rutina
+          </Button>
+        </div>
         <CardTitle>{workoutData.name}</CardTitle>
         <CardDescription>
           Rutina de entrenamiento personalizada
@@ -140,7 +173,6 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Información general de la rutina */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
             <div className="flex items-center">
               <BarChart3 className="h-5 w-5 mr-2 text-fitBlue-600" />
@@ -174,7 +206,6 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
           
           <Separator />
           
-          {/* Ejercicios o secciones de la rutina */}
           <div className="space-y-4">
             <h3 className="text-xl font-semibold">Ejercicios</h3>
             {workoutDays.length > 0 ? (
@@ -199,7 +230,6 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
           </div>
         </div>
         
-        {/* Exercise edit dialog */}
         <Dialog open={isEditing} onOpenChange={setIsEditing}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -297,6 +327,26 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate }: WorkoutDetailVi
           </DialogContent>
         </Dialog>
       </CardContent>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente la rutina de entrenamiento. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteWorkout}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
