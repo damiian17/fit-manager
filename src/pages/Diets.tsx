@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,73 +42,73 @@ const Diets = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
 
-  useEffect(() => {
-    const loadDiets = async () => {
-      try {
-        setIsLoading(true);
-        
-        const { data: { session } } = await supabase.auth.getSession();
-        const trainerId = session?.user?.id;
-        
-        if (!trainerId) {
-          console.error("No trainer ID found in session");
-          toast.error("Error: No se pudo identificar al entrenador");
-          setIsLoading(false);
-          return;
-        }
-        
-        const { data: supabaseDiets, error } = await supabase
-          .from('diets')
-          .select('*')
-          .eq('trainer_id', trainerId)
-          .order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error("Error fetching diets from Supabase:", error);
-          toast.error("Error al cargar los planes dietéticos");
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log("Fetched diets from Supabase:", supabaseDiets);
-        
-        const groupedDiets: { [key: string]: GroupedDiets } = {};
-        
-        if (supabaseDiets && Array.isArray(supabaseDiets)) {
-          for (const diet of supabaseDiets) {
-            const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
-            
-            if (!groupedDiets[clientId]) {
-              groupedDiets[clientId] = {
-                id: clientId,
-                name: diet.client_name || "Cliente sin asignar",
-                diets: []
-              };
-            }
-            
-            const convertedDiet: Diet = {
-              id: diet.id,
-              name: diet.name,
-              client_id: diet.client_id || "",
-              client_name: diet.client_name,
-              created_at: diet.created_at || new Date().toISOString(),
-              diet_data: diet.diet_data || [],
-              form_data: diet.form_data || {}
-            };
-            
-            groupedDiets[clientId].diets.push(convertedDiet);
-          }
-        }
-        
-        setClientDiets(Object.values(groupedDiets));
-      } catch (error) {
-        console.error("Error loading diets:", error);
-        toast.error("Error al cargar los planes dietéticos");
-      } finally {
+  const loadDiets = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      const trainerId = session?.user?.id;
+      
+      if (!trainerId) {
+        console.error("No trainer ID found in session");
+        toast.error("Error: No se pudo identificar al entrenador");
         setIsLoading(false);
+        return;
       }
-    };
-    
+      
+      const { data: supabaseDiets, error } = await supabase
+        .from('diets')
+        .select('*')
+        .eq('trainer_id', trainerId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching diets from Supabase:", error);
+        toast.error("Error al cargar los planes dietéticos");
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Fetched diets from Supabase:", supabaseDiets);
+      
+      const groupedDiets: { [key: string]: GroupedDiets } = {};
+      
+      if (supabaseDiets && Array.isArray(supabaseDiets)) {
+        for (const diet of supabaseDiets) {
+          const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
+          
+          if (!groupedDiets[clientId]) {
+            groupedDiets[clientId] = {
+              id: clientId,
+              name: diet.client_name || "Cliente sin asignar",
+              diets: []
+            };
+          }
+          
+          const convertedDiet: Diet = {
+            id: diet.id,
+            name: diet.name,
+            client_id: diet.client_id || "",
+            client_name: diet.client_name,
+            created_at: diet.created_at || new Date().toISOString(),
+            diet_data: diet.diet_data || [],
+            form_data: diet.form_data || {}
+          };
+          
+          groupedDiets[clientId].diets.push(convertedDiet);
+        }
+      }
+      
+      setClientDiets(Object.values(groupedDiets));
+    } catch (error) {
+      console.error("Error loading diets:", error);
+      toast.error("Error al cargar los planes dietéticos");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     loadDiets();
   }, []);
 

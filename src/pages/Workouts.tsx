@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,40 +42,40 @@ const Workouts = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
-  useEffect(() => {
-    const loadWorkouts = async () => {
-      try {
-        setIsLoading(true);
+  const loadWorkouts = async () => {
+    try {
+      setIsLoading(true);
+      
+      const workouts = await getWorkouts();
+      
+      const groupedWorkouts: { [key: string]: GroupedWorkouts } = {};
+      
+      for (const workout of workouts) {
+        const clientId = workout.client_id.toString();
         
-        const workouts = await getWorkouts();
-        
-        const groupedWorkouts: { [key: string]: GroupedWorkouts } = {};
-        
-        for (const workout of workouts) {
-          const clientId = workout.client_id.toString();
+        if (!groupedWorkouts[clientId]) {
+          const client = await getClientById(clientId);
           
-          if (!groupedWorkouts[clientId]) {
-            const client = await getClientById(clientId);
-            
-            groupedWorkouts[clientId] = {
-              id: clientId,
-              name: client ? client.name : `Cliente ${clientId}`,
-              workouts: []
-            };
-          }
-          
-          groupedWorkouts[clientId].workouts.push(workout);
+          groupedWorkouts[clientId] = {
+            id: clientId,
+            name: client ? client.name : `Cliente ${clientId}`,
+            workouts: []
+          };
         }
         
-        setClientWorkouts(Object.values(groupedWorkouts));
-      } catch (error) {
-        console.error("Error loading workouts:", error);
-        toast.error("Error al cargar las rutinas de entrenamiento");
-      } finally {
-        setIsLoading(false);
+        groupedWorkouts[clientId].workouts.push(workout);
       }
-    };
-    
+      
+      setClientWorkouts(Object.values(groupedWorkouts));
+    } catch (error) {
+      console.error("Error loading workouts:", error);
+      toast.error("Error al cargar las rutinas de entrenamiento");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadWorkouts();
   }, []);
 
