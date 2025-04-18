@@ -200,7 +200,17 @@ const WorkoutGenerator = () => {
   };
 
   const renderWorkoutSections = () => {
-    if (!generatedWorkout?.output?.RutinaSemanal) {
+    if (!generatedWorkout?.output) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No hay datos de rutina disponibles</p>
+        </div>
+      );
+    }
+
+    const workoutDays = generatedWorkout.output.Rutina_4_Dias || generatedWorkout.output.RutinaSemanal;
+
+    if (!workoutDays || workoutDays.length === 0) {
       return (
         <div className="text-center py-8">
           <p className="text-gray-500">No hay datos de rutina disponibles</p>
@@ -210,7 +220,7 @@ const WorkoutGenerator = () => {
 
     return (
       <div className="space-y-8">
-        {generatedWorkout.output.RutinaSemanal.map((day, index) => (
+        {workoutDays.map((day, index) => (
           <WorkoutDay key={index} day={day} />
         ))}
       </div>

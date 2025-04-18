@@ -11,12 +11,13 @@ export interface ExerciseData {
 }
 
 export interface DayWorkout {
-  Día: string;
+  Dia: string;
   Ejercicios: ExerciseData[];
 }
 
 export interface WorkoutResponse {
   output: {
-    RutinaSemanal: DayWorkout[];
+    Rutina_4_Dias?: DayWorkout[];
+    RutinaSemanal?: DayWorkout[];
   };
 }
