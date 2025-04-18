@@ -27,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DietDetailViewProps {
   diet: Diet;
@@ -50,6 +51,7 @@ export const DietDetailView = ({
   const [isRequestChangeDialogOpen, setIsRequestChangeDialogOpen] = useState(false);
   const [changeRequestMessage, setChangeRequestMessage] = useState("");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setIsLoading(true);
@@ -195,76 +197,89 @@ export const DietDetailView = ({
     
     return (
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
-            {!isClientView ? (
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={handleEditDiet}
-                  size="sm"
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar dieta
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  size="sm"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Eliminar dieta
-                </Button>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="w-full">
+              <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-2">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver
+              </Button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <CardTitle>{diet.name}</CardTitle>
+                  <CardDescription>
+                    Plan dietético personalizado de {dailyMeals.length} días
+                  </CardDescription>
+                </div>
+                {!isClientView ? (
+                  <div className="flex gap-2 mt-2 sm:mt-0">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleEditDiet}
+                      size="sm"
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      size="sm"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar
+                    </Button>
+                  </div>
+                ) : (
+                  onRequestChange && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsRequestChangeDialogOpen(true)}
+                      size="sm"
+                      className="mt-2 sm:mt-0"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Solicitar cambio
+                    </Button>
+                  )
+                )}
               </div>
-            ) : (
-              onRequestChange && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsRequestChangeDialogOpen(true)}
-                  size="sm"
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Solicitar cambio
-                </Button>
-              )
-            )}
+            </div>
           </div>
-          <CardTitle>{diet.name}</CardTitle>
-          <CardDescription>
-            Plan dietético personalizado de {dailyMeals.length} días
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
-              {dailyMeals.map((day) => (
-                <TabsTrigger key={day.dia} value={day.dia}>
-                  {day.dia}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="overflow-x-auto pb-2">
+              <TabsList className="w-full flex flex-nowrap">
+                {dailyMeals.map((day) => (
+                  <TabsTrigger 
+                    key={day.dia} 
+                    value={day.dia}
+                    className="flex-1 min-w-[80px] text-xs sm:text-sm px-2 py-1.5"
+                  >
+                    {day.dia}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
             
             {dailyMeals.map((day) => (
               <TabsContent key={day.dia} value={day.dia} className="space-y-6">
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg mt-4">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium">Calorías totales:</span> {day.kcalTotales} kcal
                     </div>
                     <div>
                       <span className="font-medium">Objetivo diario:</span> {day.kcalObjetivo} kcal
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-1 sm:col-span-2">
                       <span className="font-medium">Variación calórica:</span> {day.variacion}
                     </div>
                   </div>
                 </div>
                 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {Object.entries(day)
                     .filter(([key]) => key.startsWith('comida') && day[key as keyof DailyMeal])
                     .map(([mealKey, meal]) => {
@@ -274,7 +289,7 @@ export const DietDetailView = ({
                         <Card key={mealKey}>
                           <CardHeader className="py-3">
                             <div className="flex justify-between items-center">
-                              <CardTitle className="text-lg">{meal.nombre}</CardTitle>
+                              <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
                               <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
                                 {meal.kcals} kcal
                               </span>
@@ -369,76 +384,89 @@ export const DietDetailView = ({
     
     return (
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
-            {!isClientView ? (
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={handleEditDiet}
-                  size="sm"
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar dieta
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  size="sm"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Eliminar dieta
-                </Button>
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+            <div className="w-full">
+              <Button variant="ghost" onClick={onBack} className="w-fit p-0 mb-2">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver
+              </Button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <CardTitle>{diet.name}</CardTitle>
+                  <CardDescription>
+                    {summaryItem ? `Calorías objetivo: ${summaryItem.caloriasTotalesDiariasObjetivo} kcal` : 'Plan dietético personalizado'}
+                  </CardDescription>
+                </div>
+                {!isClientView ? (
+                  <div className="flex gap-2 mt-2 sm:mt-0">
+                    <Button 
+                      variant="outline" 
+                      onClick={handleEditDiet}
+                      size="sm"
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      size="sm"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar
+                    </Button>
+                  </div>
+                ) : (
+                  onRequestChange && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsRequestChangeDialogOpen(true)}
+                      size="sm"
+                      className="mt-2 sm:mt-0"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Solicitar cambio
+                    </Button>
+                  )
+                )}
               </div>
-            ) : (
-              onRequestChange && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsRequestChangeDialogOpen(true)}
-                  size="sm"
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Solicitar cambio
-                </Button>
-              )
-            )}
+            </div>
           </div>
-          <CardTitle>{diet.name}</CardTitle>
-          <CardDescription>
-            {summaryItem ? `Calorías objetivo: ${summaryItem.caloriasTotalesDiariasObjetivo} kcal` : 'Plan dietético personalizado'}
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
-              {dietOptions.map((option: any) => (
-                <TabsTrigger key={option.opcion} value={option.opcion}>
-                  {option.opcion}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <div className="overflow-x-auto pb-2">
+              <TabsList className="w-full flex flex-nowrap">
+                {dietOptions.map((option: any) => (
+                  <TabsTrigger 
+                    key={option.opcion} 
+                    value={option.opcion}
+                    className="flex-1 min-w-[80px] text-xs sm:text-sm px-2 py-1.5"
+                  >
+                    {option.opcion}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
             
             {dietOptions.map((option: any) => (
               <TabsContent key={option.opcion} value={option.opcion} className="space-y-6">
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg mt-4">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="font-medium">Calorías totales:</span> {option.caloriasTotalesDia} kcal
                     </div>
                     <div>
                       <span className="font-medium">Objetivo diario:</span> {option.caloriasDiariasObjetivo} kcal
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-1 sm:col-span-2">
                       <span className="font-medium">Variación calórica:</span> {option.variacionCalorica}
                     </div>
                   </div>
                 </div>
                 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {Object.keys(option.recetasSeleccionadas || {}).map((mealKey) => {
                     const meal = option.recetasSeleccionadas[mealKey];
                     if (!meal) return null;
@@ -447,7 +475,7 @@ export const DietDetailView = ({
                       <Card key={mealKey}>
                         <CardHeader className="py-3">
                           <div className="flex justify-between items-center">
-                            <CardTitle className="text-lg">{meal.nombre}</CardTitle>
+                            <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
                               {meal.kcals} kcal
                             </span>

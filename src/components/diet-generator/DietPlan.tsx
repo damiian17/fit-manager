@@ -58,14 +58,14 @@ export const DietPlan = ({
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
               <Button variant="ghost" onClick={onReset} className="w-fit p-0 mb-2">
                 <RotateCcw className="mr-2 h-4 w-4" />
                 Volver
               </Button>
-              <CardTitle className="text-xl sm:text-2xl">Plan Dietético: {clientInfo.dietName}</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl">{clientInfo.dietName}</CardTitle>
               <CardDescription>
                 {clientInfo.name ? `Cliente: ${clientInfo.name}` : "Cliente sin nombre"} | 
                 Calorías objetivo: {selectedDay?.kcalObjetivo || "N/A"} kcal
@@ -86,35 +86,37 @@ export const DietPlan = ({
         <CardContent>
           <div className="space-y-6">
             <Tabs value={activeTab} onValueChange={handleOptionChange}>
-              <TabsList className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-1">
-                {webhookResponse.map((day) => (
-                  <TabsTrigger 
-                    key={day.dia} 
-                    value={day.dia}
-                    className="text-xs sm:text-sm px-2 py-1.5"
-                  >
-                    {day.dia}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <div className="overflow-x-auto pb-2">
+                <TabsList className="w-full flex flex-nowrap">
+                  {webhookResponse.map((day) => (
+                    <TabsTrigger 
+                      key={day.dia} 
+                      value={day.dia}
+                      className="flex-1 min-w-[80px] text-xs sm:text-sm px-2 py-1.5"
+                    >
+                      {day.dia}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
               
               {webhookResponse.map((day) => (
                 <TabsContent key={day.dia} value={day.dia} className="space-y-6">
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="font-medium">Calorías totales:</span> {day.kcalTotales} kcal
                       </div>
                       <div>
                         <span className="font-medium">Objetivo diario:</span> {day.kcalObjetivo} kcal
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-1 sm:col-span-2">
                         <span className="font-medium">Variación calórica:</span> {day.variacion}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {Object.entries(day)
                       .filter(([key]) => key.startsWith('comida') && day[key as keyof DailyMeal])
                       .map(([mealKey, meal]) => {
@@ -124,7 +126,7 @@ export const DietPlan = ({
                           <Card key={mealKey}>
                             <CardHeader className="py-3">
                               <div className="flex justify-between items-center">
-                                <CardTitle className="text-lg">{meal.nombre}</CardTitle>
+                                <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
                                 <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
                                   {meal.kcals} kcal
                                 </span>
