@@ -23,30 +23,59 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
     try {
       setIsVerifying(true);
       
+      // Get the invite code, ensuring we don't use any cached results
       const { data, error } = await supabase
         .from('trainer_invite_codes')
-        .select('trainer_id, is_used')
+        .select('trainer_id, is_used, expires_at')
         .eq('code', code.toUpperCase())
         .single();
 
       if (error || !data) {
+        console.error("Error validating invite code:", error);
         toast.error("Código de invitación inválido");
         return;
       }
 
+      // Check if code has expired
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+        toast.error("Este código de invitación ha expirado");
+        return;
+      }
+
+      // Check if code has been used
       if (data.is_used) {
         toast.error("Este código ya ha sido utilizado");
         return;
       }
 
-      // Marcar el código como usado
-      await supabase
+      // Mark the code as used
+      const { error: updateError } = await supabase
         .from('trainer_invite_codes')
         .update({ is_used: true })
         .eq('code', code.toUpperCase());
 
+      if (updateError) {
+        console.error("Error marking code as used:", updateError);
+        toast.error("Error al verificar el código");
+        return;
+      }
+
+      // Get trainer info to verify the trainer exists
+      const { data: trainerData, error: trainerError } = await supabase
+        .from('trainers')
+        .select('name')
+        .eq('id', data.trainer_id)
+        .single();
+
+      if (trainerError || !trainerData) {
+        console.error("Error validating trainer:", trainerError);
+        toast.error("No se pudo verificar el entrenador asociado al código");
+        return;
+      }
+
+      // Success - pass the trainer ID to the parent component
       onSuccess(data.trainer_id);
-      toast.success("Código verificado correctamente");
+      toast.success(`Código verificado correctamente. Te has conectado con el entrenador: ${trainerData.name}`);
     } catch (error) {
       console.error("Error verifying code:", error);
       toast.error("Error al verificar el código");
