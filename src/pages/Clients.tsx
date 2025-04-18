@@ -1,41 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Salad, ChevronRight, PlusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
-import { Diet, getDietById } from "@/services/supabaseService";
-import { DietDetailView } from "@/components/client-portal/DietDetailView";
-import { supabase } from "@/integrations/supabase/client";
+import { getClients } from "@/utils/clientStorage";
 import { InviteCodeGenerator } from "@/components/trainer/InviteCodeGenerator";
-
-const ClientsHeader = () => (
-  <div className="flex justify-between items-center mb-6">
-    <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Clientes</h1>
-    <Link
-      to="/clients/new"
-      className="bg-fitBlue-600 hover:bg-fitBlue-700 text-white px-4 py-2 rounded-md flex items-center"
-    >
-      <PlusCircle className="mr-2 h-4 w-4" />
-      Nuevo Cliente
-    </Link>
-  </div>
-);
-
-const ClientsTable = () => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Lista de Clientes</CardTitle>
-      <CardDescription>
-        Aquí puedes ver y gestionar todos tus clientes
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      <p>Tabla de clientes aquí...</p>
-    </CardContent>
-  </Card>
-);
+import { ClientsTable } from "@/components/clients/ClientsTable";
+import { ClientsHeader } from "@/components/clients/ClientsHeader";
+import { SearchBar } from "@/components/clients/SearchBar";
 
 const ActionsCard = () => (
   <Card>
@@ -52,28 +26,77 @@ const ActionsCard = () => (
 );
 
 const Clients = () => {
-  const [clientDiets, setClientDiets] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [filteredClients, setFilteredClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
-    // Aquí puedes cargar la información de los clientes desde tu base de datos
-    // y actualizar el estado 'clientDiets' con esa información.
-    // Por ahora, simularemos una carga exitosa.
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+    const fetchClients = async () => {
+      try {
+        setIsLoading(true);
+        const loadedClients = await getClients();
+        console.log("Clientes cargados:", loadedClients);
+        setClients(loadedClients);
+        setFilteredClients(loadedClients);
+      } catch (error) {
+        console.error("Error cargando clientes:", error);
+        toast.error("Error al cargar los clientes");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClients();
   }, []);
+
+  useEffect(() => {
+    // Filtrar clientes según el término de búsqueda y el filtro de estado
+    let filtered = [...clients];
+    
+    // Filtrar por estado
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(client => client.status === filterStatus);
+    }
+    
+    // Filtrar por término de búsqueda
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(client => 
+        client.name?.toLowerCase().includes(term) || 
+        client.email?.toLowerCase().includes(term) || 
+        client.goals?.toLowerCase().includes(term)
+      );
+    }
+    
+    setFilteredClients(filtered);
+  }, [clients, searchTerm, filterStatus]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          <ClientsHeader />
+          <ClientsHeader filterStatus={filterStatus} setFilterStatus={setFilterStatus} />
+          <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2">
-              <ClientsTable />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Lista de Clientes</CardTitle>
+                  <CardDescription>
+                    Aquí puedes ver y gestionar todos tus clientes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <p className="text-center py-4">Cargando clientes...</p>
+                  ) : (
+                    <ClientsTable clients={filteredClients} setClients={setClients} />
+                  )}
+                </CardContent>
+              </Card>
             </div>
             <div className="space-y-6">
               <InviteCodeGenerator />
