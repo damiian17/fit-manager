@@ -142,11 +142,24 @@ const WorkoutGenerator = () => {
         extractedWorkoutDays = data.output;
       } else if (data && typeof data.output === 'object') {
         // Object format with array inside
-        extractedWorkoutDays = data.output;
+        if (Array.isArray(data.output)) {
+          extractedWorkoutDays = data.output;
+        } else {
+          // Try to find the array in the object
+          const values = Object.values(data.output);
+          for (const value of values) {
+            if (Array.isArray(value)) {
+              extractedWorkoutDays = value;
+              break;
+            }
+          }
+        }
       }
       
+      // Ensure workoutDays is always an array
+      console.log("Extracted workout days:", extractedWorkoutDays);
       setGeneratedWorkout(data);
-      setWorkoutDays(extractedWorkoutDays);
+      setWorkoutDays(Array.isArray(extractedWorkoutDays) ? extractedWorkoutDays : []);
       setWorkoutGenerated(true);
       toast.success("Rutina generada correctamente");
     } catch (error) {
@@ -213,7 +226,8 @@ const WorkoutGenerator = () => {
   };
 
   const renderWorkoutSections = () => {
-    if (workoutDays.length === 0) {
+    // Make sure workoutDays is always an array before mapping
+    if (!Array.isArray(workoutDays) || workoutDays.length === 0) {
       return (
         <div className="text-center py-8">
           <p className="text-gray-500">No hay datos de rutina disponibles</p>
