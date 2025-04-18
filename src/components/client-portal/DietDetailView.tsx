@@ -28,21 +28,17 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dietData, setDietData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  // Always define all state variables up front, regardless of format
   const [activeTab, setActiveTab] = useState("");
-  
+
   useEffect(() => {
     setIsLoading(true);
     
     try {
-      // Process diet data from the diet prop
       if (diet && diet.diet_data) {
         console.log("Processing diet data:", diet.diet_data);
         
-        // Handle different types of diet_data
         if (typeof diet.diet_data === 'string') {
           try {
-            // Try to parse if it's a JSON string
             const parsedData = JSON.parse(diet.diet_data);
             const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
             setDietData(dataArray);
@@ -51,10 +47,8 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
             setDietData([]);
           }
         } else if (Array.isArray(diet.diet_data)) {
-          // It's already an array
           setDietData(diet.diet_data);
         } else if (typeof diet.diet_data === 'object' && diet.diet_data !== null) {
-          // It's an object, convert to array
           setDietData([diet.diet_data]);
         } else {
           console.error("Unsupported diet_data format:", diet.diet_data);
@@ -73,21 +67,16 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
     }
   }, [diet]);
   
-  // After loading the diet data, set the initial active tab
   useEffect(() => {
-    // Set the initial active tab based on the loaded data
     if (dietData.length > 0) {
-      // Check if this is the new format (contains "dia" property)
       const isNewFormat = dietData.length > 0 && dietData[0] && 'dia' in dietData[0];
       
       if (isNewFormat) {
-        // New format - set initial tab to the first day
         const dailyMeals = dietData as DailyMeal[];
         if (dailyMeals.length > 0) {
           setActiveTab(dailyMeals[0].dia);
         }
       } else {
-        // Old format - set initial tab to the first option
         const dietOptions = dietData.filter(item => 'opcion' in item);
         if (dietOptions.length > 0 && dietOptions[0]?.opcion) {
           setActiveTab(dietOptions[0].opcion);
@@ -98,17 +87,22 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
 
   const handleDeleteDiet = async () => {
     try {
+      console.log("Deleting diet with ID:", diet.id);
+      
       const { error } = await supabase
         .from('diets')
         .delete()
         .eq('id', diet.id);
 
       if (error) {
+        console.error("Error from Supabase:", error);
         throw error;
       }
 
       toast.success("Plan dietético eliminado correctamente");
-      onDelete?.();
+      if (onDelete) {
+        onDelete();
+      }
     } catch (error) {
       console.error("Error deleting diet:", error);
       toast.error("Error al eliminar el plan dietético");
@@ -130,7 +124,6 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
     );
   }
   
-  // Handle empty data
   if (!dietData || dietData.length === 0) {
     return (
       <Card>
@@ -146,11 +139,9 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
     );
   }
 
-  // Check if this is the new format (contains "dia" property)
   const isNewFormat = dietData.length > 0 && dietData[0] && 'dia' in dietData[0];
   
   if (isNewFormat) {
-    // New format handling (per day)
     const dailyMeals = dietData as DailyMeal[];
     
     return (
@@ -272,7 +263,6 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
       </Card>
     );
   } else {
-    // Handle old format for backward compatibility
     const dietOptions = dietData.filter(item => 'opcion' in item);
     const summaryItem = dietData.find(item => 'tipo' in item && item.tipo === 'Resumen');
     

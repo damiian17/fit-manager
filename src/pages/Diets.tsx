@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +43,7 @@ const Diets = () => {
 
   const loadDiets = async () => {
     try {
+      console.log("Loading diets...");
       setIsLoading(true);
       
       const { data: { session } } = await supabase.auth.getSession();
@@ -134,6 +134,7 @@ const Diets = () => {
   };
 
   const handleDeleteDiet = () => {
+    console.log("Diet deleted, refreshing list...");
     setSelectedDiet(null);
     loadDiets();
   };

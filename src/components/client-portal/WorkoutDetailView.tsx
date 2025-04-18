@@ -132,17 +132,22 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
 
   const handleDeleteWorkout = async () => {
     try {
+      console.log("Deleting workout with ID:", workout.id);
+      
       const { error } = await supabase
         .from('workouts')
         .delete()
         .eq('id', workout.id);
 
       if (error) {
+        console.error("Error from Supabase:", error);
         throw error;
       }
 
       toast.success("Rutina eliminada correctamente");
-      onDelete?.();
+      if (onDelete) {
+        onDelete();
+      }
     } catch (error) {
       console.error("Error deleting workout:", error);
       toast.error("Error al eliminar la rutina");

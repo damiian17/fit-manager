@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,6 +43,7 @@ const Workouts = () => {
 
   const loadWorkouts = async () => {
     try {
+      console.log("Loading workouts...");
       setIsLoading(true);
       
       const workouts = await getWorkouts();
@@ -109,6 +109,7 @@ const Workouts = () => {
   };
 
   const handleDeleteWorkout = () => {
+    console.log("Workout deleted, refreshing list...");
     setSelectedWorkout(null);
     loadWorkouts();
   };
