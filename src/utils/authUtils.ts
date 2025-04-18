@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -52,16 +51,38 @@ export const hasClientProfile = async (userId: string) => {
 };
 
 /**
- * Cierra la sesión del usuario
+ * Cierra la sesión del usuario y limpia TODOS los datos locales
  */
 export const signOut = async () => {
-  localStorage.removeItem('clientLoggedIn');
-  localStorage.removeItem('clientEmail');
-  localStorage.removeItem('clientUserId'); // También limpiar el ID de usuario
-  localStorage.removeItem('trainerLoggedIn');
-  localStorage.removeItem('trainerEmail');
-  localStorage.removeItem('trainerName');
-  await supabase.auth.signOut();
+  try {
+    // Limpiar localStorage completamente para asegurar que no queden datos de sesión
+    localStorage.clear();
+    
+    // También limpiar los elementos específicos por seguridad
+    localStorage.removeItem('clientLoggedIn');
+    localStorage.removeItem('clientEmail');
+    localStorage.removeItem('clientUserId');
+    localStorage.removeItem('trainerLoggedIn');
+    localStorage.removeItem('trainerEmail');
+    localStorage.removeItem('trainerName');
+    
+    // Limpiar las cookies de Supabase
+    document.cookie.split(';').forEach(cookie => {
+      const [name] = cookie.trim().split('=');
+      if (name.includes('sb-')) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      }
+    });
+    
+    // Finalmente cerrar sesión en Supabase
+    await supabase.auth.signOut();
+    
+    console.log("Sesión cerrada y datos locales eliminados completamente");
+    return true;
+  } catch (error) {
+    console.error("Error al cerrar sesión:", error);
+    return false;
+  }
 };
 
 /**

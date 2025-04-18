@@ -36,6 +36,27 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const cleanupPreviousSessions = async () => {
+      const keysToClean = [
+        'sb-yehxlphlddyzrnewfelr-auth-token',
+        'clientLoggedIn',
+        'clientEmail',
+        'clientUserId',
+        'trainerLoggedIn',
+        'trainerEmail',
+        'trainerName'
+      ];
+      
+      const session = await getActiveSession();
+      
+      if (!session) {
+        keysToClean.forEach(key => localStorage.removeItem(key));
+        console.log("Datos de sesión local limpiados preventivamente en Login");
+      }
+    };
+    
+    cleanupPreviousSessions();
+    
     const checkSession = async () => {
       try {
         console.log("Verificando sesión...");
