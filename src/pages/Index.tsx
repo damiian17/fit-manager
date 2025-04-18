@@ -42,6 +42,7 @@ const Index = () => {
           } else {
             // Si hay sesión pero no se identificó el rol, ir a login para aclarar
             console.log("Session exists but no role defined, redirecting to login");
+            localStorage.clear(); // Limpiar para evitar problemas con datos antiguos
             navigate("/login");
           }
         } else {

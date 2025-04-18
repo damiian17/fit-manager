@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -15,8 +14,7 @@ import {
   signUpWithPassword,
   signInWithPassword,
   signInWithGoogle,
-  saveTrainerProfile,
-  signOut
+  saveTrainerProfile
 } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import LoginForm from "@/components/auth/LoginForm";
@@ -89,42 +87,6 @@ const Login = () => {
     
     checkSession();
   }, [navigate]);
-
-  const clearAllLocalData = async () => {
-    try {
-      // 1. Intentar cerrar sesión primero en Supabase
-      await supabase.auth.signOut();
-      
-      // 2. Eliminar todos los datos de localStorage
-      localStorage.clear();
-      
-      // 3. Eliminar cookies específicas de Supabase
-      document.cookie.split(';').forEach(cookie => {
-        const [name] = cookie.trim().split('=');
-        if (name.includes('sb-')) {
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        }
-      });
-      
-      // 4. Verificar si hay algún ítem específico que pueda estar causando problemas
-      localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
-      localStorage.removeItem('clientLoggedIn');
-      localStorage.removeItem('clientEmail');
-      localStorage.removeItem('clientUserId');
-      localStorage.removeItem('trainerLoggedIn');
-      localStorage.removeItem('trainerEmail');
-      localStorage.removeItem('trainerName');
-      
-      // 5. Recargar la página para asegurar que se limpien todas las variables de estado
-      toast.success("Datos locales eliminados correctamente");
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error("Error al limpiar datos locales:", error);
-      toast.error("Error al limpiar datos locales");
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent, role: "trainer" | "client" = activeTab) => {
     e.preventDefault();
@@ -478,21 +440,6 @@ const Login = () => {
               </CardContent>
             </TabsContent>
           </Tabs>
-          
-          {/* Botón para limpiar datos locales */}
-          <div className="px-4 pb-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full text-red-500 border-red-200 hover:bg-red-50"
-              onClick={clearAllLocalData}
-            >
-              Limpiar datos de sesión almacenados
-            </Button>
-            <p className="text-xs text-center mt-2 text-gray-500">
-              Usa esta opción si tienes problemas para iniciar sesión o registrarte
-            </p>
-          </div>
         </Card>
       </div>
 

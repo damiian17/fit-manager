@@ -45,7 +45,6 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         .update({ is_used: true })
         .eq('code', code.toUpperCase());
 
-      // Guardar el trainer_id sin eliminar otros datos importantes
       onSuccess(data.trainer_id);
       toast.success("Código verificado correctamente");
     } catch (error) {

@@ -55,49 +55,32 @@ export const hasClientProfile = async (userId: string) => {
  */
 export const signOut = async () => {
   try {
-    console.log("Iniciando proceso de cierre de sesión completo");
-    
-    // 1. Limpiar localStorage completamente para asegurar que no queden datos de sesión
+    // Limpiar localStorage completamente para asegurar que no queden datos de sesión
     localStorage.clear();
-    console.log("LocalStorage limpiado");
     
-    // 2. También limpiar los elementos específicos por seguridad
-    const keysToRemove = [
-      'clientLoggedIn',
-      'clientEmail',
-      'clientUserId',
-      'trainerLoggedIn',
-      'trainerEmail',
-      'trainerName',
-      'sb-yehxlphlddyzrnewfelr-auth-token'
-    ];
+    // También limpiar los elementos específicos por seguridad
+    localStorage.removeItem('clientLoggedIn');
+    localStorage.removeItem('clientEmail');
+    localStorage.removeItem('clientUserId');
+    localStorage.removeItem('trainerLoggedIn');
+    localStorage.removeItem('trainerEmail');
+    localStorage.removeItem('trainerName');
     
-    keysToRemove.forEach(key => {
-      localStorage.removeItem(key);
-      console.log(`Eliminado específicamente: ${key}`);
-    });
-    
-    // 3. Limpiar las cookies de Supabase
+    // Limpiar las cookies de Supabase
     document.cookie.split(';').forEach(cookie => {
       const [name] = cookie.trim().split('=');
       if (name.includes('sb-')) {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        console.log(`Cookie eliminada: ${name}`);
       }
     });
     
-    // 4. Finalmente cerrar sesión en Supabase
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
-      console.error("Error durante signOut de Supabase:", error);
-      return false;
-    }
+    // Finalmente cerrar sesión en Supabase
+    await supabase.auth.signOut();
     
     console.log("Sesión cerrada y datos locales eliminados completamente");
     return true;
   } catch (error) {
-    console.error("Error inesperado al cerrar sesión:", error);
+    console.error("Error al cerrar sesión:", error);
     return false;
   }
 };

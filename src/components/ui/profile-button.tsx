@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   DropdownMenu,
@@ -10,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getActiveSession, signOut } from "@/utils/authUtils";
+import { getActiveSession } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ export const ProfileButton = () => {
           return;
         }
 
+        // Obtener datos del perfil desde la base de datos
         const { data, error } = await supabase
           .from('clients')
           .select('name, email')
@@ -52,9 +54,10 @@ export const ProfileButton = () => {
           setClientInfo({
             name: data.name,
             email: data.email || session.user.email || "",
-            membership: "Premium"
+            membership: "Premium" // Puedes ajustar esto según tus necesidades
           });
         } else {
+          // Si no hay datos en la tabla de clientes, usar datos de la sesión
           setClientInfo({
             name: session.user.user_metadata?.full_name || "Cliente",
             email: session.user.email || "",
@@ -71,18 +74,31 @@ export const ProfileButton = () => {
 
   const handleLogout = async () => {
     try {
-      const success = await signOut();
+      // Primero, limpiar toda la información de la sesión en localStorage
+      localStorage.removeItem('clientLoggedIn');
+      localStorage.removeItem('clientEmail');
+      localStorage.removeItem('clientUserId');
+      localStorage.removeItem('trainerLoggedIn');
+      localStorage.removeItem('trainerEmail');
+      localStorage.removeItem('trainerName');
+      // Limpiamos cualquier otro item relacionado con la sesión que pueda estar causando problemas
+      localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
       
-      if (success) {
-        toast.success("Sesión cerrada correctamente");
-        navigate("/login", { replace: true });
-      } else {
-        toast.error("Error al cerrar sesión");
+      // Luego, cerrar sesión en Supabase explícitamente
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error al cerrar sesión en Supabase:", error);
       }
+      
+      toast.success("Sesión cerrada correctamente");
+      
+      // Redirigir al usuario a la página de login
+      navigate("/login", { replace: true });
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       toast.error("Error al cerrar sesión");
       
+      // En caso de error, intentar redirigir de todos modos
       navigate("/login", { replace: true });
     }
   };
