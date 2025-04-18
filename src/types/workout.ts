@@ -12,9 +12,8 @@ export interface ExerciseData {
 
 export interface DayWorkout {
   Día?: string;
-  Dia?: string;
   Ejercicios: ExerciseData[];
-  [key: string]: ExerciseData[] | string | undefined; // Allow additional keys
+  [key: string]: ExerciseData[] | string | undefined;
 }
 
 export interface WorkoutResponse {

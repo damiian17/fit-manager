@@ -1,4 +1,3 @@
-
 import { DayWorkout } from "@/types/workout";
 import { ExerciseCard } from "./ExerciseCard";
 import { Dumbbell, Pencil, Trash2 } from "lucide-react";
@@ -40,9 +39,8 @@ export const WorkoutDay = ({
 }: WorkoutDayProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Get the first key that's not 'Ejercicios' as the day name
-  const dayName = Object.keys(day).find(key => key !== 'Ejercicios') || '';
-  const dayTitle = `Día ${dayIndex + 1} ${dayName ? `- ${dayName}` : ''}`.trim();
+  const dayName = day.Día || `Día ${dayIndex + 1}`;
+  const dayTitle = `Día ${dayIndex + 1} ${dayName}`;
   
   // Ensure Ejercicios exists and is an array before attempting to map over it
   const ejercicios = day.Ejercicios || [];
