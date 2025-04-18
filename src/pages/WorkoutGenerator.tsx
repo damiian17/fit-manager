@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -19,7 +20,7 @@ import { ChevronLeft, Sparkles, FileDown, Mail, Dumbbell, ArrowRight } from "luc
 import { toast } from "sonner";
 import { getClients, saveClient, saveWorkout, getClientById, Client } from "@/utils/clientStorage";
 import { WorkoutDay } from "@/components/workout-generator/WorkoutDay";
-import { DayWorkout } from "@/types/workout";
+import { DayWorkout, WorkoutResponse } from "@/types/workout";
 
 const WorkoutGenerator = () => {
   const navigate = useNavigate();
@@ -135,15 +136,13 @@ const WorkoutGenerator = () => {
       
       let extractedWorkoutDays: DayWorkout[] = [];
       
-      if (data && data.output) {
-        const outputKeys = Object.keys(data.output);
-        
-        for (const key of outputKeys) {
-          if (Array.isArray(data.output[key]) && data.output[key].length > 0) {
-            extractedWorkoutDays = data.output[key];
-            break;
-          }
-        }
+      // Handle the response data format correctly
+      if (data && Array.isArray(data.output)) {
+        // Direct array format
+        extractedWorkoutDays = data.output;
+      } else if (data && typeof data.output === 'object') {
+        // Object format with array inside
+        extractedWorkoutDays = data.output;
       }
       
       setGeneratedWorkout(data);
@@ -196,7 +195,9 @@ const WorkoutGenerator = () => {
         clientId: clientId,
         clientName: formData.clientName,
         createdAt: new Date().toISOString(),
-        workout_data: generatedWorkout,
+        workout_data: {
+          output: generatedWorkout.output || workoutDays
+        },
         form_data: formData,
       };
       

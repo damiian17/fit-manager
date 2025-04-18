@@ -17,9 +17,7 @@ export interface DayWorkout {
 }
 
 export interface WorkoutResponse {
-  output: {
-    [key: string]: DayWorkout[];
-  };
+  output: DayWorkout[];
 }
 
 export interface SavedWorkout {

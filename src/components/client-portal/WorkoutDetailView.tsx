@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Workout } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,21 +57,26 @@ export const WorkoutDetailView = ({
   const [changeRequestMessage, setChangeRequestMessage] = useState("");
   
   const extractWorkoutDays = (): DayWorkout[] => {
-    if (!workoutData.workout_data || !workoutData.workout_data.output) {
+    if (!workoutData.workout_data) {
       console.log("No workout data available:", workoutData);
       return [];
     }
     
-    const output = workoutData.workout_data.output;
-    const keys = Object.keys(output);
-    
-    for (const key of keys) {
-      if (Array.isArray(output[key]) && output[key].length > 0) {
-        return output[key];
+    // Handle both formats: array or nested object
+    if (Array.isArray(workoutData.workout_data.output)) {
+      return workoutData.workout_data.output;
+    } else if (typeof workoutData.workout_data.output === 'object') {
+      const output = workoutData.workout_data.output;
+      const keys = Object.keys(output);
+      
+      for (const key of keys) {
+        if (Array.isArray(output[key]) && output[key].length > 0) {
+          return output[key];
+        }
       }
     }
     
-    console.log("No workout days found in:", output);
+    console.log("No workout days found in:", workoutData.workout_data);
     return [];
   };
   
