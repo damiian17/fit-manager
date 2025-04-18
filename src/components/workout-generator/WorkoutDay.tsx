@@ -39,31 +39,42 @@ export const WorkoutDay = ({
 }: WorkoutDayProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Extraer el nombre real del día a partir de las claves de day o del objeto dentro de day
-  let dayName = '';
-  
-  // Si day tiene una propiedad que es un string y comienza con "Día", usamos ese valor
-  Object.keys(day).forEach(key => {
-    if (key.startsWith('Día') && typeof day[key] === 'string') {
-      dayName = day[key];
+  // Función para extraer el nombre del día de forma robusta
+  const extractDayName = (day: any): string => {
+    // Caso 1: Si tiene una propiedad "Día" directamente
+    if (day.Día && typeof day.Día === 'string') {
+      return day.Día;
     }
-  });
-  
-  // Si no encontramos un nombre así, buscamos la primera clave que no sea 'Ejercicios'
-  if (!dayName) {
-    const firstKey = Object.keys(day).find(key => key !== 'Ejercicios');
-    if (firstKey) {
-      // Si la clave es como "Día 1: Empujes", extraemos la parte después de los dos puntos
-      if (firstKey.includes(':')) {
-        dayName = firstKey.split(':')[1].trim();
-      } else {
-        dayName = firstKey;
+    
+    // Caso 2: Si es un objeto con una clave que incluye "Día"
+    for (const key in day) {
+      if (key !== 'Ejercicios') {
+        if (key.startsWith('Día') && key.includes(':')) {
+          // Formato "Día X: Nombre"
+          const parts = key.split(':');
+          if (parts.length > 1) {
+            return parts[1].trim();
+          }
+        } else if (key.startsWith('Día')) {
+          // Otro formato que comience con "Día"
+          const parts = key.split(' ');
+          if (parts.length > 2) {
+            return parts.slice(2).join(' ');
+          }
+        }
       }
     }
-  }
+    
+    return '';
+  };
   
-  // Formateamos el título del día
-  const dayTitle = dayName ? `Día ${dayIndex + 1}: ${dayName}` : `Día ${dayIndex + 1}`;
+  // Extraer el nombre del día
+  const dayName = extractDayName(day);
+  
+  // Construir el título del día
+  const dayTitle = dayName 
+    ? `Día ${dayIndex + 1} - ${dayName}` 
+    : `Día ${dayIndex + 1}`;
   
   // Ensure Ejercicios exists and is an array before attempting to map over it
   const ejercicios = day.Ejercicios || [];
