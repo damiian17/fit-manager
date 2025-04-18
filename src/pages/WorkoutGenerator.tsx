@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -47,16 +46,13 @@ const WorkoutGenerator = () => {
   });
   const [generatedWorkout, setGeneratedWorkout] = useState<any>(null);
 
-  // Sample workout days
   const workoutDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   
-  // Sample equipment options
   const equipmentOptions = [
     "Mancuernas", "Barras", "Máquinas de gimnasio", "Bandas elásticas", 
     "Kettlebells", "TRX/Suspensión", "Balón medicinal", "Step", "Ninguno"
   ];
 
-  // Load available clients
   const [clients, setClients] = useState<Client[]>([]);
   
   useEffect(() => {
@@ -75,7 +71,6 @@ const WorkoutGenerator = () => {
 
   const handleSelectChange = async (name: string, value: string) => {
     if (name === "clientId" && value !== "nuevo") {
-      // Load client data when an existing client is selected
       const selectedClient = await getClientById(value);
       if (selectedClient) {
         setFormData(prev => ({
@@ -113,13 +108,11 @@ const WorkoutGenerator = () => {
   const handleGenerateWorkout = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     if (!formData.age || !formData.weight || !formData.height || !formData.fitnessLevel || !formData.workoutType || !formData.workoutName) {
       toast.error("Por favor completa todos los campos obligatorios");
       return;
     }
 
-    // Additional validation for client name when creating a new client
     if (formData.clientId === "nuevo" && !formData.clientName) {
       toast.error("Por favor ingresa el nombre del cliente");
       return;
@@ -128,7 +121,6 @@ const WorkoutGenerator = () => {
     setIsGenerating(true);
 
     try {
-      // Enviar datos al webhook proporcionado
       const response = await fetch("https://primary-production-d78e.up.railway.app/webhook-test/b7c2f6e2-cb34-4f05-971b-2524335d4d48", {
         method: "POST",
         headers: {
@@ -144,8 +136,7 @@ const WorkoutGenerator = () => {
       const data = await response.json();
       console.log("Respuesta del webhook:", data);
       
-      // Guardar la respuesta del webhook
-      setGeneratedWorkout(data);
+      setGeneratedWorkout(data[0]);
       setWorkoutGenerated(true);
       toast.success("Rutina generada correctamente");
     } catch (error) {
@@ -160,14 +151,12 @@ const WorkoutGenerator = () => {
     try {
       let clientId: string;
       
-      // Check if we need to create a new client or use an existing one
       if (formData.clientId === "nuevo") {
         if (!formData.clientName) {
           toast.error("Es necesario proporcionar un nombre para el nuevo cliente");
           return;
         }
         
-        // Create a new client
         const newClient = {
           name: formData.clientName,
           email: "",
@@ -175,15 +164,12 @@ const WorkoutGenerator = () => {
           status: "active",
         };
         
-        // Save the new client
         const savedClient = await saveClient(newClient);
         clientId = savedClient.id;
         toast.success(`Nuevo cliente "${formData.clientName}" creado`);
       } else if (formData.clientId) {
-        // Use existing client
         clientId = formData.clientId;
         
-        // Check if client exists
         const client = await getClientById(clientId);
         if (!client) {
           toast.error("No se encontró el cliente seleccionado");
@@ -194,13 +180,12 @@ const WorkoutGenerator = () => {
         return;
       }
       
-      // Create and save workout with data from the webhook response
       const newWorkout = {
         name: formData.workoutName,
         clientId: clientId,
         clientName: formData.clientName,
         createdAt: new Date().toISOString(),
-        workout_data: generatedWorkout, // Usar los datos recibidos del webhook
+        workout_data: generatedWorkout,
         form_data: formData,
       };
       
@@ -213,9 +198,8 @@ const WorkoutGenerator = () => {
     }
   };
 
-  // Renderizar secciones de entrenamiento basado en la respuesta del webhook
   const renderWorkoutSections = () => {
-    if (!generatedWorkout) {
+    if (!generatedWorkout?.output?.RutinaSemanal) {
       return (
         <div className="text-center py-8">
           <p className="text-gray-500">No hay datos de rutina disponibles</p>
@@ -223,56 +207,11 @@ const WorkoutGenerator = () => {
       );
     }
 
-    // Analizar la estructura de la respuesta del webhook y renderizar adecuadamente
-    // Este es un ejemplo genérico que debería ser adaptado según la estructura real del webhook
     return (
-      <div className="space-y-6">
-        {generatedWorkout.days && generatedWorkout.days.map((day: any, index: number) => (
-          <AccordionItem key={index} value={`day-${index}`}>
-            <AccordionTrigger className="text-left font-semibold">
-              <div className="flex items-center">
-                <Dumbbell className="mr-2 h-5 w-5 text-fitBlue-600" />
-                {day.name || `Día ${index + 1}`}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              {day.exercises && day.exercises.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 dark:bg-gray-800">
-                        <th className="py-2 px-4 text-left font-medium">Ejercicio</th>
-                        <th className="py-2 px-4 text-center font-medium">Series</th>
-                        <th className="py-2 px-4 text-center font-medium">Reps</th>
-                        <th className="py-2 px-4 text-center font-medium">Descanso</th>
-                        <th className="py-2 px-4 text-left font-medium">Notas</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {day.exercises.map((exercise: any, exIndex: number) => (
-                        <tr key={exIndex} className="border-t border-gray-200 dark:border-gray-700">
-                          <td className="py-3 px-4 font-medium">{exercise.name}</td>
-                          <td className="py-3 px-4 text-center">{exercise.sets}</td>
-                          <td className="py-3 px-4 text-center">{exercise.reps}</td>
-                          <td className="py-3 px-4 text-center">{exercise.rest}</td>
-                          <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{exercise.note || "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="py-3 px-4 text-gray-500">No hay ejercicios disponibles para este día</p>
-              )}
-            </AccordionContent>
-          </AccordionItem>
+      <div className="space-y-8">
+        {generatedWorkout.output.RutinaSemanal.map((day, index) => (
+          <WorkoutDay key={index} day={day} />
         ))}
-
-        {!generatedWorkout.days && (
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">La rutina ha sido generada pero no tiene un formato reconocible. Revisa la consola para ver la estructura completa.</p>
-          </div>
-        )}
       </div>
     );
   };
