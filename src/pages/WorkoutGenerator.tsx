@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Sparkles, FileDown, Mail, Dumbbell, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { getClients, saveClient, saveWorkout, getClientById, Client } from "@/utils/clientStorage";
+import { WorkoutDay } from "@/components/workout-generator/WorkoutDay";
 
 const WorkoutGenerator = () => {
   const navigate = useNavigate();
