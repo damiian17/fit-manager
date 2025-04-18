@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ export interface NotificationData {
   client_name: string;
   trainer_id: string;
   message: string;
-  type: 'diet' | 'workout';
+  type: string;
   item_id: string;
   item_name: string;
   status: 'pending' | 'read' | 'resolved';
