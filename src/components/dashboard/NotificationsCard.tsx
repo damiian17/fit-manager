@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ export interface NotificationData {
   type: string;
   item_id: string;
   item_name: string;
-  status: string; // Changed from 'pending' | 'read' | 'resolved' to string
+  status: 'pending' | 'read' | 'resolved';
   created_at: string;
 }
 
