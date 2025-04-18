@@ -18,20 +18,22 @@ export const WorkoutDay = ({ day }: WorkoutDayProps) => {
   const dayTitle = day.Dia || day.Día || "Día de entrenamiento";
   
   return (
-    <AccordionItem value={dayTitle}>
-      <AccordionTrigger className="hover:bg-gray-50 px-4 py-3 rounded-lg">
-        <div className="flex items-center gap-2 text-left">
-          <Dumbbell className="h-5 w-5 text-fitBlue-600" />
-          <h3 className="text-xl font-semibold">{dayTitle}</h3>
-        </div>
-      </AccordionTrigger>
-      <AccordionContent className="px-4 pt-2 pb-4">
-        <div className="space-y-4">
-          {day.Ejercicios.map((exercise, index) => (
-            <ExerciseCard key={index} exercise={exercise} />
-          ))}
-        </div>
-      </AccordionContent>
-    </AccordionItem>
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value={dayTitle}>
+        <AccordionTrigger className="hover:bg-gray-50 px-4 py-3 rounded-lg">
+          <div className="flex items-center gap-2 text-left">
+            <Dumbbell className="h-5 w-5 text-fitBlue-600" />
+            <h3 className="text-xl font-semibold">{dayTitle}</h3>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pt-2 pb-4">
+          <div className="space-y-4">
+            {day.Ejercicios.map((exercise, index) => (
+              <ExerciseCard key={index} exercise={exercise} />
+            ))}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 };
