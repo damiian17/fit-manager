@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -238,7 +237,11 @@ const WorkoutGenerator = () => {
     return (
       <div className="space-y-8">
         {workoutDays.map((day, index) => (
-          <WorkoutDay key={index} day={day} />
+          <WorkoutDay 
+            key={index} 
+            day={day} 
+            dayIndex={index} 
+          />
         ))}
       </div>
     );
