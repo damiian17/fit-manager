@@ -121,6 +121,48 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          client_id: string
+          client_name: string
+          created_at: string | null
+          id: string
+          item_id: string
+          item_name: string
+          message: string
+          status: string
+          trainer_id: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          client_name: string
+          created_at?: string | null
+          id?: string
+          item_id: string
+          item_name: string
+          message: string
+          status?: string
+          trainer_id: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          client_name?: string
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          item_name?: string
+          message?: string
+          status?: string
+          trainer_id?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       trainers: {
         Row: {
           created_at: string

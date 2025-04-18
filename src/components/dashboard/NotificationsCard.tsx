@@ -10,7 +10,7 @@ import { es } from "date-fns/locale";
 
 // Notification type
 export interface NotificationData {
-  id: number | string;
+  id: string;
   client_id: string;
   client_name: string;
   trainer_id: string;
