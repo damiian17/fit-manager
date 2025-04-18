@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import GoalsAndMedicalInputs from "@/components/clients/GoalsAndMedicalInputs";
 import PersonalInfoInputs from "@/components/clients/PersonalInfoInputs";
+import { InviteCodeInput } from "@/components/client-register/InviteCodeInput";
 
 const ClientRegister = () => {
   const navigate = useNavigate();
@@ -41,6 +41,7 @@ const ClientRegister = () => {
     medicalHistory: "",
     sex: "",
   });
+  const [trainerId, setTrainerId] = useState<string | null>(null);
 
   // Obtener el email del cliente y verificar sesión
   useEffect(() => {
@@ -142,6 +143,12 @@ const ClientRegister = () => {
         return;
       }
 
+      if (!trainerId) {
+        toast.error("Por favor verifica un código de invitación válido");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Verificar si tenemos el ID de usuario
       const userIdToUse = userId || localStorage.getItem('clientUserId');
       
@@ -168,7 +175,8 @@ const ClientRegister = () => {
         medical_history: formData.medicalHistory || null,
         status: "active",
         age: age,
-        sex: formData.sex || null
+        sex: formData.sex || null,
+        trainer_id: trainerId // Añadimos el ID del entrenador
       };
 
       console.log("Intentando guardar perfil con ID:", userIdToUse);
@@ -214,7 +222,7 @@ const ClientRegister = () => {
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Completa tu Perfil</CardTitle>
             <CardDescription>
-              Proporciónanos tu información para que tu entrenador pueda crear planes personalizados para ti
+              Proporciona tu información y código de invitación para que tu entrenador pueda crear planes personalizados para ti
             </CardDescription>
           </CardHeader>
         </Card>
@@ -237,92 +245,114 @@ const ClientRegister = () => {
           </Card>
         ) : (
           <form onSubmit={handleSubmit}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-                <CardDescription>
-                  Ingresa tu información personal. Los campos marcados con * son obligatorios.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <PersonalInfoInputs 
-                  formData={formData} 
-                  handleChange={handleChange} 
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="height">Altura (cm)</Label>
-                    <Input 
-                      id="height" 
-                      name="height" 
-                      type="number" 
-                      placeholder="Ej. 170" 
-                      value={formData.height}
-                      onChange={handleChange}
+            <div className="space-y-6">
+              {!trainerId && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Código de Invitación</CardTitle>
+                    <CardDescription>
+                      Ingresa el código proporcionado por tu entrenador
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <InviteCodeInput onSuccess={setTrainerId} />
+                  </CardContent>
+                </Card>
+              )}
+
+              {trainerId && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Información Personal</CardTitle>
+                    <CardDescription>
+                      Ingresa tu información personal. Los campos marcados con * son obligatorios.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <PersonalInfoInputs 
+                      formData={formData} 
+                      handleChange={handleChange} 
                     />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="weight">Peso (kg)</Label>
-                    <Input 
-                      id="weight" 
-                      name="weight" 
-                      type="number" 
-                      placeholder="Ej. 65" 
-                      value={formData.weight}
-                      onChange={handleChange}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="height">Altura (cm)</Label>
+                        <Input 
+                          id="height" 
+                          name="height" 
+                          type="number" 
+                          placeholder="Ej. 170" 
+                          value={formData.height}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="weight">Peso (kg)</Label>
+                        <Input 
+                          id="weight" 
+                          name="weight" 
+                          type="number" 
+                          placeholder="Ej. 65" 
+                          value={formData.weight}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="fitnessLevel">Nivel de fitness</Label>
+                      <Select 
+                        onValueChange={(value) => handleSelectChange("fitnessLevel", value)}
+                        value={formData.fitnessLevel}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona tu nivel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="principiante">Principiante</SelectItem>
+                          <SelectItem value="intermedio">Intermedio</SelectItem>
+                          <SelectItem value="avanzado">Avanzado</SelectItem>
+                          <SelectItem value="elite">Elite</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="sex">Sexo</Label>
+                      <Select 
+                        onValueChange={(value) => handleSelectChange("sex", value)}
+                        value={formData.sex}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona tu sexo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="femenino">Femenino</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <GoalsAndMedicalInputs 
+                      formData={formData} 
+                      handleChange={handleChange} 
                     />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="fitnessLevel">Nivel de fitness</Label>
-                  <Select 
-                    onValueChange={(value) => handleSelectChange("fitnessLevel", value)}
-                    value={formData.fitnessLevel}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu nivel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="principiante">Principiante</SelectItem>
-                      <SelectItem value="intermedio">Intermedio</SelectItem>
-                      <SelectItem value="avanzado">Avanzado</SelectItem>
-                      <SelectItem value="elite">Elite</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="sex">Sexo</Label>
-                  <Select 
-                    onValueChange={(value) => handleSelectChange("sex", value)}
-                    value={formData.sex}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu sexo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="masculino">Masculino</SelectItem>
-                      <SelectItem value="femenino">Femenino</SelectItem>
-                      <SelectItem value="otro">Otro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <GoalsAndMedicalInputs 
-                  formData={formData} 
-                  handleChange={handleChange} 
-                />
-              </CardContent>
-              <CardFooter className="flex justify-center">
-                <Button type="submit" className="w-full max-w-md bg-fitBlue-600 hover:bg-fitBlue-700" disabled={isSubmitting}>
-                  <Save className="mr-2 h-4 w-4" />
-                  {isSubmitting ? "Guardando..." : "Completar Registro"}
-                </Button>
-              </CardFooter>
-            </Card>
+                  </CardContent>
+                  <CardFooter className="flex justify-center">
+                    <Button 
+                      type="submit" 
+                      className="w-full max-w-md bg-fitBlue-600 hover:bg-fitBlue-700" 
+                      disabled={isSubmitting}
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      {isSubmitting ? "Guardando..." : "Completar Registro"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )}
+            </div>
           </form>
         )}
       </main>

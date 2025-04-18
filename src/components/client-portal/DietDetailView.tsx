@@ -26,6 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { navigate } from "@reach/router";
 
 interface DietDetailViewProps {
   diet: Diet;
@@ -141,7 +142,21 @@ export const DietDetailView = ({
       setChangeRequestMessage("");
     }
   };
-  
+
+  const handleEditDiet = () => {
+    navigate(`/diets/edit/${diet.id}`, { 
+      state: { 
+        dietData: diet.diet_data,
+        formData: diet.form_data,
+        clientInfo: {
+          id: diet.client_id,
+          name: diet.client_name,
+          dietName: diet.name
+        }
+      } 
+    });
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -189,7 +204,7 @@ export const DietDetailView = ({
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
-                  onClick={() => toast.info("Funcionalidad de edición en desarrollo")}
+                  onClick={handleEditDiet}
                   size="sm"
                 >
                   <Pencil className="mr-2 h-4 w-4" />
@@ -363,7 +378,7 @@ export const DietDetailView = ({
               <div className="flex gap-2">
                 <Button 
                   variant="outline" 
-                  onClick={() => toast.info("Funcionalidad de edición en desarrollo")}
+                  onClick={handleEditDiet}
                   size="sm"
                 >
                   <Pencil className="mr-2 h-4 w-4" />

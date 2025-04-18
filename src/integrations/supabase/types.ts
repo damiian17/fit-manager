@@ -203,6 +203,33 @@ export type Database = {
           },
         ]
       }
+      trainer_invite_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_used: boolean | null
+          trainer_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          trainer_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          trainer_id?: string
+        }
+        Relationships: []
+      }
       trainers: {
         Row: {
           created_at: string
@@ -312,6 +339,14 @@ export type Database = {
       }
     }
     Functions: {
+      create_trainer_invite_code: {
+        Args: { trainer_id: string }
+        Returns: string
+      }
+      generate_random_code: {
+        Args: { length?: number }
+        Returns: string
+      }
       get_user_id_by_email: {
         Args: { email_input: string }
         Returns: string
