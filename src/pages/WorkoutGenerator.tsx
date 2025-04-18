@@ -1,17 +1,30 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, ChevronLeft, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
-import { saveClient, saveWorkout, getClientById } from "@/utils/clientStorage";
-import { ClientSelector } from "@/components/workout-generator/ClientSelector";
-import { PhysicalInfoInputs } from "@/components/workout-generator/PhysicalInfoInputs";
-import { WorkoutPreferences } from "@/components/workout-generator/WorkoutPreferences";
-import { ScheduleAndEquipment } from "@/components/workout-generator/ScheduleAndEquipment";
-import { WorkoutDisplay } from "@/components/workout-generator/WorkoutDisplay";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, Sparkles, FileDown, Mail, Dumbbell, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
+import { getClients, saveClient, saveWorkout, getClientById, Client } from "@/utils/clientStorage";
 
 const WorkoutGenerator = () => {
   const navigate = useNavigate();
@@ -34,6 +47,27 @@ const WorkoutGenerator = () => {
   });
   const [generatedWorkout, setGeneratedWorkout] = useState<any>(null);
 
+  // Sample workout days
+  const workoutDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+  
+  // Sample equipment options
+  const equipmentOptions = [
+    "Mancuernas", "Barras", "Máquinas de gimnasio", "Bandas elásticas", 
+    "Kettlebells", "TRX/Suspensión", "Balón medicinal", "Step", "Ninguno"
+  ];
+
+  // Load available clients
+  const [clients, setClients] = useState<Client[]>([]);
+  
+  useEffect(() => {
+    const loadClients = async () => {
+      const clientsList = await getClients();
+      setClients(clientsList);
+    };
+    
+    loadClients();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -41,6 +75,7 @@ const WorkoutGenerator = () => {
 
   const handleSelectChange = async (name: string, value: string) => {
     if (name === "clientId" && value !== "nuevo") {
+      // Load client data when an existing client is selected
       const selectedClient = await getClientById(value);
       if (selectedClient) {
         setFormData(prev => ({
@@ -78,11 +113,13 @@ const WorkoutGenerator = () => {
   const handleGenerateWorkout = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate form
     if (!formData.age || !formData.weight || !formData.height || !formData.fitnessLevel || !formData.workoutType || !formData.workoutName) {
       toast.error("Por favor completa todos los campos obligatorios");
       return;
     }
 
+    // Additional validation for client name when creating a new client
     if (formData.clientId === "nuevo" && !formData.clientName) {
       toast.error("Por favor ingresa el nombre del cliente");
       return;
@@ -91,6 +128,7 @@ const WorkoutGenerator = () => {
     setIsGenerating(true);
 
     try {
+      // Enviar datos al webhook proporcionado
       const response = await fetch("https://primary-production-d78e.up.railway.app/webhook-test/b7c2f6e2-cb34-4f05-971b-2524335d4d48", {
         method: "POST",
         headers: {
@@ -104,6 +142,9 @@ const WorkoutGenerator = () => {
       }
 
       const data = await response.json();
+      console.log("Respuesta del webhook:", data);
+      
+      // Guardar la respuesta del webhook
       setGeneratedWorkout(data);
       setWorkoutGenerated(true);
       toast.success("Rutina generada correctamente");
@@ -119,12 +160,14 @@ const WorkoutGenerator = () => {
     try {
       let clientId: string;
       
+      // Check if we need to create a new client or use an existing one
       if (formData.clientId === "nuevo") {
         if (!formData.clientName) {
           toast.error("Es necesario proporcionar un nombre para el nuevo cliente");
           return;
         }
         
+        // Create a new client
         const newClient = {
           name: formData.clientName,
           email: "",
@@ -132,12 +175,15 @@ const WorkoutGenerator = () => {
           status: "active",
         };
         
+        // Save the new client
         const savedClient = await saveClient(newClient);
         clientId = savedClient.id;
         toast.success(`Nuevo cliente "${formData.clientName}" creado`);
       } else if (formData.clientId) {
+        // Use existing client
         clientId = formData.clientId;
         
+        // Check if client exists
         const client = await getClientById(clientId);
         if (!client) {
           toast.error("No se encontró el cliente seleccionado");
@@ -148,12 +194,13 @@ const WorkoutGenerator = () => {
         return;
       }
       
+      // Create and save workout with data from the webhook response
       const newWorkout = {
         name: formData.workoutName,
         clientId: clientId,
         clientName: formData.clientName,
         createdAt: new Date().toISOString(),
-        workout_data: generatedWorkout,
+        workout_data: generatedWorkout, // Usar los datos recibidos del webhook
         form_data: formData,
       };
       
@@ -164,6 +211,70 @@ const WorkoutGenerator = () => {
       console.error("Error al guardar la rutina:", error);
       toast.error("Hubo un error al guardar la rutina");
     }
+  };
+
+  // Renderizar secciones de entrenamiento basado en la respuesta del webhook
+  const renderWorkoutSections = () => {
+    if (!generatedWorkout) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No hay datos de rutina disponibles</p>
+        </div>
+      );
+    }
+
+    // Analizar la estructura de la respuesta del webhook y renderizar adecuadamente
+    // Este es un ejemplo genérico que debería ser adaptado según la estructura real del webhook
+    return (
+      <div className="space-y-6">
+        {generatedWorkout.days && generatedWorkout.days.map((day: any, index: number) => (
+          <AccordionItem key={index} value={`day-${index}`}>
+            <AccordionTrigger className="text-left font-semibold">
+              <div className="flex items-center">
+                <Dumbbell className="mr-2 h-5 w-5 text-fitBlue-600" />
+                {day.name || `Día ${index + 1}`}
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              {day.exercises && day.exercises.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-800">
+                        <th className="py-2 px-4 text-left font-medium">Ejercicio</th>
+                        <th className="py-2 px-4 text-center font-medium">Series</th>
+                        <th className="py-2 px-4 text-center font-medium">Reps</th>
+                        <th className="py-2 px-4 text-center font-medium">Descanso</th>
+                        <th className="py-2 px-4 text-left font-medium">Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {day.exercises.map((exercise: any, exIndex: number) => (
+                        <tr key={exIndex} className="border-t border-gray-200 dark:border-gray-700">
+                          <td className="py-3 px-4 font-medium">{exercise.name}</td>
+                          <td className="py-3 px-4 text-center">{exercise.sets}</td>
+                          <td className="py-3 px-4 text-center">{exercise.reps}</td>
+                          <td className="py-3 px-4 text-center">{exercise.rest}</td>
+                          <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{exercise.note || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="py-3 px-4 text-gray-500">No hay ejercicios disponibles para este día</p>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+
+        {!generatedWorkout.days && (
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">La rutina ha sido generada pero no tiene un formato reconocible. Revisa la consola para ver la estructura completa.</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -194,29 +305,209 @@ const WorkoutGenerator = () => {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleGenerateWorkout} className="space-y-6">
-                    <ClientSelector 
-                      formData={formData} 
-                      handleChange={handleChange}
-                      handleSelectChange={handleSelectChange}
-                    />
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="clientId">Seleccionar cliente (opcional)</Label>
+                        <Select onValueChange={(value) => handleSelectChange("clientId", value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un cliente existente" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="nuevo">Crear nuevo cliente</SelectItem>
+                            {clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id.toString()}>
+                                {client.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {formData.clientId === "nuevo" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="clientName">Nombre del cliente *</Label>
+                          <Input 
+                            id="clientName" 
+                            name="clientName" 
+                            value={formData.clientName}
+                            onChange={handleChange}
+                            placeholder="Nombre completo del cliente" 
+                            required={formData.clientId === "nuevo"}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="workoutName">Nombre de la rutina *</Label>
+                        <Input 
+                          id="workoutName" 
+                          name="workoutName" 
+                          value={formData.workoutName}
+                          onChange={handleChange}
+                          placeholder="Ej. Rutina de fuerza - Fase 1" 
+                          required
+                        />
+                      </div>
+                    </div>
                     
-                    <PhysicalInfoInputs 
-                      formData={formData}
-                      handleChange={handleChange}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="age">Edad *</Label>
+                        <Input 
+                          id="age" 
+                          name="age" 
+                          type="number" 
+                          placeholder="Ej. 30" 
+                          value={formData.age}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="weight">Peso (kg) *</Label>
+                        <Input 
+                          id="weight" 
+                          name="weight" 
+                          type="number" 
+                          placeholder="Ej. 70" 
+                          value={formData.weight}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="height">Altura (cm) *</Label>
+                        <Input 
+                          id="height" 
+                          name="height" 
+                          type="number" 
+                          placeholder="Ej. 175" 
+                          value={formData.height}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                    </div>
                     
-                    <WorkoutPreferences 
-                      formData={formData}
-                      handleChange={handleChange}
-                      handleSelectChange={handleSelectChange}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="fitnessLevel">Nivel de fitness *</Label>
+                        <Select 
+                          onValueChange={(value) => handleSelectChange("fitnessLevel", value)}
+                          value={formData.fitnessLevel}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un nivel" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="principiante">Principiante</SelectItem>
+                            <SelectItem value="intermedio">Intermedio</SelectItem>
+                            <SelectItem value="avanzado">Avanzado</SelectItem>
+                            <SelectItem value="elite">Elite</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="workoutType">Tipo de entrenamiento *</Label>
+                        <Select 
+                          onValueChange={(value) => handleSelectChange("workoutType", value)}
+                          value={formData.workoutType}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fuerza">Fuerza</SelectItem>
+                            <SelectItem value="hipertrofia">Hipertrofia</SelectItem>
+                            <SelectItem value="resistencia">Resistencia</SelectItem>
+                            <SelectItem value="cardio">Cardio</SelectItem>
+                            <SelectItem value="flexibilidad">Flexibilidad</SelectItem>
+                            <SelectItem value="mixto">Mixto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     
-                    <ScheduleAndEquipment 
-                      formData={formData}
-                      handleChange={handleChange}
-                      toggleDay={toggleDay}
-                      toggleEquipment={toggleEquipment}
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="goals">Objetivos específicos</Label>
+                      <Textarea 
+                        id="goals" 
+                        name="goals" 
+                        placeholder="Describe los objetivos específicos que se quieren conseguir con esta rutina..." 
+                        value={formData.goals}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="limitations">Limitaciones físicas/lesiones (opcional)</Label>
+                      <Textarea 
+                        id="limitations" 
+                        name="limitations" 
+                        placeholder="Indica cualquier limitación física o lesión que se deba tener en cuenta..." 
+                        value={formData.limitations}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Días disponibles por semana</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {workoutDays.map((day) => (
+                          <div key={day} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`day-${day}`}
+                              checked={formData.daysPerWeek.includes(day)}
+                              onCheckedChange={() => toggleDay(day)}
+                            />
+                            <label
+                              htmlFor={`day-${day}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {day}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="duration">Duración deseada por sesión (minutos)</Label>
+                      <Input 
+                        id="duration" 
+                        name="duration" 
+                        type="number" 
+                        placeholder="Ej. 60" 
+                        value={formData.duration}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Equipamiento disponible</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {equipmentOptions.map((equipment) => (
+                          <div key={equipment} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`equipment-${equipment}`}
+                              checked={formData.equipment.includes(equipment)}
+                              onCheckedChange={() => toggleEquipment(equipment)}
+                            />
+                            <label
+                              htmlFor={`equipment-${equipment}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {equipment}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     
                     <Button 
                       type="submit" 
@@ -242,12 +533,64 @@ const WorkoutGenerator = () => {
                 </CardContent>
               </Card>
             ) : (
-              <WorkoutDisplay 
-                formData={formData}
-                generatedWorkout={generatedWorkout}
-                onModifyParams={() => setWorkoutGenerated(false)}
-                onSaveWorkout={handleSaveWorkout}
-              />
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle>Rutina Personalizada: {formData.workoutName}</CardTitle>
+                      <CardDescription>
+                        {formData.clientName ? `Cliente: ${formData.clientName}` : "Sin cliente asignado"} | Basada en los parámetros proporcionados
+                      </CardDescription>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        PDF
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Mail className="mr-2 h-4 w-4" />
+                        Email
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-6 p-4 bg-fitBlue-50 border border-fitBlue-100 rounded-lg">
+                      <h3 className="font-semibold text-fitBlue-800 mb-2">Resumen de la Rutina</h3>
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4 text-sm">
+                        <li><span className="font-medium">Nivel:</span> {formData.fitnessLevel || "Intermedio"}</li>
+                        <li><span className="font-medium">Tipo:</span> {formData.workoutType || "Hipertrofia"}</li>
+                        <li><span className="font-medium">Frecuencia:</span> {formData.daysPerWeek.length || 3} días/semana</li>
+                        <li><span className="font-medium">Duración:</span> {formData.duration || 60} min/sesión</li>
+                      </ul>
+                    </div>
+
+                    <Accordion type="single" collapsible className="w-full">
+                      {renderWorkoutSections()}
+                    </Accordion>
+                    
+                    <div className="mt-6 p-4 border border-gray-200 rounded-lg">
+                      <h3 className="font-semibold mb-2">Instrucciones generales</h3>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                        <li>Realiza un calentamiento adecuado de 5-10 minutos antes de cada sesión.</li>
+                        <li>Comienza con pesos ligeros y aumenta gradualmente a medida que te sientas cómodo.</li>
+                        <li>Mantén una técnica adecuada durante todos los ejercicios.</li>
+                        <li>Descansa al menos 48 horas entre entrenamientos del mismo grupo muscular.</li>
+                        <li>Bebe suficiente agua durante el entrenamiento.</li>
+                        <li>Consulta con tu entrenador si tienes alguna duda o malestar.</li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <div className="flex gap-4">
+                  <Button variant="outline" className="flex-1" onClick={() => setWorkoutGenerated(false)}>
+                    Modificar parámetros
+                  </Button>
+                  <Button className="flex-1 bg-fitBlue-600 hover:bg-fitBlue-700" onClick={handleSaveWorkout}>
+                    Guardar rutina
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
           
