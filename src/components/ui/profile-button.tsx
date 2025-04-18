@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getActiveSession, signOut } from "@/utils/authUtils";
+import { getActiveSession } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -74,8 +74,21 @@ export const ProfileButton = () => {
 
   const handleLogout = async () => {
     try {
-      // Usar la función signOut que limpia todos los datos
-      await signOut();
+      // Primero, limpiar toda la información de la sesión en localStorage
+      localStorage.removeItem('clientLoggedIn');
+      localStorage.removeItem('clientEmail');
+      localStorage.removeItem('clientUserId');
+      localStorage.removeItem('trainerLoggedIn');
+      localStorage.removeItem('trainerEmail');
+      localStorage.removeItem('trainerName');
+      // Limpiamos cualquier otro item relacionado con la sesión que pueda estar causando problemas
+      localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
+      
+      // Luego, cerrar sesión en Supabase explícitamente
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error al cerrar sesión en Supabase:", error);
+      }
       
       toast.success("Sesión cerrada correctamente");
       
