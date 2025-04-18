@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WebhookResponse, DailyMeal } from "@/types/diet";
 import { RotateCcw, Save } from "lucide-react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface DietPlanProps {
   webhookResponse: WebhookResponse;
@@ -28,14 +28,13 @@ export const DietPlan = ({
   onSave 
 }: DietPlanProps) => {
   const [activeTab, setActiveTab] = useState(selectedOption || webhookResponse[0]?.dia || "Lunes");
+  const isMobile = useIsMobile();
   
-  // Handle option change
   const handleOptionChange = (value: string) => {
     setActiveTab(value);
     onOptionChange(value);
   };
 
-  // Get the selected daily meal
   const selectedDay = webhookResponse.find(day => day.dia === activeTab);
   
   if (!webhookResponse || webhookResponse.length === 0) {
@@ -61,20 +60,24 @@ export const DietPlan = ({
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <CardTitle>Plan Dietético: {clientInfo.dietName}</CardTitle>
+              <Button variant="ghost" onClick={onReset} className="w-fit p-0 mb-2">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Volver
+              </Button>
+              <CardTitle className="text-xl sm:text-2xl">Plan Dietético: {clientInfo.dietName}</CardTitle>
               <CardDescription>
                 {clientInfo.name ? `Cliente: ${clientInfo.name}` : "Cliente sin nombre"} | 
                 Calorías objetivo: {selectedDay?.kcalObjetivo || "N/A"} kcal
               </CardDescription>
             </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={onReset}>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Reiniciar
+            <div className="flex gap-2 w-full sm:w-auto justify-end">
+              <Button variant="outline" size={isMobile ? "sm" : "default"} onClick={onReset}>
+                <RotateCcw className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Reiniciar</span>}
               </Button>
-              <Button size="sm" onClick={onSave}>
-                <Save className="mr-2 h-4 w-4" />
-                Guardar
+              <Button size={isMobile ? "sm" : "default"} onClick={onSave}>
+                <Save className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Guardar</span>}
               </Button>
             </div>
           </div>
@@ -82,9 +85,13 @@ export const DietPlan = ({
         <CardContent>
           <div className="space-y-6">
             <Tabs value={activeTab} onValueChange={handleOptionChange}>
-              <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+              <TabsList className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-1">
                 {webhookResponse.map((day) => (
-                  <TabsTrigger key={day.dia} value={day.dia}>
+                  <TabsTrigger 
+                    key={day.dia} 
+                    value={day.dia}
+                    className="text-xs sm:text-sm px-2 py-1.5"
+                  >
                     {day.dia}
                   </TabsTrigger>
                 ))}
