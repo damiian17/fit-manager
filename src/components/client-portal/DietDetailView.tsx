@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Diet } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2, Pencil, MessageSquare } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, MessageSquare, Edit } from "lucide-react";
 import { DailyMeal } from "@/types/diet";
 import { toast } from "sonner";
 import {
@@ -159,6 +160,12 @@ export const DietDetailView = ({
       } 
     });
   };
+  
+  const handleEditMeal = (day: string, mealKey: string) => {
+    // For now, we'll just navigate to the diet edit page
+    // In the future, this could be enhanced to edit specific meals
+    handleEditDiet();
+  };
 
   if (isLoading) {
     return (
@@ -289,12 +296,27 @@ export const DietDetailView = ({
                         <Card key={mealKey}>
                           <CardHeader className="py-3">
                             <div className="flex justify-between items-center">
-                              <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
-                                {meal.kcals} kcal
-                              </span>
+                              <div>
+                                <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
+                                <CardDescription>Comida {mealKey.replace('comida', '')}</CardDescription>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
+                                  {meal.kcals} kcal
+                                </span>
+                                {!isClientView && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleEditMeal(day.dia, mealKey)}
+                                    className="text-fitBlue-600"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Editar
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                            <CardDescription>Comida {mealKey.replace('comida', '')}</CardDescription>
                           </CardHeader>
                           <CardContent className="py-3">
                             <div className="space-y-4">
@@ -475,12 +497,27 @@ export const DietDetailView = ({
                       <Card key={mealKey}>
                         <CardHeader className="py-3">
                           <div className="flex justify-between items-center">
-                            <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
-                              {meal.kcals} kcal
-                            </span>
+                            <div>
+                              <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
+                              <CardDescription>{meal.tipo}</CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
+                                {meal.kcals} kcal
+                              </span>
+                              {!isClientView && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={handleEditDiet}
+                                  className="text-fitBlue-600"
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Editar
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          <CardDescription>{meal.tipo}</CardDescription>
                         </CardHeader>
                         <CardContent className="py-3">
                           <div className="space-y-4">

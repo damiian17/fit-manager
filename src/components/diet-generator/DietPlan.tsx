@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WebhookResponse, DailyMeal } from "@/types/diet";
-import { RotateCcw, Save } from "lucide-react";
+import { RotateCcw, Save, Edit } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DietPlanProps {
@@ -18,6 +18,7 @@ interface DietPlanProps {
   onOptionChange: (option: string) => void;
   onReset: () => void;
   onSave: () => void;
+  onEditMeal?: (day: string, mealKey: string, meal: any) => void;
 }
 
 export const DietPlan = ({ 
@@ -26,7 +27,8 @@ export const DietPlan = ({
   clientInfo,
   onOptionChange, 
   onReset, 
-  onSave 
+  onSave,
+  onEditMeal 
 }: DietPlanProps) => {
   const [activeTab, setActiveTab] = useState(selectedOption || webhookResponse[0]?.dia || "Lunes");
   const isMobile = useIsMobile();
@@ -126,12 +128,27 @@ export const DietPlan = ({
                           <Card key={mealKey}>
                             <CardHeader className="py-3">
                               <div className="flex justify-between items-center">
-                                <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
-                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
-                                  {meal.kcals} kcal
-                                </span>
+                                <div>
+                                  <CardTitle className="text-base sm:text-lg">{meal.nombre}</CardTitle>
+                                  <CardDescription>Comida {mealKey.replace('comida', '')}</CardDescription>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
+                                    {meal.kcals} kcal
+                                  </span>
+                                  {onEditMeal && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => onEditMeal(day.dia, mealKey, meal)}
+                                      className="text-fitBlue-600"
+                                    >
+                                      <Edit className="h-4 w-4 mr-1" />
+                                      Editar
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                              <CardDescription>Comida {mealKey.replace('comida', '')}</CardDescription>
                             </CardHeader>
                             <CardContent className="py-3">
                               <div className="space-y-4">
