@@ -228,7 +228,22 @@ export type Database = {
           is_used?: boolean | null
           trainer_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trainer_invite_codes_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainer_client_diets"
+            referencedColumns: ["trainer_id"]
+          },
+          {
+            foreignKeyName: "trainer_invite_codes_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trainers: {
         Row: {
