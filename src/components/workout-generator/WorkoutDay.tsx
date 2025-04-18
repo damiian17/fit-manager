@@ -1,4 +1,3 @@
-
 import { DayWorkout } from "@/types/workout";
 import { ExerciseCard } from "./ExerciseCard";
 import { Dumbbell, Pencil, Trash2 } from "lucide-react";
@@ -40,10 +39,8 @@ export const WorkoutDay = ({
 }: WorkoutDayProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  // Determine the day title, prioritizing specific naming conventions
-  const dayTitle = Object.keys(day)[0] === 'Ejercicios' 
-    ? `Día ${dayIndex + 1}` 
-    : Object.keys(day)[0] || `Día ${dayIndex + 1}`;
+  // Get the first key that's not 'Ejercicios' as the day name
+  const dayTitle = Object.keys(day).find(key => key !== 'Ejercicios') || `Día ${dayIndex + 1}`;
   
   // Ensure Ejercicios exists and is an array before attempting to map over it
   const ejercicios = day.Ejercicios || [];
@@ -54,7 +51,7 @@ export const WorkoutDay = ({
         <AccordionTrigger className="hover:bg-gray-50 px-4 py-3 rounded-lg">
           <div className="flex items-center gap-2 text-left">
             <Dumbbell className="h-5 w-5 text-fitBlue-600" />
-            <h3 className="text-xl font-semibold">{dayTitle}: {Object.keys(day)[0] !== 'Ejercicios' && Object.keys(day)[0]}</h3>
+            <h3 className="text-xl font-semibold">{dayTitle}</h3>
           </div>
         </AccordionTrigger>
         <AccordionContent className="px-4 pt-2 pb-4">
