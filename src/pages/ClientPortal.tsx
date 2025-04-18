@@ -142,7 +142,15 @@ const ClientPortal = () => {
         toast.error(`Error: Información de ${type === 'diet' ? 'dieta' : 'rutina'} no disponible`);
         return;
       }
+      
+      if (!clientData.trainer_id) {
+        toast.error("Error: No tienes un entrenador asignado");
+        console.error("Client has no trainer_id assigned:", clientData);
+        return;
+      }
 
+      console.log("Sending notification with trainer_id:", clientData.trainer_id);
+      
       const { error } = await supabase
         .from('notifications')
         .insert({

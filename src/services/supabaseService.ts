@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Client {
@@ -14,6 +13,7 @@ export interface Client {
   goals?: string;
   medical_history?: string;
   status: string;
+  trainer_id?: string;
 }
 
 export interface Diet {
