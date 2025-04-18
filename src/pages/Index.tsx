@@ -40,8 +40,40 @@ const Index = () => {
             // If it's a trainer, go to dashboard
             navigate("/dashboard");
           } else {
-            // Si hay una sesión pero el rol no está definido, ir a login
-            console.log("Session exists but no role defined, redirecting to login");
+            // Check the database to determine the user type if not in localStorage
+            // First check if user is a client
+            const { data: clientData, error: clientError } = await supabase
+              .from('clients')
+              .select('id')
+              .eq('id', session.user.id)
+              .single();
+              
+            if (clientData) {
+              localStorage.setItem('clientLoggedIn', 'true');
+              const hasProfile = await hasClientProfile(session.user.id);
+              if (hasProfile) {
+                navigate("/client-portal");
+              } else {
+                navigate("/client-register");
+              }
+              return;
+            }
+            
+            // Check if user is a trainer
+            const { data: trainerData, error: trainerError } = await supabase
+              .from('trainers')
+              .select('id')
+              .eq('id', session.user.id)
+              .single();
+              
+            if (trainerData) {
+              localStorage.setItem('trainerLoggedIn', 'true');
+              navigate("/dashboard");
+              return;
+            }
+            
+            // Si no es cliente ni entrenador, ir a login
+            console.log("Session exists but user not identified in database");
             navigate("/login");
           }
         } else {

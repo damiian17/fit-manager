@@ -6,8 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { StatsCardGrid } from "@/components/dashboard/StatsCardGrid";
 import { RecentClients } from "@/components/dashboard/RecentClients";
+import { NotificationsCard } from "@/components/dashboard/NotificationsCard";
 import { getClients, getStats } from "@/utils/clientStorage";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useLocation } from "react-router-dom";
 
 // Type for client data specifically for the RecentClients component
 interface DashboardClientData {
@@ -27,6 +30,20 @@ const Dashboard = () => {
     completedSessions: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [trainerId, setTrainerId] = useState<string | undefined>(undefined);
+  const location = useLocation();
+
+  useEffect(() => {
+    // Get the trainer ID from the session
+    const getCurrentTrainer = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setTrainerId(session.user.id);
+      }
+    };
+    
+    getCurrentTrainer();
+  }, []);
 
   useEffect(() => {
     // Load clients and stats from Supabase
@@ -62,6 +79,17 @@ const Dashboard = () => {
     loadData();
   }, []);
 
+  // Extract notification ID from URL if present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const notificationId = params.get('notification');
+    
+    if (notificationId) {
+      // Handle notification viewing if needed
+      console.log("Viewing notification:", notificationId);
+    }
+  }, [location]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navigation />
@@ -90,7 +118,10 @@ const Dashboard = () => {
           <StatsCardGrid stats={stats} />
         )}
         
-        <QuickActions />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <QuickActions />
+          <NotificationsCard trainerId={trainerId} />
+        </div>
         
         {isLoading ? (
           <Card className="mb-8 p-6 text-center">
