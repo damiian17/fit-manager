@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
@@ -12,6 +11,7 @@ import { PhysicalInfoInputs } from "@/components/workout-generator/PhysicalInfoI
 import { WorkoutPreferences } from "@/components/workout-generator/WorkoutPreferences";
 import { ScheduleAndEquipment } from "@/components/workout-generator/ScheduleAndEquipment";
 import { WorkoutDisplay } from "@/components/workout-generator/WorkoutDisplay";
+import { Badge } from "@/components/ui/badge";
 
 const WorkoutGenerator = () => {
   const navigate = useNavigate();
@@ -278,9 +278,7 @@ const WorkoutGenerator = () => {
                 <div className="flex items-start space-x-3">
                   <ArrowRight className="h-5 w-5 text-fitBlue-600 mt-0.5 flex-shrink-0" />
                   <p className="text-sm">
-                    Espec
-
-ifica limitaciones físicas para evitar ejercicios contraindicados.
+                    Especifica limitaciones físicas para evitar ejercicios contraindicados.
                   </p>
                 </div>
               </CardContent>
