@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Diet } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +35,7 @@ interface DietDetailViewProps {
   onDelete?: () => void;
   isClientView?: boolean;
   onRequestChange?: (message: string) => void;
+  onEditMeal?: (day: string, mealKey: string, meal: any) => void;
 }
 
 export const DietDetailView = ({ 
@@ -43,7 +43,8 @@ export const DietDetailView = ({
   onBack, 
   onDelete, 
   isClientView = false,
-  onRequestChange 
+  onRequestChange,
+  onEditMeal
 }: DietDetailViewProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dietData, setDietData] = useState<any[]>([]);
@@ -162,22 +163,26 @@ export const DietDetailView = ({
   };
   
   const handleEditMeal = (day: string, mealKey: string, meal: any) => {
-    navigate(`/diets/edit/${diet.id}`, { 
-      state: { 
-        dietData: diet.diet_data,
-        formData: diet.form_data,
-        clientInfo: {
-          id: diet.client_id,
-          name: diet.client_name,
-          dietName: diet.name
-        },
-        editingMeal: {
-          day,
-          mealKey,
-          meal
-        }
-      } 
-    });
+    if (onEditMeal) {
+      onEditMeal(day, mealKey, meal);
+    } else {
+      navigate(`/diets/edit/${diet.id}`, { 
+        state: { 
+          dietData: diet.diet_data,
+          formData: diet.form_data,
+          clientInfo: {
+            id: diet.client_id,
+            name: diet.client_name,
+            dietName: diet.name
+          },
+          editingMeal: {
+            day,
+            mealKey,
+            meal
+          }
+        } 
+      });
+    }
   };
 
   if (isLoading) {

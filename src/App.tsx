@@ -35,8 +35,10 @@ const App = () => {
             <Route path="/client-register" element={<ClientRegister />} />
             <Route path="/workouts" element={<Workouts />} />
             <Route path="/workouts/new" element={<WorkoutGenerator />} />
+            <Route path="/workouts/edit/:id" element={<WorkoutGenerator />} />
             <Route path="/diets" element={<Diets />} />
             <Route path="/diets/new" element={<DietGenerator />} />
+            <Route path="/diets/edit/:id" element={<DietGenerator />} />
             <Route path="/client-portal" element={<ClientPortal />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

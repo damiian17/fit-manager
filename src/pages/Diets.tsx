@@ -163,6 +163,8 @@ const Diets = () => {
   const handleEditMeal = (day: string, mealKey: string, meal: any) => {
     if (!selectedDiet) return;
     
+    console.log("Editing meal:", { day, mealKey, meal });
+    
     navigate(`/diets/edit/${selectedDiet.id}`, { 
       state: { 
         dietData: selectedDiet.diet_data,
@@ -190,6 +192,7 @@ const Diets = () => {
             diet={selectedDiet} 
             onBack={handleBackFromDetails}
             onDelete={handleDeleteDiet}
+            onEditMeal={handleEditMeal}
           />
         </main>
       </div>
