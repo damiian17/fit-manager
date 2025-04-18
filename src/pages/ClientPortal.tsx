@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -129,6 +130,45 @@ const ClientPortal = () => {
       setWorkouts(updatedWorkouts);
     }
   };
+
+  const handleRequestChange = async (message: string, type: 'diet' | 'workout') => {
+    try {
+      if (!clientData) {
+        toast.error("Error: Información de cliente no disponible");
+        return;
+      }
+
+      const item = type === 'diet' ? selectedDiet : selectedWorkout;
+      if (!item) {
+        toast.error(`Error: Información de ${type === 'diet' ? 'dieta' : 'rutina'} no disponible`);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('notifications')
+        .insert({
+          client_id: clientData.id,
+          client_name: clientData.name,
+          trainer_id: clientData.trainer_id,
+          message: message,
+          type: type,
+          item_id: item.id,
+          item_name: item.name,
+          status: 'pending'
+        });
+
+      if (error) {
+        console.error("Error sending notification:", error);
+        toast.error("Error al enviar la solicitud");
+        return;
+      }
+
+      toast.success("Solicitud de cambio enviada correctamente");
+    } catch (error) {
+      console.error("Error requesting change:", error);
+      toast.error("Error al enviar la solicitud de cambio");
+    }
+  };
   
   const renderDietContent = () => {
     if (selectedDiet) {
@@ -136,6 +176,8 @@ const ClientPortal = () => {
         diet={selectedDiet} 
         onBack={handleBackToList} 
         onDelete={handleDietDeleted}
+        isClientView={true}
+        onRequestChange={(message) => handleRequestChange(message, 'diet')}
       />;
     }
     
@@ -170,6 +212,8 @@ const ClientPortal = () => {
         workout={selectedWorkout} 
         onBack={handleBackToList}
         onDelete={handleWorkoutDeleted}
+        isClientView={true}
+        onRequestChange={(message) => handleRequestChange(message, 'workout')}
       />;
     }
     

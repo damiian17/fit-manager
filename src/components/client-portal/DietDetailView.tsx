@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { Diet } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowLeft, Trash2, Pencil, MessageSquare } from "lucide-react";
 import { DailyMeal } from "@/types/diet";
 import { toast } from "sonner";
 import {
@@ -16,19 +16,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 
 interface DietDetailViewProps {
   diet: Diet;
   onBack: () => void;
   onDelete?: () => void;
+  isClientView?: boolean;
+  onRequestChange?: (message: string) => void;
 }
 
-export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) => {
+export const DietDetailView = ({ 
+  diet, 
+  onBack, 
+  onDelete, 
+  isClientView = false,
+  onRequestChange 
+}: DietDetailViewProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dietData, setDietData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("");
+  const [isRequestChangeDialogOpen, setIsRequestChangeDialogOpen] = useState(false);
+  const [changeRequestMessage, setChangeRequestMessage] = useState("");
 
   useEffect(() => {
     setIsLoading(true);
@@ -109,6 +128,19 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
       toast.error("Error al eliminar el plan dietético");
     }
   };
+
+  const handleRequestChange = () => {
+    if (changeRequestMessage.trim() === "") {
+      toast.error("Por favor indica qué cambios necesitas");
+      return;
+    }
+
+    if (onRequestChange) {
+      onRequestChange(changeRequestMessage);
+      setIsRequestChangeDialogOpen(false);
+      setChangeRequestMessage("");
+    }
+  };
   
   if (isLoading) {
     return (
@@ -153,14 +185,37 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => setIsDeleteDialogOpen(true)}
-              size="sm"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar dieta
-            </Button>
+            {!isClientView ? (
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => toast.info("Funcionalidad de edición en desarrollo")}
+                  size="sm"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar dieta
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  size="sm"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar dieta
+                </Button>
+              </div>
+            ) : (
+              onRequestChange && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsRequestChangeDialogOpen(true)}
+                  size="sm"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Solicitar cambio
+                </Button>
+              )
+            )}
           </div>
           <CardTitle>{diet.name}</CardTitle>
           <CardDescription>
@@ -261,6 +316,35 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={isRequestChangeDialogOpen} onOpenChange={setIsRequestChangeDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Solicitar cambio en la dieta</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="changeMessage">Describe los cambios que necesitas</Label>
+                <Textarea 
+                  id="changeMessage" 
+                  value={changeRequestMessage} 
+                  onChange={(e) => setChangeRequestMessage(e.target.value)}
+                  rows={4}
+                  placeholder="Por favor, explica qué cambios necesitas en esta dieta..."
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsRequestChangeDialogOpen(false)}>Cancelar</Button>
+              <Button type="button" onClick={handleRequestChange} className="bg-fitBlue-600 hover:bg-fitBlue-700">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Enviar solicitud
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
     );
   } else {
@@ -275,14 +359,37 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
               <ArrowLeft className="mr-2 h-4 w-4" />
               Volver
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => setIsDeleteDialogOpen(true)}
-              size="sm"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar dieta
-            </Button>
+            {!isClientView ? (
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => toast.info("Funcionalidad de edición en desarrollo")}
+                  size="sm"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar dieta
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  size="sm"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar dieta
+                </Button>
+              </div>
+            ) : (
+              onRequestChange && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsRequestChangeDialogOpen(true)}
+                  size="sm"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Solicitar cambio
+                </Button>
+              )
+            )}
           </div>
           <CardTitle>{diet.name}</CardTitle>
           <CardDescription>
@@ -382,6 +489,35 @@ export const DietDetailView = ({ diet, onBack, onDelete }: DietDetailViewProps) 
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={isRequestChangeDialogOpen} onOpenChange={setIsRequestChangeDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Solicitar cambio en la dieta</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="changeMessage">Describe los cambios que necesitas</Label>
+                <Textarea 
+                  id="changeMessage" 
+                  value={changeRequestMessage} 
+                  onChange={(e) => setChangeRequestMessage(e.target.value)}
+                  rows={4}
+                  placeholder="Por favor, explica qué cambios necesitas en esta dieta..."
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsRequestChangeDialogOpen(false)}>Cancelar</Button>
+              <Button type="button" onClick={handleRequestChange} className="bg-fitBlue-600 hover:bg-fitBlue-700">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Enviar solicitud
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
     );
   }

@@ -348,12 +348,22 @@ export const updateWorkout = async (workout: any) => {
   try {
     console.log("Updating workout in Supabase:", workout);
     
+    if (!workout.id) {
+      throw new Error("Workout ID is required for updating");
+    }
+    
+    // Ensure required fields are present
+    if (!workout.workout_data) {
+      console.error("Missing workout_data in update request");
+      throw new Error("Missing workout data");
+    }
+    
     const { data, error } = await supabase
       .from('workouts')
       .update({
         name: workout.name,
-        workout_data: workout.workout_data as Json,
-        form_data: workout.form_data as Json
+        workout_data: workout.workout_data,
+        form_data: workout.form_data || {}
       })
       .eq('id', workout.id)
       .select()

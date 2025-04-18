@@ -1,8 +1,9 @@
+
 import { useState } from "react";
 import { Workout } from "@/services/supabaseService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, BarChart3, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, BarChart3, Save, Trash2, MessageSquare } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { WorkoutDay } from "@/components/workout-generator/WorkoutDay";
 import { DayWorkout, ExerciseData } from "@/types/workout";
@@ -35,15 +36,26 @@ interface WorkoutDetailViewProps {
   onBack: () => void;
   onUpdate?: (updatedWorkout: Workout) => void;
   onDelete?: () => void;
+  isClientView?: boolean;
+  onRequestChange?: (message: string) => void;
 }
 
-export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: WorkoutDetailViewProps) => {
+export const WorkoutDetailView = ({ 
+  workout, 
+  onBack, 
+  onUpdate, 
+  onDelete, 
+  isClientView = false,
+  onRequestChange 
+}: WorkoutDetailViewProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingExercise, setEditingExercise] = useState<ExerciseData | null>(null);
   const [editingDayIndex, setEditingDayIndex] = useState<number>(0);
   const [editingExerciseIndex, setEditingExerciseIndex] = useState<number>(0);
-  const [workoutData, setWorkoutData] = useState(workout);
+  const [workoutData, setWorkoutData] = useState<Workout>(workout);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRequestChangeDialogOpen, setIsRequestChangeDialogOpen] = useState(false);
+  const [changeRequestMessage, setChangeRequestMessage] = useState("");
   
   const extractWorkoutDays = (): DayWorkout[] => {
     if (!workoutData.workout_data || !workoutData.workout_data.output) {
@@ -87,8 +99,18 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
     if (!editingExercise) return;
     
     try {
-      const updatedWorkoutData = JSON.parse(JSON.stringify(workoutData));
+      const updatedWorkoutData = {...workoutData};
       
+      // Make sure workout_data and output exist
+      if (!updatedWorkoutData.workout_data) {
+        updatedWorkoutData.workout_data = { output: {} };
+      }
+      
+      if (!updatedWorkoutData.workout_data.output) {
+        updatedWorkoutData.workout_data.output = {};
+      }
+      
+      // Find the correct key in the output
       const output = updatedWorkoutData.workout_data.output;
       const keys = Object.keys(output);
       let targetKey = '';
@@ -100,12 +122,21 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
         }
       }
       
-      if (!targetKey) return;
+      if (!targetKey) {
+        toast.error("Error al actualizar: No se encontró el formato correcto de datos");
+        return;
+      }
       
+      // Update the exercise
       if (updatedWorkoutData.workout_data.output[targetKey][editingDayIndex] && 
           updatedWorkoutData.workout_data.output[targetKey][editingDayIndex].Ejercicios) {
         updatedWorkoutData.workout_data.output[targetKey][editingDayIndex].Ejercicios[editingExerciseIndex] = editingExercise;
+      } else {
+        toast.error("Error al actualizar: No se pudo encontrar el ejercicio");
+        return;
       }
+      
+      console.log("Updating workout with data:", updatedWorkoutData);
       
       const updated = await updateWorkout(updatedWorkoutData);
       
@@ -158,6 +189,19 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
     }
   };
 
+  const handleRequestChange = () => {
+    if (changeRequestMessage.trim() === "") {
+      toast.error("Por favor indica qué cambios necesitas");
+      return;
+    }
+
+    if (onRequestChange) {
+      onRequestChange(changeRequestMessage);
+      setIsRequestChangeDialogOpen(false);
+      setChangeRequestMessage("");
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -166,14 +210,27 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver
           </Button>
-          <Button 
-            variant="destructive" 
-            onClick={() => setIsDeleteDialogOpen(true)}
-            size="sm"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Eliminar rutina
-          </Button>
+          {!isClientView ? (
+            <Button 
+              variant="destructive" 
+              onClick={() => setIsDeleteDialogOpen(true)}
+              size="sm"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar rutina
+            </Button>
+          ) : (
+            onRequestChange && (
+              <Button 
+                variant="outline" 
+                onClick={() => setIsRequestChangeDialogOpen(true)}
+                size="sm"
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Solicitar cambio
+              </Button>
+            )
+          )}
         </div>
         <CardTitle>{workoutData.name}</CardTitle>
         <CardDescription>
@@ -224,8 +281,8 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
                     key={index} 
                     day={day} 
                     dayIndex={index}
-                    onEditExercise={handleEditExercise}
-                    editable={true}
+                    onEditExercise={!isClientView ? handleEditExercise : undefined}
+                    editable={!isClientView}
                   />
                 ))}
               </div>
@@ -356,6 +413,35 @@ export const WorkoutDetailView = ({ workout, onBack, onUpdate, onDelete }: Worko
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isRequestChangeDialogOpen} onOpenChange={setIsRequestChangeDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Solicitar cambio en la rutina</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="changeMessage">Describe los cambios que necesitas</Label>
+              <Textarea 
+                id="changeMessage" 
+                value={changeRequestMessage} 
+                onChange={(e) => setChangeRequestMessage(e.target.value)}
+                rows={4}
+                placeholder="Por favor, explica qué cambios necesitas en esta rutina..."
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsRequestChangeDialogOpen(false)}>Cancelar</Button>
+            <Button type="button" onClick={handleRequestChange} className="bg-fitBlue-600 hover:bg-fitBlue-700">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Enviar solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
