@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   DropdownMenu,
@@ -11,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getActiveSession } from "@/utils/authUtils";
+import { getActiveSession, signOut } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -74,26 +73,9 @@ export const ProfileButton = () => {
 
   const handleLogout = async () => {
     try {
-      // Primero, limpiar toda la información de la sesión en localStorage
-      localStorage.removeItem('clientLoggedIn');
-      localStorage.removeItem('clientEmail');
-      localStorage.removeItem('clientUserId');
-      localStorage.removeItem('trainerLoggedIn');
-      localStorage.removeItem('trainerEmail');
-      localStorage.removeItem('trainerName');
-      // Limpiamos cualquier otro item relacionado con la sesión que pueda estar causando problemas
-      localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
-      
-      // Luego, cerrar sesión en Supabase explícitamente
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Error al cerrar sesión en Supabase:", error);
-      }
-      
+      // Usar la función signOut que ahora acepta la función de navegación
+      await signOut(navigate);
       toast.success("Sesión cerrada correctamente");
-      
-      // Redirigir al usuario a la página de login
-      navigate("/login", { replace: true });
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       toast.error("Error al cerrar sesión");

@@ -40,19 +40,18 @@ const Index = () => {
             // If it's a trainer, go to dashboard
             navigate("/dashboard");
           } else {
-            // If there's a session but the role is not defined, go to login for clarification
+            // Si hay una sesión pero el rol no está definido, ir a login
             console.log("Session exists but no role defined, redirecting to login");
-            localStorage.clear(); // Clear to avoid issues with old data
             navigate("/login");
           }
         } else {
-          // If there's no session, always go to login
+          // Si no hay sesión, siempre ir a login
           console.log("No session found, redirecting to login");
           navigate("/login");
         }
       } catch (error) {
         console.error("Error checking session:", error);
-        // In case of error, redirect to login for safety
+        // En caso de error, redirigir a login por seguridad
         navigate("/login");
       }
     };

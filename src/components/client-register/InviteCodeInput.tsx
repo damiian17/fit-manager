@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "@/utils/authUtils";
 
 interface InviteCodeInputProps {
   onSuccess: (trainerId: string) => void;
@@ -13,6 +15,7 @@ interface InviteCodeInputProps {
 export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
   const [code, setCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const navigate = useNavigate();
 
   const verifyCode = async () => {
     if (!code.trim()) {
@@ -91,6 +94,10 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
     }
   };
 
+  const handleReturnToLogin = async () => {
+    await signOut(navigate);
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -109,6 +116,15 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
       >
         {isVerifying ? "Verificando..." : "Verificar código"}
       </Button>
+      <div className="text-center pt-4">
+        <Button
+          variant="outline"
+          onClick={handleReturnToLogin}
+          size="sm"
+        >
+          Volver a iniciar sesión
+        </Button>
+      </div>
     </div>
   );
 };
