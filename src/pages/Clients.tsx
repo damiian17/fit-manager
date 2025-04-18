@@ -1,11 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { PlusCircle } from "lucide-react";
-import { toast } from "sonner";
 import { getClients } from "@/utils/clientStorage";
+import { toast } from "sonner";
 import { InviteCodeGenerator } from "@/components/trainer/InviteCodeGenerator";
 import { ClientsTable } from "@/components/clients/ClientsTable";
 import { ClientsHeader } from "@/components/clients/ClientsHeader";
@@ -52,15 +49,12 @@ const Clients = () => {
   }, []);
 
   useEffect(() => {
-    // Filtrar clientes según el término de búsqueda y el filtro de estado
     let filtered = [...clients];
     
-    // Filtrar por estado
     if (filterStatus !== "all") {
       filtered = filtered.filter(client => client.status === filterStatus);
     }
     
-    // Filtrar por término de búsqueda
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(client => 
@@ -80,28 +74,22 @@ const Clients = () => {
         <div className="space-y-8">
           <ClientsHeader filterStatus={filterStatus} setFilterStatus={setFilterStatus} />
           <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Lista de Clientes</CardTitle>
-                  <CardDescription>
-                    Aquí puedes ver y gestionar todos tus clientes
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <p className="text-center py-4">Cargando clientes...</p>
-                  ) : (
-                    <ClientsTable clients={filteredClients} setClients={setClients} />
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <InviteCodeGenerator />
-              <ActionsCard />
-            </div>
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Lista de Clientes</CardTitle>
+                <CardDescription>
+                  Aquí puedes ver y gestionar todos tus clientes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <p className="text-center py-4">Cargando clientes...</p>
+                ) : (
+                  <ClientsTable clients={filteredClients} setClients={setClients} />
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>
