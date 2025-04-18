@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { User, Settings, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { getActiveSession, signOut } from "@/utils/authUtils";
+import { getActiveSession } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -74,30 +74,32 @@ export const ProfileButton = () => {
 
   const handleLogout = async () => {
     try {
-      // Primero, cerrar sesión en Supabase explícitamente
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // Luego, limpiar toda la información de la sesión en localStorage
+      // Primero, limpiar toda la información de la sesión en localStorage
       localStorage.removeItem('clientLoggedIn');
       localStorage.removeItem('clientEmail');
       localStorage.removeItem('clientUserId');
+      localStorage.removeItem('trainerLoggedIn');
+      localStorage.removeItem('trainerEmail');
+      localStorage.removeItem('trainerName');
       // Limpiamos cualquier otro item relacionado con la sesión que pueda estar causando problemas
       localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
       
-      // También llamamos a la función signOut de authUtils por si hace algo adicional
-      await signOut();
+      // Luego, cerrar sesión en Supabase explícitamente
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error al cerrar sesión en Supabase:", error);
+      }
       
       toast.success("Sesión cerrada correctamente");
       
-      // Esperar un momento para asegurar que todo esté limpio antes de redirigir
-      setTimeout(() => {
-        // Forzar una redirección completa para asegurar una limpieza total
-        window.location.href = "/login";
-      }, 100);
+      // Redirigir al usuario a la página de login
+      navigate("/login", { replace: true });
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       toast.error("Error al cerrar sesión");
+      
+      // En caso de error, intentar redirigir de todos modos
+      navigate("/login", { replace: true });
     }
   };
 

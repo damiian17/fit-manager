@@ -77,22 +77,32 @@ const ClientPortal = () => {
   
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      // Primero limpiar el localStorage
       localStorage.removeItem('clientLoggedIn');
       localStorage.removeItem('clientEmail');
       localStorage.removeItem('clientUserId');
       localStorage.removeItem('sb-yehxlphlddyzrnewfelr-auth-token');
       
+      // Luego intentar cerrar la sesión de Supabase
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error("Error al cerrar sesión en Supabase:", error);
+        }
+      } catch (supabaseError) {
+        console.error("Error al intentar cerrar sesión en Supabase:", supabaseError);
+      }
+      
       toast.success("Sesión cerrada correctamente");
       
-      setTimeout(() => {
-        window.location.href = "/login";
-      }, 100);
+      // Usar navigate en lugar de window.location
+      navigate("/login", { replace: true });
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       toast.error("Error al cerrar sesión");
+      
+      // En caso de error, intentar redirigir de todos modos
+      navigate("/login", { replace: true });
     }
   };
   
