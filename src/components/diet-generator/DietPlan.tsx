@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WebhookResponse, DailyMeal } from "@/types/diet";
 import { RotateCcw, Save, Edit } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MealEditor } from "./MealEditor";
 
 interface DietPlanProps {
   webhookResponse: WebhookResponse;
@@ -19,6 +20,7 @@ interface DietPlanProps {
   onReset: () => void;
   onSave: () => void;
   onEditMeal?: (day: string, mealKey: string, meal: any) => void;
+  dietId?: string;
 }
 
 export const DietPlan = ({ 
@@ -28,19 +30,55 @@ export const DietPlan = ({
   onOptionChange, 
   onReset, 
   onSave,
-  onEditMeal 
+  onEditMeal,
+  dietId
 }: DietPlanProps) => {
   const [activeTab, setActiveTab] = useState(selectedOption || webhookResponse[0]?.dia || "Lunes");
   const isMobile = useIsMobile();
+  const [editingMeal, setEditingMeal] = useState<{
+    open: boolean;
+    day: string;
+    mealKey: string;
+    meal: any;
+  }>({
+    open: false,
+    day: "",
+    mealKey: "",
+    meal: null
+  });
+  const [localWebhookResponse, setLocalWebhookResponse] = useState<WebhookResponse>(webhookResponse);
   
   const handleOptionChange = (value: string) => {
     setActiveTab(value);
     onOptionChange(value);
   };
 
-  const selectedDay = webhookResponse.find(day => day.dia === activeTab);
+  const handleEditMeal = (day: string, mealKey: string, meal: any) => {
+    if (onEditMeal) {
+      onEditMeal(day, mealKey, meal);
+    } else if (dietId) {
+      // If we have a dietId, we can edit directly
+      setEditingMeal({
+        open: true,
+        day,
+        mealKey,
+        meal
+      });
+    }
+  };
+
+  const handleMealUpdated = async () => {
+    // Refresh the data if needed
+    if (dietId) {
+      // If we're editing an existing diet, we'd need to reload it
+      // For now, we'll just update the local state
+      setEditingMeal(prev => ({ ...prev, open: false }));
+    }
+  };
+
+  const selectedDay = localWebhookResponse.find(day => day.dia === activeTab);
   
-  if (!webhookResponse || webhookResponse.length === 0) {
+  if (!localWebhookResponse || localWebhookResponse.length === 0) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -90,7 +128,7 @@ export const DietPlan = ({
             <Tabs value={activeTab} onValueChange={handleOptionChange}>
               <div className="overflow-x-auto pb-2">
                 <TabsList className="w-full flex flex-nowrap">
-                  {webhookResponse.map((day) => (
+                  {localWebhookResponse.map((day) => (
                     <TabsTrigger 
                       key={day.dia} 
                       value={day.dia}
@@ -102,7 +140,7 @@ export const DietPlan = ({
                 </TabsList>
               </div>
               
-              {webhookResponse.map((day) => (
+              {localWebhookResponse.map((day) => (
                 <TabsContent key={day.dia} value={day.dia} className="space-y-6">
                   <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
@@ -136,17 +174,15 @@ export const DietPlan = ({
                                   <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded dark:bg-blue-900 dark:text-blue-300">
                                     {meal.kcals} kcal
                                   </span>
-                                  {onEditMeal && (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      onClick={() => onEditMeal(day.dia, mealKey, meal)}
-                                      className="text-fitBlue-600"
-                                    >
-                                      <Edit className="h-4 w-4 mr-1" />
-                                      Editar
-                                    </Button>
-                                  )}
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={() => handleEditMeal(day.dia, mealKey, meal)}
+                                    className="text-fitBlue-600"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Editar
+                                  </Button>
                                 </div>
                               </div>
                             </CardHeader>
@@ -184,6 +220,19 @@ export const DietPlan = ({
           </div>
         </CardContent>
       </Card>
+      
+      {editingMeal.open && dietId && (
+        <MealEditor
+          open={editingMeal.open}
+          onClose={() => setEditingMeal(prev => ({ ...prev, open: false }))}
+          meal={editingMeal.meal}
+          mealKey={editingMeal.mealKey}
+          day={editingMeal.day}
+          dietId={dietId}
+          dietData={localWebhookResponse}
+          onMealUpdated={handleMealUpdated}
+        />
+      )}
     </div>
   );
 };

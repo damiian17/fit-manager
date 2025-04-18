@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Navigation } from "@/components/ui/navigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -10,7 +10,7 @@ import { NutritionalTips } from "@/components/diet-generator/NutritionalTips";
 import { WebhookResponse, DietFormData } from "@/types/diet";
 import { toast } from "sonner";
 import { saveClient, getClientById } from "@/utils/clientStorage";
-import { saveDiet } from "@/services/supabaseService";
+import { saveDiet, getDietById, updateDiet } from "@/services/supabaseService";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ClientInfo {
@@ -21,6 +21,8 @@ interface ClientInfo {
 
 const DietGenerator = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const location = useLocation();
   const [dietGenerated, setDietGenerated] = useState(false);
   const [webhookResponse, setWebhookResponse] = useState<WebhookResponse | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("Lunes");
@@ -29,6 +31,56 @@ const DietGenerator = () => {
     name: "",
     dietName: ""
   });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingDietId, setEditingDietId] = useState<string | null>(null);
+
+  // Check if we're editing an existing diet
+  useEffect(() => {
+    const loadExistingDiet = async () => {
+      if (id) {
+        try {
+          const diet = await getDietById(id);
+          if (diet) {
+            setIsEditing(true);
+            setEditingDietId(id);
+            
+            // Initialize clientInfo
+            setClientInfo({
+              id: diet.client_id || "",
+              name: diet.client_name || "",
+              dietName: diet.name || ""
+            });
+            
+            // Initialize webhookResponse
+            if (diet.diet_data) {
+              setWebhookResponse(Array.isArray(diet.diet_data) ? diet.diet_data : [diet.diet_data]);
+              setDietGenerated(true);
+            }
+            
+            // Set selected option
+            if (diet.form_data && diet.form_data.selectedOption) {
+              setSelectedOption(diet.form_data.selectedOption);
+            } else if (Array.isArray(diet.diet_data) && diet.diet_data.length > 0) {
+              setSelectedOption(diet.diet_data[0].dia || "Lunes");
+            }
+            
+            // Handle editing specific meal if provided in location state
+            if (location.state?.editingMeal) {
+              const { day, mealKey } = location.state.editingMeal;
+              if (day) {
+                setSelectedOption(day);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error loading diet for editing:", error);
+          toast.error("Error al cargar la dieta para editar");
+        }
+      }
+    };
+    
+    loadExistingDiet();
+  }, [id, location.state]);
 
   const handleDietGenerated = (response: WebhookResponse, formData: DietFormData) => {
     console.log("Webhook response received:", response);
@@ -60,8 +112,14 @@ const DietGenerator = () => {
   };
 
   const handleResetForm = () => {
-    setDietGenerated(false);
-    setWebhookResponse(null);
+    if (isEditing) {
+      // If editing, go back to diets page
+      navigate("/diets");
+    } else {
+      // If creating new, reset form
+      setDietGenerated(false);
+      setWebhookResponse(null);
+    }
   };
 
   const handleOptionChange = (option: string) => {
@@ -75,77 +133,87 @@ const DietGenerator = () => {
     }
     
     try {
-      let clientId: string;
-      
-      // Check if we need to create a new client or use an existing one
-      if (clientInfo.id === "nuevo") {
-        if (!clientInfo.name) {
-          toast.error("Es necesario proporcionar un nombre para el nuevo cliente");
+      if (isEditing && editingDietId) {
+        // Update existing diet
+        const dietToUpdate = {
+          id: editingDietId,
+          name: clientInfo.dietName,
+          diet_data: webhookResponse,
+          form_data: { selectedOption }
+        };
+        
+        const updatedDiet = await updateDiet(dietToUpdate);
+        
+        if (!updatedDiet) {
+          toast.error("Error al actualizar la dieta en la base de datos");
           return;
         }
         
-        // Create a new client in Supabase
-        try {
-          const { data, error } = await supabase.from('clients').insert({
-            name: clientInfo.name,
-            status: 'active'
-          }).select().single();
-          
-          if (error) throw error;
-          clientId = data.id.toString();
-        } catch (error) {
-          console.error("Error creating client in Supabase:", error);
-          toast.error("Error al crear el cliente en la base de datos");
-          return;
-        }
-        
-        toast.success(`Nuevo cliente "${clientInfo.name}" creado`);
+        toast.success(`Plan dietético "${clientInfo.dietName}" actualizado`);
       } else {
-        // Use existing client ID
-        clientId = clientInfo.id;
+        // Create new diet
+        let clientId: string;
         
-        // Verify the client exists
-        const existingClient = await getClientById(clientId);
-        if (!existingClient) {
-          toast.error("No se encontró el cliente seleccionado");
+        // Check if we need to create a new client or use an existing one
+        if (clientInfo.id === "nuevo") {
+          if (!clientInfo.name) {
+            toast.error("Es necesario proporcionar un nombre para el nuevo cliente");
+            return;
+          }
+          
+          // Create a new client in Supabase
+          try {
+            const { data, error } = await supabase.from('clients').insert({
+              name: clientInfo.name,
+              status: 'active'
+            }).select().single();
+            
+            if (error) throw error;
+            clientId = data.id.toString();
+          } catch (error) {
+            console.error("Error creating client in Supabase:", error);
+            toast.error("Error al crear el cliente en la base de datos");
+            return;
+          }
+          
+          toast.success(`Nuevo cliente "${clientInfo.name}" creado`);
+        } else {
+          // Use existing client ID
+          clientId = clientInfo.id;
+          
+          // Verify the client exists
+          const existingClient = await getClientById(clientId);
+          if (!existingClient) {
+            toast.error("No se encontró el cliente seleccionado");
+            return;
+          }
+        }
+        
+        // Create and save diet to Supabase
+        const dietToSave = {
+          name: clientInfo.dietName,
+          client_id: clientId,
+          client_name: clientInfo.name,
+          diet_data: webhookResponse,
+          form_data: { selectedOption }
+        };
+        
+        const savedDiet = await saveDiet(dietToSave);
+        
+        if (!savedDiet) {
+          toast.error("Error al guardar la dieta en la base de datos");
           return;
         }
+        
+        toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${clientInfo.name}`);
       }
       
-      // Create and save diet to Supabase
-      const dietToSave = {
-        name: clientInfo.dietName,
-        client_id: clientId,
-        client_name: clientInfo.name,
-        diet_data: webhookResponse,
-        form_data: { selectedOption }
-      };
-      
-      const savedDiet = await saveDiet(dietToSave);
-      
-      if (!savedDiet) {
-        toast.error("Error al guardar la dieta en la base de datos");
-        return;
-      }
-      
-      toast.success(`Plan dietético "${clientInfo.dietName}" guardado para ${clientInfo.name}`);
       navigate("/diets");
     } catch (error) {
       console.error("Error al guardar la dieta:", error);
       toast.error("Hubo un error al guardar el plan dietético");
     }
   };
-
-  useEffect(() => {
-    // Debug logging
-    console.log("Current state:", {
-      dietGenerated,
-      webhookResponseExists: !!webhookResponse,
-      webhookResponseLength: webhookResponse ? webhookResponse.length : 0,
-      selectedOption,
-      clientInfo
-    });
-  }, [dietGenerated, webhookResponse, selectedOption, clientInfo]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -160,7 +228,9 @@ const DietGenerator = () => {
           >
             <ChevronLeft className="h-4 w-4 mr-1" /> Volver
           </Button>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Generador de Dietas</h1>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
+            {isEditing ? "Editar Plan Dietético" : "Generador de Dietas"}
+          </h1>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -175,6 +245,7 @@ const DietGenerator = () => {
                 onReset={handleResetForm}
                 onSave={handleSaveDiet}
                 clientInfo={clientInfo}
+                dietId={editingDietId || undefined}
               />
             ) : (
               <div className="p-8 text-center">

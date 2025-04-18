@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,13 @@ import { toast } from "sonner";
 import { Diet, getDietById } from "@/services/supabaseService";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
 import { supabase } from "@/integrations/supabase/client";
+import { MealEditor } from "@/components/diet-generator/MealEditor";
+
+interface GroupedDiets {
+  id: number | string;
+  name: string;
+  diets: Diet[];
+}
 
 const EmptyState = () => (
   <Card className="text-center p-6">
@@ -31,16 +37,21 @@ const EmptyState = () => (
   </Card>
 );
 
-interface GroupedDiets {
-  id: number | string;
-  name: string;
-  diets: Diet[];
-}
-
 const Diets = () => {
   const [clientDiets, setClientDiets] = useState<GroupedDiets[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDiet, setSelectedDiet] = useState<Diet | null>(null);
+  const [editingMeal, setEditingMeal] = useState<{
+    open: boolean;
+    day: string;
+    mealKey: string;
+    meal: any;
+  }>({
+    open: false,
+    day: "",
+    mealKey: "",
+    meal: null
+  });
   const navigate = useNavigate();
 
   const loadDiets = async () => {
@@ -165,22 +176,25 @@ const Diets = () => {
     
     console.log("Editing meal:", { day, mealKey, meal });
     
-    navigate(`/diets/edit/${selectedDiet.id}`, { 
-      state: { 
-        dietData: selectedDiet.diet_data,
-        formData: selectedDiet.form_data,
-        clientInfo: {
-          id: selectedDiet.client_id,
-          name: selectedDiet.client_name,
-          dietName: selectedDiet.name
-        },
-        editingMeal: {
-          day,
-          mealKey,
-          meal
-        }
-      } 
+    setEditingMeal({
+      open: true,
+      day,
+      mealKey,
+      meal
     });
+  };
+
+  const handleMealUpdated = async () => {
+    if (!selectedDiet) return;
+    
+    try {
+      const dietDetails = await getDietById(selectedDiet.id);
+      if (dietDetails) {
+        setSelectedDiet(dietDetails);
+      }
+    } catch (error) {
+      console.error("Error reloading diet details:", error);
+    }
   };
 
   if (selectedDiet) {
@@ -194,6 +208,18 @@ const Diets = () => {
             onDelete={handleDeleteDiet}
             onEditMeal={handleEditMeal}
           />
+          {editingMeal.open && selectedDiet && (
+            <MealEditor
+              open={editingMeal.open}
+              onClose={() => setEditingMeal(prev => ({ ...prev, open: false }))}
+              meal={editingMeal.meal}
+              mealKey={editingMeal.mealKey}
+              day={editingMeal.day}
+              dietId={selectedDiet.id}
+              dietData={selectedDiet.diet_data}
+              onMealUpdated={handleMealUpdated}
+            />
+          )}
         </main>
       </div>
     );

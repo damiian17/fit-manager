@@ -20,11 +20,10 @@ export interface Diet {
   id: string;
   name: string;
   client_id: string;
-  client_name: string;
+  client_name: string | null;
+  created_at: string;
   diet_data: any;
   form_data: any;
-  created_at: string;
-  trainer_id?: string;
 }
 
 export interface Workout {
@@ -81,18 +80,23 @@ export const getClientDiets = async (clientId: string): Promise<Diet[]> => {
 };
 
 export const getDietById = async (dietId: string): Promise<Diet | null> => {
-  const { data, error } = await supabase
-    .from('diets')
-    .select('*')
-    .eq('id', dietId)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('diets')
+      .select('*')
+      .eq('id', dietId)
+      .single();
     
-  if (error) {
-    console.error("Error fetching diet by ID:", error);
+    if (error) {
+      console.error("Error fetching diet by ID:", error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in getDietById:", error);
     return null;
   }
-  
-  return data;
 };
 
 export const getTrainerDiets = async (trainerId: string | undefined): Promise<Diet[]> => {
@@ -130,27 +134,62 @@ export const getClientWorkouts = async (clientId: string): Promise<Workout[]> =>
   return data || [];
 };
 
-export const saveDiet = async (dietData: Omit<Diet, 'id' | 'created_at'>): Promise<Diet | null> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const trainerId = session?.user?.id;
-  
-  const dietWithTrainer = {
-    ...dietData,
-    trainer_id: trainerId
-  };
-  
-  const { data, error } = await supabase
-    .from('diets')
-    .insert(dietWithTrainer)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Error saving diet:", error);
-    return null;
+export const saveDiet = async (diet: any) => {
+  try {
+    console.log("Saving diet to Supabase:", diet);
+    
+    const { data, error } = await supabase
+      .from('diets')
+      .insert({
+        name: diet.name,
+        client_id: diet.client_id,
+        client_name: diet.client_name,
+        diet_data: diet.diet_data,
+        form_data: diet.form_data,
+        trainer_id: diet.trainer_id
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error saving diet to Supabase:", error);
+      throw error;
+    }
+    
+    console.log("Diet saved successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Error in saveDiet:", error);
+    throw error;
   }
-  
-  return data;
+};
+
+export const updateDiet = async (diet: any) => {
+  try {
+    console.log("Updating diet in Supabase:", diet);
+    
+    const { data, error } = await supabase
+      .from('diets')
+      .update({
+        name: diet.name,
+        diet_data: diet.diet_data,
+        form_data: diet.form_data
+      })
+      .eq('id', diet.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating diet in Supabase:", error);
+      throw error;
+    }
+    
+    console.log("Diet updated successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Error in updateDiet:", error);
+    throw error;
+  }
 };
 
 export const saveWorkout = async (workoutData: Omit<Workout, 'id' | 'created_at'>): Promise<Workout | null> => {
