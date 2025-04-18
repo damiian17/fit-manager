@@ -26,7 +26,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { navigate } from "@reach/router";
+import { useNavigate } from "react-router-dom";
 
 interface DietDetailViewProps {
   diet: Diet;
@@ -49,6 +49,7 @@ export const DietDetailView = ({
   const [activeTab, setActiveTab] = useState("");
   const [isRequestChangeDialogOpen, setIsRequestChangeDialogOpen] = useState(false);
   const [changeRequestMessage, setChangeRequestMessage] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsLoading(true);
