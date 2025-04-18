@@ -17,7 +17,6 @@ export interface DayWorkout {
 
 export interface WorkoutResponse {
   output: {
-    Rutina_4_Dias?: DayWorkout[];
-    RutinaSemanal?: DayWorkout[];
+    [key: string]: DayWorkout[];
   };
 }
