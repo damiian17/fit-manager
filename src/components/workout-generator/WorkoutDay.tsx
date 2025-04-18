@@ -41,6 +41,9 @@ export const WorkoutDay = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const dayTitle = day.Dia || day.Día || "Día de entrenamiento";
   
+  // Ensure Ejercicios exists and is an array before attempting to map over it
+  const ejercicios = day.Ejercicios || [];
+  
   return (
     <Accordion type="single" collapsible className="w-full">
       <AccordionItem value={dayTitle}>
@@ -78,13 +81,17 @@ export const WorkoutDay = ({
                 )}
               </div>
             )}
-            {day.Ejercicios.map((exercise, index) => (
-              <ExerciseCard 
-                key={index} 
-                exercise={exercise} 
-                onEdit={editable && onEditExercise ? () => onEditExercise(dayIndex, index) : undefined}
-              />
-            ))}
+            {Array.isArray(ejercicios) && ejercicios.length > 0 ? (
+              ejercicios.map((exercise, index) => (
+                <ExerciseCard 
+                  key={index} 
+                  exercise={exercise} 
+                  onEdit={editable && onEditExercise ? () => onEditExercise(dayIndex, index) : undefined}
+                />
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-4">No hay ejercicios disponibles para este día</p>
+            )}
           </div>
         </AccordionContent>
       </AccordionItem>
