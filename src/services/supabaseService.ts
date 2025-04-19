@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Client {
@@ -282,4 +281,19 @@ export const createTrainerInviteCodeIfNotExists = async (trainerId: string): Pro
   }
 
   return data;
+};
+
+export const getClientWorkouts = async (clientId: string): Promise<Workout[]> => {
+  const { data, error } = await supabase
+    .from('workouts')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching client workouts:", error);
+    return [];
+  }
+
+  return data || [];
 };
