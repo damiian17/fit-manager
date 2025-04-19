@@ -82,7 +82,7 @@ export const signOut = async (navigate?: (path: string) => void) => {
 
     // Siempre forzar la redirección a la página de login al cerrar sesión
     if (navigate) {
-      navigate("/login", { replace: true });
+      navigate("/login");
     }
 
     return true;
@@ -91,7 +91,7 @@ export const signOut = async (navigate?: (path: string) => void) => {
 
     // En caso de error, también redirigir a login para evitar quedarse en estado incorrecto
     if (navigate) {
-      navigate("/login", { replace: true });
+      navigate("/login");
     }
 
     return false;
