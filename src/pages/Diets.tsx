@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Salad, ChevronRight, PlusCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Diet, getDietById } from "@/services/supabaseService";
+import { Diet, getDietById, getTrainerDiets } from "@/services/supabaseService";
 import { DietDetailView } from "@/components/client-portal/DietDetailView";
 import { supabase } from "@/integrations/supabase/client";
 import { MealEditor } from "@/components/diet-generator/MealEditor";
@@ -68,21 +69,11 @@ const Diets = () => {
         setIsLoading(false);
         return;
       }
+
+      // Obtener las dietas que correspondan al entrenador
+      const supabaseDiets = await getTrainerDiets(trainerId);
       
-      const { data: supabaseDiets, error } = await supabase
-        .from('diets')
-        .select('*')
-        .eq('trainer_id', trainerId)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching diets from Supabase:", error);
-        toast.error("Error al cargar los planes dietéticos");
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log("Fetched diets from Supabase:", supabaseDiets);
+      console.log("Fetched trainer diets:", supabaseDiets);
       
       const groupedDiets: { [key: string]: GroupedDiets } = {};
       

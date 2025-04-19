@@ -24,6 +24,7 @@ export interface Diet {
   created_at: string;
   diet_data: any;
   form_data: any;
+  trainer_id?: string | null;
 }
 
 export interface Workout {
@@ -137,7 +138,7 @@ export const getClientWorkouts = async (clientId: string): Promise<Workout[]> =>
 export const saveDiet = async (diet: any) => {
   try {
     console.log("Saving diet to Supabase:", diet);
-    
+
     const { data, error } = await supabase
       .from('diets')
       .insert({
@@ -146,16 +147,16 @@ export const saveDiet = async (diet: any) => {
         client_name: diet.client_name,
         diet_data: diet.diet_data,
         form_data: diet.form_data,
-        trainer_id: diet.trainer_id
+        trainer_id: diet.trainer_id || null,
       })
       .select()
       .single();
-    
+
     if (error) {
       console.error("Error saving diet to Supabase:", error);
       throw error;
     }
-    
+
     console.log("Diet saved successfully:", data);
     return data;
   } catch (error) {
@@ -167,23 +168,23 @@ export const saveDiet = async (diet: any) => {
 export const updateDiet = async (diet: any) => {
   try {
     console.log("Updating diet in Supabase:", diet);
-    
+
     const { data, error } = await supabase
       .from('diets')
       .update({
         name: diet.name,
         diet_data: diet.diet_data,
-        form_data: diet.form_data
+        form_data: diet.form_data,
       })
       .eq('id', diet.id)
       .select()
       .single();
-    
+
     if (error) {
       console.error("Error updating diet in Supabase:", error);
       throw error;
     }
-    
+
     console.log("Diet updated successfully:", data);
     return data;
   } catch (error) {
