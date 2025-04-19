@@ -1,7 +1,7 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getActiveSession, hasClientProfile } from "@/utils/authUtils";
+import { hasClientProfile } from "@/utils/authUtils";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -33,8 +33,9 @@ const Index = () => {
               // If profile is complete, go to client portal
               navigate("/client-portal");
             } else {
-              // If profile is incomplete, go to profile completion
-              navigate("/client-register");
+              // If profile is incomplete, instead of going to register page,
+              // redirect to login so user explicitly logs in and can be taken through proper onboarding
+              navigate("/login");
             }
           } else if (trainerLoggedIn) {
             // If it's a trainer, go to dashboard
@@ -42,7 +43,7 @@ const Index = () => {
           } else {
             // Check the database to determine the user type if not in localStorage
             // First check if user is a client
-            const { data: clientData, error: clientError } = await supabase
+            const { data: clientData } = await supabase
               .from('clients')
               .select('id')
               .eq('id', session.user.id)
@@ -54,13 +55,13 @@ const Index = () => {
               if (hasProfile) {
                 navigate("/client-portal");
               } else {
-                navigate("/client-register");
+                navigate("/login");
               }
               return;
             }
             
             // Check if user is a trainer
-            const { data: trainerData, error: trainerError } = await supabase
+            const { data: trainerData } = await supabase
               .from('trainers')
               .select('id')
               .eq('id', session.user.id)
@@ -72,7 +73,7 @@ const Index = () => {
               return;
             }
             
-            // Si no es cliente ni entrenador, ir a login
+            // Unknown user, navigate to login
             console.log("Session exists but user not identified in database");
             navigate("/login");
           }
@@ -95,3 +96,4 @@ const Index = () => {
 };
 
 export default Index;
+
