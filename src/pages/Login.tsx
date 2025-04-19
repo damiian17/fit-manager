@@ -64,18 +64,18 @@ const Login = () => {
         
         if (session) {
           console.log("Sesión activa encontrada:", session);
-          
+
           localStorage.setItem('clientEmail', session.user.email || '');
           localStorage.setItem('clientLoggedIn', 'true');
           localStorage.setItem('clientUserId', session.user.id);
-          
+
           const hasProfile = await hasClientProfile(session.user.id);
           console.log("¿El usuario tiene perfil?", hasProfile);
-            
-          if (!hasProfile) {
-            navigate("/client-register");
-          } else {
+          
+          if (hasProfile) {
             navigate("/client-portal");
+          } else {
+            navigate("/login");
           }
         } else {
           console.log("No hay sesión activa");

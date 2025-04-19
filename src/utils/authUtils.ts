@@ -56,10 +56,8 @@ export const hasClientProfile = async (userId: string) => {
  */
 export const signOut = async (navigate?: (path: string) => void) => {
   try {
-    // Limpiar localStorage completamente para asegurar que no queden datos de sesión
     localStorage.clear();
 
-    // También limpiar los elementos específicos por seguridad (redundante pero asegura)
     localStorage.removeItem('clientLoggedIn');
     localStorage.removeItem('clientEmail');
     localStorage.removeItem('clientUserId');
@@ -67,7 +65,6 @@ export const signOut = async (navigate?: (path: string) => void) => {
     localStorage.removeItem('trainerEmail');
     localStorage.removeItem('trainerName');
 
-    // Limpiar las cookies de Supabase
     document.cookie.split(';').forEach(cookie => {
       const [name] = cookie.trim().split('=');
       if (name.includes('sb-')) {
@@ -75,12 +72,10 @@ export const signOut = async (navigate?: (path: string) => void) => {
       }
     });
 
-    // Finalmente cerrar sesión en Supabase
     await supabase.auth.signOut();
 
     console.log("Sesión cerrada y datos locales eliminados completamente");
 
-    // Siempre forzar la redirección a la página de login al cerrar sesión
     if (navigate) {
       navigate("/login");
     }
@@ -89,7 +84,6 @@ export const signOut = async (navigate?: (path: string) => void) => {
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
 
-    // En caso de error, también redirigir a login para evitar quedarse en estado incorrecto
     if (navigate) {
       navigate("/login");
     }
@@ -136,11 +130,10 @@ export const signInWithPassword = async (email: string, password: string) => {
     
     console.log("Inicio de sesión exitoso:", data);
     
-    // Guardar información en localStorage
     if (data.user) {
       localStorage.setItem('clientLoggedIn', 'true');
       localStorage.setItem('clientEmail', email);
-      localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
+      localStorage.setItem('clientUserId', data.user.id);
     }
     
     return data;
@@ -172,11 +165,10 @@ export const signUpWithPassword = async (email: string, password: string) => {
     
     console.log("Registro exitoso:", data);
     
-    // Guardar información en localStorage incluyendo el ID
     if (data.user) {
       localStorage.setItem('clientLoggedIn', 'true');
       localStorage.setItem('clientEmail', email);
-      localStorage.setItem('clientUserId', data.user.id); // Guardar ID de usuario
+      localStorage.setItem('clientUserId', data.user.id);
     }
     
     return data;
@@ -225,7 +217,6 @@ export const findAuthUserIdByEmail = async (email: string) => {
     
     console.log("Buscando ID de usuario auth por email:", email);
     
-    // Intentar obtener usuario desde auth.users mediante función RPC
     const { data, error } = await supabase
       .rpc('get_user_id_by_email', { 
         email_input: email 
@@ -251,23 +242,19 @@ export const findAuthUserIdByEmail = async (email: string) => {
  */
 export const saveClientProfile = async (clientData: any, userId?: string) => {
   try {
-    // Múltiples métodos para obtener el ID del usuario
     let finalUserId = userId;
     
     if (!finalUserId) {
       console.log("ID no proporcionado, buscando alternativas...");
       
-      // 1. Intentar obtener desde localStorage
       finalUserId = localStorage.getItem('clientUserId');
       console.log("ID desde localStorage:", finalUserId);
       
-      // 2. Si no hay ID en localStorage, intentar obtener desde la sesión actual
       if (!finalUserId) {
         const session = await getActiveSession();
         finalUserId = session?.user?.id;
         console.log("ID desde sesión activa:", finalUserId);
         
-        // 3. Si no hay sesión, intentar buscar por email
         if (!finalUserId) {
           const email = localStorage.getItem('clientEmail') || clientData.email;
           if (email) {
@@ -278,7 +265,6 @@ export const saveClientProfile = async (clientData: any, userId?: string) => {
       }
     }
     
-    // Verificación final
     if (!finalUserId) {
       console.error("No se pudo determinar el ID del usuario después de múltiples intentos");
       throw new Error("No se pudo determinar el ID del usuario");
@@ -286,13 +272,11 @@ export const saveClientProfile = async (clientData: any, userId?: string) => {
     
     console.log("Guardando perfil para usuario ID:", finalUserId, "con datos:", clientData);
     
-    // Preparar datos para guardar
     const profileData = {
       id: finalUserId,
       ...clientData
     };
     
-    // Upsert para crear o actualizar el perfil
     const { data, error } = await supabase
       .from('clients')
       .upsert(profileData)
@@ -318,11 +302,9 @@ export const saveClientProfile = async (clientData: any, userId?: string) => {
  */
 export const saveTrainerProfile = async (trainerData: any, userId?: string) => {
   try {
-    // Si no se proporciona el ID del usuario, usar el usuario actual
     let finalUserId = userId;
     
     if (!finalUserId) {
-      // Obtener el usuario actual
       const currentUser = await getCurrentUser();
       finalUserId = currentUser?.id;
       
@@ -333,14 +315,11 @@ export const saveTrainerProfile = async (trainerData: any, userId?: string) => {
     
     console.log("Guardando perfil de entrenador con ID:", finalUserId);
     
-    // Preparar datos para guardar
     const profileData = {
       id: finalUserId,
       ...trainerData
     };
     
-    // Usar una función RPC para guardar el perfil del entrenador
-    // Esto nos permite eludir las políticas RLS ya que la función se ejecuta con privilegios elevados
     const { data, error } = await supabase.rpc('save_trainer_profile', {
       trainer_data: profileData
     });

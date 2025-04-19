@@ -12,38 +12,33 @@ const Index = () => {
       try {
         console.log("Checking session on Index page...");
 
-        // Check if there's an active session
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session) {
           console.log("Session found:", session.user.id);
 
-          // Check login state flags in localStorage
           const clientLoggedIn = localStorage.getItem('clientLoggedIn') === 'true';
           const trainerLoggedIn = localStorage.getItem('trainerLoggedIn') === 'true';
 
           console.log("Login status:", { clientLoggedIn, trainerLoggedIn });
 
           if (clientLoggedIn) {
-            // Verify if client has complete profile
+            // Solo ir a client portal si tiene perfil completo
             const hasProfile = await hasClientProfile(session.user.id);
             console.log("Client has profile:", hasProfile);
 
             if (hasProfile) {
-              // Profile complete: go to client portal
               navigate("/client-portal");
             } else {
-              // Profile incomplete: Only go to client register if just registered (for new users)
-              // But here redirect to login so explicit login/onboarding
+              // Si no tiene perfil, no redirigir desde aquí a client-register
+              // Mejor forzar login para completar manualmente perfil
               navigate("/login");
             }
+
           } else if (trainerLoggedIn) {
-            // If trainer, go directly to dashboard, never to client register
             navigate("/dashboard");
           } else {
-            // Determine user type from DB if no login flags set
-
-            // Check if user is client
+            // Determinar tipo usuario con DB
             const { data: clientData } = await supabase
               .from('clients')
               .select('id')
@@ -53,17 +48,16 @@ const Index = () => {
             if (clientData) {
               localStorage.setItem('clientLoggedIn', 'true');
               const hasProfile = await hasClientProfile(session.user.id);
+
               if (hasProfile) {
                 navigate("/client-portal");
               } else {
-                // NEVER redirect directly to client-register here on app start,
-                // force login so onboarding flow is explicit
+                // No redirigir a client-register en este punto, usar login para seguridad
                 navigate("/login");
               }
               return;
             }
 
-            // Check if user is trainer
             const { data: trainerData } = await supabase
               .from('trainers')
               .select('id')
@@ -76,7 +70,6 @@ const Index = () => {
               return;
             }
 
-            // Unknown user
             console.log("Session exists but user not identified in database");
             navigate("/login");
           }
