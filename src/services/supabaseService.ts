@@ -120,10 +120,19 @@ export const getTrainerDiets = async (trainerId: string | undefined): Promise<Di
   return data || [];
 };
 
-export const saveDiet = async (diet: any) => {
+// Refactor saveDiet to ensure trainer_id is always saved explicitly
+export const saveDiet = async (diet: {
+  name: string;
+  client_id: string;
+  client_name: string | null;
+  diet_data: any;
+  form_data: any;
+  trainer_id?: string | null;
+}) => {
   try {
     console.log("Saving diet to Supabase:", diet);
 
+    // Enforce trainer_id presence or default to null explicitly
     const { data, error } = await supabase
       .from('diets')
       .insert({
@@ -132,7 +141,7 @@ export const saveDiet = async (diet: any) => {
         client_name: diet.client_name,
         diet_data: diet.diet_data,
         form_data: diet.form_data,
-        trainer_id: diet.trainer_id || null, // Insert trainer_id
+        trainer_id: diet.trainer_id ?? null,
       })
       .select()
       .single();
@@ -150,7 +159,14 @@ export const saveDiet = async (diet: any) => {
   }
 };
 
-export const updateDiet = async (diet: any) => {
+// Refactor updateDiet similarly to explicitly handle trainer_id update
+export const updateDiet = async (diet: {
+  id: string;
+  name: string;
+  diet_data: any;
+  form_data: any;
+  trainer_id?: string | null;
+}) => {
   try {
     console.log("Updating diet in Supabase:", diet);
 
@@ -160,7 +176,7 @@ export const updateDiet = async (diet: any) => {
         name: diet.name,
         diet_data: diet.diet_data,
         form_data: diet.form_data,
-        trainer_id: diet.trainer_id || null, // Ensure trainer_id is updated if present
+        trainer_id: diet.trainer_id ?? null,
       })
       .eq('id', diet.id)
       .select()
@@ -179,22 +195,32 @@ export const updateDiet = async (diet: any) => {
   }
 };
 
-export const saveWorkout = async (workoutData: Omit<Workout, 'id' | 'created_at'> & { trainer_id?: string | null }): Promise<Workout | null> => {
-  const { data, error } = await supabase
-    .from('workouts')
-    .insert({
-      ...workoutData,
-      trainer_id: workoutData.trainer_id || null, // Insert trainer_id
-    })
-    .select()
-    .single();
+export const saveWorkout = async (
+  workoutData: Omit<Workout, 'id' | 'created_at'> & { trainer_id?: string | null }
+): Promise<Workout | null> => {
+  try {
+    console.log("Saving workout to Supabase:", workoutData);
 
-  if (error) {
-    console.error("Error saving workout:", error);
+    const { data, error } = await supabase
+      .from('workouts')
+      .insert({
+        ...workoutData,
+        trainer_id: workoutData.trainer_id ?? null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving workout:", error);
+      return null;
+    }
+
+    console.log("Workout saved successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Unexpected error saving workout:", error);
     return null;
   }
-
-  return data;
 };
 
 export const getTrainerNotifications = async (trainerId: string | undefined): Promise<NotificationData[]> => {
@@ -245,12 +271,15 @@ export const updateTrainerInviteCode = async (trainerId: string, newCode: string
   try {
     const { data, error } = await supabase
       .from('trainer_invite_codes')
-      .upsert({
-        trainer_id: trainerId,
-        code: newCode.toUpperCase(),
-        is_used: false,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      }, { onConflict: 'trainer_id' })
+      .upsert(
+        {
+          trainer_id: trainerId,
+          code: newCode.toUpperCase(),
+          is_used: false,
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        { onConflict: 'trainer_id' }
+      )
       .select()
       .single();
 
@@ -266,7 +295,9 @@ export const updateTrainerInviteCode = async (trainerId: string, newCode: string
   }
 };
 
-export const createTrainerInviteCodeIfNotExists = async (trainerId: string): Promise<string | null> => {
+export const createTrainerInviteCodeIfNotExists = async (
+  trainerId: string
+): Promise<string | null> => {
   if (!trainerId) {
     console.error("Trainer ID is undefined");
     return null;
@@ -278,7 +309,7 @@ export const createTrainerInviteCodeIfNotExists = async (trainerId: string): Pro
   }
 
   const { data, error } = await supabase.rpc('create_trainer_invite_code', {
-    trainer_id: trainerId
+    trainer_id: trainerId,
   });
 
   if (error) {
