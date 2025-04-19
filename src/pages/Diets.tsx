@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigation } from "@/components/ui/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,10 +58,10 @@ const Diets = () => {
     try {
       console.log("Loading diets...");
       setIsLoading(true);
-      
+
       const { data: { session } } = await supabase.auth.getSession();
       const trainerId = session?.user?.id;
-      
+
       if (!trainerId) {
         console.error("No trainer ID found in session");
         toast.error("Error: No se pudo identificar al entrenador");
@@ -70,17 +69,16 @@ const Diets = () => {
         return;
       }
 
-      // Obtener las dietas que correspondan al entrenador
       const supabaseDiets = await getTrainerDiets(trainerId);
-      
+
       console.log("Fetched trainer diets:", supabaseDiets);
-      
+
       const groupedDiets: { [key: string]: GroupedDiets } = {};
-      
+
       if (supabaseDiets && Array.isArray(supabaseDiets)) {
         for (const diet of supabaseDiets) {
           const clientId = diet.client_id ? diet.client_id.toString() : "unknown";
-          
+
           if (!groupedDiets[clientId]) {
             groupedDiets[clientId] = {
               id: clientId,
@@ -88,7 +86,7 @@ const Diets = () => {
               diets: []
             };
           }
-          
+
           const convertedDiet: Diet = {
             id: diet.id,
             name: diet.name,
@@ -98,11 +96,11 @@ const Diets = () => {
             diet_data: diet.diet_data || [],
             form_data: diet.form_data || {}
           };
-          
+
           groupedDiets[clientId].diets.push(convertedDiet);
         }
       }
-      
+
       setClientDiets(Object.values(groupedDiets));
     } catch (error) {
       console.error("Error loading diets:", error);
@@ -111,7 +109,7 @@ const Diets = () => {
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     loadDiets();
   }, []);
@@ -120,7 +118,7 @@ const Diets = () => {
     try {
       console.log("Viewing diet details for:", diet.id);
       const dietDetails = await getDietById(diet.id);
-      
+
       if (dietDetails) {
         console.log("Diet details fetched successfully:", dietDetails);
         setSelectedDiet(dietDetails);
@@ -141,7 +139,7 @@ const Diets = () => {
     if (!selectedDiet) return;
     try {
       console.log("Deleting diet with ID:", selectedDiet.id);
-      
+
       const { error } = await supabase
         .from('diets')
         .delete()
@@ -161,12 +159,12 @@ const Diets = () => {
       toast.error("Error al eliminar el plan dietético");
     }
   };
-  
+
   const handleEditMeal = (day: string, mealKey: string, meal: any) => {
     if (!selectedDiet) return;
-    
+
     console.log("Editing meal:", { day, mealKey, meal });
-    
+
     setEditingMeal({
       open: true,
       day,
@@ -177,7 +175,7 @@ const Diets = () => {
 
   const handleMealUpdated = async () => {
     if (!selectedDiet) return;
-    
+
     try {
       const dietDetails = await getDietById(selectedDiet.id);
       if (dietDetails) {

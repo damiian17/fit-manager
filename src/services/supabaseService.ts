@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Client {
@@ -56,12 +57,12 @@ export const getClientByEmail = async (email: string): Promise<Client | null> =>
     .select('*')
     .eq('email', email)
     .single();
-  
+
   if (error) {
     console.error("Error fetching client by email:", error);
     return null;
   }
-  
+
   return data;
 };
 
@@ -71,67 +72,50 @@ export const getClientDiets = async (clientId: string): Promise<Diet[]> => {
     .select('*')
     .eq('client_id', clientId)
     .order('created_at', { ascending: false });
-  
+
   if (error) {
     console.error("Error fetching client diets:", error);
     return [];
   }
-  
+
   return data || [];
 };
 
 export const getDietById = async (dietId: string): Promise<Diet | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('diets')
-      .select('*')
-      .eq('id', dietId)
-      .single();
-    
-    if (error) {
-      console.error("Error fetching diet by ID:", error);
-      return null;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error in getDietById:", error);
+  const { data, error } = await supabase
+    .from('diets')
+    .select('*')
+    .eq('id', dietId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching diet by ID:", error);
     return null;
   }
+
+  return data;
 };
 
+/**
+ * Fetch diets by trainer ID properly, includes diets assigned to their clients.
+ */
 export const getTrainerDiets = async (trainerId: string | undefined): Promise<Diet[]> => {
   if (!trainerId) {
     console.error("Trainer ID is undefined");
     return [];
   }
-  
+
   const { data, error } = await supabase
     .from('diets')
     .select('*')
     .eq('trainer_id', trainerId)
     .order('created_at', { ascending: false });
-  
+
   if (error) {
     console.error("Error fetching trainer diets:", error);
     return [];
   }
-  
-  return data || [];
-};
 
-export const getClientWorkouts = async (clientId: string): Promise<Workout[]> => {
-  const { data, error } = await supabase
-    .from('workouts')
-    .select('*')
-    .eq('client_id', clientId)
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error("Error fetching client workouts:", error);
-    return [];
-  }
-  
   return data || [];
 };
 
@@ -199,12 +183,12 @@ export const saveWorkout = async (workoutData: Omit<Workout, 'id' | 'created_at'
     .insert(workoutData)
     .select()
     .single();
-  
+
   if (error) {
     console.error("Error saving workout:", error);
     return null;
   }
-  
+
   return data;
 };
 
@@ -213,18 +197,18 @@ export const getTrainerNotifications = async (trainerId: string | undefined): Pr
     console.error("Trainer ID is undefined");
     return [];
   }
-  
+
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
     .eq('trainer_id', trainerId)
     .order('created_at', { ascending: false });
-  
+
   if (error) {
     console.error("Error fetching trainer notifications:", error);
     return [];
   }
-  
+
   return data || [];
 };
 
@@ -233,18 +217,18 @@ export const getTrainerInviteCode = async (trainerId: string): Promise<string | 
     console.error("Trainer ID is undefined");
     return null;
   }
-  
+
   const { data, error } = await supabase
     .from('trainer_invite_codes')
     .select('code')
     .eq('trainer_id', trainerId)
     .single();
-  
+
   if (error) {
     console.error("Error fetching trainer invite code:", error);
     return null;
   }
-  
+
   return data?.code || null;
 };
 
@@ -264,12 +248,12 @@ export const updateTrainerInviteCode = async (trainerId: string, newCode: string
       }, { onConflict: 'trainer_id' })
       .select()
       .single();
-    
+
     if (error) {
       console.error("Error updating trainer invite code:", error);
       throw error;
     }
-    
+
     return data;
   } catch (error) {
     console.error("Error in updateTrainerInviteCode:", error);
@@ -296,6 +280,6 @@ export const createTrainerInviteCodeIfNotExists = async (trainerId: string): Pro
     console.error("Error generating new trainer invite code:", error);
     return null;
   }
-  
+
   return data;
 };
