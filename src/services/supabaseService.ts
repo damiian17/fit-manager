@@ -36,6 +36,7 @@ export interface Workout {
   workout_data: any;
   form_data: any;
   created_at: string;
+  trainer_id?: string | null;
 }
 
 export interface NotificationData {
@@ -131,7 +132,7 @@ export const saveDiet = async (diet: any) => {
         client_name: diet.client_name,
         diet_data: diet.diet_data,
         form_data: diet.form_data,
-        trainer_id: diet.trainer_id || null,
+        trainer_id: diet.trainer_id || null, // Insert trainer_id
       })
       .select()
       .single();
@@ -159,6 +160,7 @@ export const updateDiet = async (diet: any) => {
         name: diet.name,
         diet_data: diet.diet_data,
         form_data: diet.form_data,
+        trainer_id: diet.trainer_id || null, // Ensure trainer_id is updated if present
       })
       .eq('id', diet.id)
       .select()
@@ -177,10 +179,13 @@ export const updateDiet = async (diet: any) => {
   }
 };
 
-export const saveWorkout = async (workoutData: Omit<Workout, 'id' | 'created_at'>): Promise<Workout | null> => {
+export const saveWorkout = async (workoutData: Omit<Workout, 'id' | 'created_at'> & { trainer_id?: string | null }): Promise<Workout | null> => {
   const { data, error } = await supabase
     .from('workouts')
-    .insert(workoutData)
+    .insert({
+      ...workoutData,
+      trainer_id: workoutData.trainer_id || null, // Insert trainer_id
+    })
     .select()
     .single();
 
