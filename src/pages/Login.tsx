@@ -69,13 +69,26 @@ const Login = () => {
           localStorage.setItem('clientLoggedIn', 'true');
           localStorage.setItem('clientUserId', session.user.id);
 
+          const justRegistered = localStorage.getItem('justRegisteredClient');
+
           const hasProfile = await hasClientProfile(session.user.id);
           console.log("¿El usuario tiene perfil?", hasProfile);
+          console.log("Flag justRegisteredClient en localStorage:", justRegistered);
 
           if (hasProfile) {
+            if (justRegistered) {
+              localStorage.removeItem('justRegisteredClient');
+            }
             navigate("/client-portal");
           } else {
-            navigate("/client-register");
+            if (justRegistered) {
+              localStorage.removeItem('justRegisteredClient');
+              navigate("/client-register");
+            } else {
+              await supabase.auth.signOut();
+              localStorage.clear();
+              navigate("/login");
+            }
           }
         } else {
           console.log("No hay sesión activa");
@@ -87,6 +100,64 @@ const Login = () => {
     
     checkSession();
   }, [navigate]);
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      if (!registerEmail || !registerPassword) {
+        toast.error("Por favor ingresa un email y contraseña");
+        setIsLoading(false);
+        return;
+      }
+
+      if (registerPassword !== confirmPassword) {
+        toast.error("Las contraseñas no coinciden");
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Intentando registrar:", { email: registerEmail, password: registerPassword });
+
+      try {
+        const { user, session } = await signUpWithPassword(registerEmail, registerPassword);
+
+        console.log("Usuario registrado:", { user, session });
+
+        if (user) {
+          localStorage.setItem('justRegisteredClient', 'true');
+
+          localStorage.setItem('clientEmail', registerEmail);
+          localStorage.setItem('clientLoggedIn', 'true');
+          localStorage.setItem('clientUserId', user.id);
+
+          console.log("Información de usuario guardada en localStorage:", {
+            email: registerEmail,
+            id: user.id
+          });
+
+          if (session) {
+            toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
+            setRegisterDialogOpen(false);
+            navigate("/client-register");
+          } else {
+            toast.success("Cuenta creada. Verifica tu email para confirmar tu cuenta (si es necesario).");
+            setRegisterDialogOpen(false);
+            navigate("/client-register");
+          }
+        }
+      } catch (authError: any) {
+        console.error("Registration error:", authError);
+        toast.error(`Error al registrar: ${authError.message}`);
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast.error(`Error al registrar: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent, role: "trainer" | "client" = activeTab) => {
     e.preventDefault();
@@ -182,62 +253,6 @@ const Login = () => {
     } catch (error: any) {
       console.error("Error al iniciar sesión con Google:", error);
       toast.error(`Error al iniciar sesión con Google: ${error.message}`);
-      setIsLoading(false);
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      if (!registerEmail || !registerPassword) {
-        toast.error("Por favor ingresa un email y contraseña");
-        setIsLoading(false);
-        return;
-      }
-
-      if (registerPassword !== confirmPassword) {
-        toast.error("Las contraseñas no coinciden");
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("Intentando registrar:", { email: registerEmail, password: registerPassword });
-
-      try {
-        const { user, session } = await signUpWithPassword(registerEmail, registerPassword);
-
-        console.log("Usuario registrado:", { user, session });
-
-        if (user) {
-          localStorage.setItem('clientEmail', registerEmail);
-          localStorage.setItem('clientLoggedIn', 'true');
-          localStorage.setItem('clientUserId', user.id);
-          
-          console.log("Información de usuario guardada en localStorage:", {
-            email: registerEmail,
-            id: user.id
-          });
-          
-          if (session) {
-            toast.success("Cuenta creada correctamente. Ahora completa tu perfil.");
-            setRegisterDialogOpen(false);
-            navigate("/client-register");
-          } else {
-            toast.success("Cuenta creada. Verifica tu email para confirmar tu cuenta (si es necesario).");
-            setRegisterDialogOpen(false);
-            navigate("/client-register");
-          }
-        }
-      } catch (authError: any) {
-        console.error("Registration error:", authError);
-        toast.error(`Error al registrar: ${authError.message}`);
-      }
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      toast.error(`Error al registrar: ${error.message}`);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -360,7 +375,7 @@ const Login = () => {
                     <Button 
                       variant="link" 
                       className="p-0 h-auto" 
-                      onClick={handleOpenTrainerRegisterDialog}
+                      onClick={() => setTrainerRegisterDialogOpen(true)}
                     >
                       Regístrate como entrenador
                     </Button>
@@ -417,7 +432,17 @@ const Login = () => {
                     type="button" 
                     variant="outline" 
                     className="w-full"
-                    onClick={handleGoogleLogin}
+                    onClick={async () => {
+                      setIsLoading(true);
+                      try {
+                        await signInWithGoogle();
+                      } catch(error: any){
+                        console.error("Error al iniciar sesión con Google:", error);
+                        toast.error(`Error al iniciar sesión con Google: ${error.message}`);
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
                     disabled={isLoading}
                   >
                     <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -431,7 +456,7 @@ const Login = () => {
                     <Button 
                       variant="link" 
                       className="p-0 h-auto" 
-                      onClick={handleOpenRegisterDialog}
+                      onClick={() => setRegisterDialogOpen(true)}
                     >
                       Regístrate
                     </Button>
