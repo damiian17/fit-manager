@@ -1,4 +1,5 @@
 
+// Actualizamos para agregar estado de cargando sesión y evitar mostrar UI antes de validar sesión
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,9 @@ const ClientRegister = () => {
   });
   const [trainerId, setTrainerId] = useState<string | null>(null);
 
+  // Nuevo estado para controlar carga de sesión
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
   // Obtener el email del cliente y verificar sesión
   useEffect(() => {
     const checkSession = async () => {
@@ -56,12 +60,9 @@ const ClientRegister = () => {
         if (!session) {
           console.log("No active session found in ClientRegister, redirecting to login");
           setSessionError("No se ha encontrado una sesión activa. Por favor, inicia sesión primero.");
-          
-          // Limpiar cualquier dato residual para evitar problemas
           localStorage.clear();
-          
-          // Redirigir al login después de un breve retraso para permitir que se muestre el mensaje
-          setTimeout(() => navigate("/login"), 1500);
+          // Redirigimos inmediatamente
+          navigate("/login", { replace: true });
           return;
         }
         
@@ -78,23 +79,18 @@ const ClientRegister = () => {
         }
         
         if (session && session.user) {
-          // Si hay sesión, usar los datos del usuario autenticado
           console.log("Sesión activa encontrada:", session);
           
-          // Actualizar el ID si no se obtuvo del localStorage
           if (!storedUserId) {
             setUserId(session.user.id);
-            // Guardar en localStorage para futuras referencias
             localStorage.setItem('clientUserId', session.user.id);
           }
           
-          // Obtener datos del usuario, incluidos posibles datos de redes sociales
           const user = await getCurrentUser();
           console.log("Datos del usuario:", user);
           
           let userName = "";
           
-          // Si se ha registrado con OAuth, intentar obtener el nombre
           if (user?.app_metadata?.provider === 'google') {
             userName = user.user_metadata?.full_name || "";
           }
@@ -110,32 +106,30 @@ const ClientRegister = () => {
             localStorage.setItem('clientLoggedIn', 'true');
           }
         } else if (storedEmail && clientLoggedIn) {
-          // Si no hay sesión pero hay datos en localStorage
           console.log("Usando email del localStorage:", storedEmail);
           setClientEmail(storedEmail);
           setFormData(prev => ({...prev, email: storedEmail}));
         } else {
           console.log("No hay sesión activa ni datos válidos en localStorage");
           setSessionError("No se ha podido encontrar una sesión activa. Por favor, inicia sesión primero.");
-          
-          // Limpiar datos de sesión por seguridad
           await signOut();
-          
-          setTimeout(() => navigate("/login"), 1500);
+          navigate("/login", { replace: true });
+          return;
         }
       } catch (error) {
         console.error("Error verificando sesión:", error);
         setSessionError("Error al verificar la sesión. Por favor, inicia sesión nuevamente.");
-        
-        // Limpiar datos de sesión para evitar problemas
         await signOut();
-        
-        setTimeout(() => navigate("/login"), 1500);
+        navigate("/login", { replace: true });
+        return;
+      } finally {
+        setIsCheckingSession(false);
       }
     };
     
     checkSession();
   }, [navigate]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -151,7 +145,6 @@ const ClientRegister = () => {
     setIsSubmitting(true);
 
     try {
-      // Validar formulario
       if (!formData.name || !formData.email) {
         toast.error("Por favor completa los campos obligatorios");
         setIsSubmitting(false);
@@ -164,7 +157,6 @@ const ClientRegister = () => {
         return;
       }
 
-      // Verificar si tenemos el ID de usuario
       const userIdToUse = userId || localStorage.getItem('clientUserId');
       
       if (!userIdToUse) {
@@ -174,10 +166,8 @@ const ClientRegister = () => {
         return;
       }
 
-      // Calcular edad si hay fecha de nacimiento
       const age = formData.birthdate ? calculateAge(formData.birthdate) : undefined;
 
-      // Preparar datos del cliente
       const clientData = {
         name: formData.name,
         email: formData.email,
@@ -191,22 +181,19 @@ const ClientRegister = () => {
         status: "active",
         age: age,
         sex: formData.sex || null,
-        trainer_id: trainerId // Añadimos el ID del entrenador
+        trainer_id: trainerId
       };
 
       console.log("Intentando guardar perfil con ID:", userIdToUse);
       
-      // Intentar guardar el perfil del cliente
       await saveClientProfile(clientData, userIdToUse);
 
-      // Éxito
       toast.success("¡Registro completado con éxito! Tu entrenador podrá ver tu perfil y asignarte rutinas y dietas.");
       navigate("/client-portal");
     } catch (error: any) {
       console.error("Error registering client:", error);
       toast.error(`Error al registrar: ${error.message || "Inténtalo de nuevo"}`);
       
-      // Si el error es de autenticación, redirigir al login
       if (error.message?.includes("autenticación") || error.message?.includes("ID del usuario")) {
         setTimeout(() => navigate("/login"), 2000);
       }
@@ -228,9 +215,18 @@ const ClientRegister = () => {
 
   const handleReturnToLogin = () => {
     signOut().then(() => {
-      navigate("/login");
+      navigate("/login", { replace: true });
     });
   };
+
+  // No renderizar nada mientras chequeamos sesión para evitar parpadeos
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600">Verificando sesión...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10">
@@ -386,3 +382,4 @@ const ClientRegister = () => {
 };
 
 export default ClientRegister;
+

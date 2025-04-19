@@ -1,4 +1,5 @@
 
+// Actualizamos InviteCodeInput para que handleReturnToLogin haga signOut y navegue correctamente
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,6 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
       
       console.log("Verificando código:", code.toUpperCase());
       
-      // Get the invite code, ensuring we don't use any cached results
       const { data, error } = await supabase
         .from('trainer_invite_codes')
         .select('trainer_id, is_used, expires_at')
@@ -43,19 +43,16 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         return;
       }
 
-      // Check if code has expired
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
         toast.error("Este código de invitación ha expirado");
         return;
       }
 
-      // Check if code has been used
       if (data.is_used) {
         toast.error("Este código ya ha sido utilizado");
         return;
       }
 
-      // Get trainer info to verify the trainer exists
       const { data: trainerData, error: trainerError } = await supabase
         .from('trainers')
         .select('name')
@@ -70,7 +67,6 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         return;
       }
 
-      // Mark the code as used AFTER confirming the trainer exists
       const { error: updateError } = await supabase
         .from('trainer_invite_codes')
         .update({ is_used: true })
@@ -82,7 +78,6 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         return;
       }
 
-      // Success - pass the trainer ID to the parent component
       console.log("Código verificado correctamente para el entrenador:", trainerData.name);
       onSuccess(data.trainer_id);
       toast.success(`Código verificado correctamente. Te has conectado con el entrenador: ${trainerData.name}`);
@@ -128,3 +123,4 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
     </div>
   );
 };
+
