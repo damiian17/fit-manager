@@ -1,5 +1,6 @@
 
-// Actualizamos InviteCodeInput para que handleReturnToLogin haga signOut y navegue correctamente
+// Actualizamos InviteCodeInput para eliminar la verificación de expiración del código
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -26,12 +27,12 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
 
     try {
       setIsVerifying(true);
-      
+
       console.log("Verificando código:", code.toUpperCase());
-      
+
       const { data, error } = await supabase
         .from('trainer_invite_codes')
-        .select('trainer_id, expires_at')
+        .select('trainer_id')
         .eq('code', code.toUpperCase())
         .single();
 
@@ -43,10 +44,7 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         return;
       }
 
-      if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        toast.error("Este código de invitación ha expirado");
-        return;
-      }
+      // Ya no verificamos expiración ni is_used para permitir su uso ilimitado
 
       const { data: trainerData, error: trainerError } = await supabase
         .from('trainers')
@@ -62,7 +60,7 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         return;
       }
 
-      // Ya no actualizamos is_used para que el código siga disponible para otros clientes
+      // No actualizamos is_used para que el código siga disponible para otros clientes
       // Esto permite reutilizar el código para múltiples clientes
 
       console.log("Código verificado correctamente para el entrenador:", trainerData.name);
