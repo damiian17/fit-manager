@@ -11,10 +11,9 @@ const Index = () => {
       try {
         console.log("Checking session on Index page...");
         
-        // Check if there's an active session
+        // Siempre redirigir a la página de login primero si no hay sesión
         const { data: { session } } = await supabase.auth.getSession();
         
-        // Si no hay sesión, siempre redirigir a la página de login
         if (!session) {
           console.log("No session found, redirecting to login");
           navigate("/login");
@@ -45,13 +44,15 @@ const Index = () => {
           // If it's a trainer, go to dashboard
           navigate("/dashboard");
         } else {
-          // Check the database to determine the user type if not in localStorage
-          // First check if user is a client
-          const { data: clientData, error: clientError } = await supabase
+          // Si hay sesión pero no se ha identificado el tipo de usuario,
+          // intentar determinar el tipo consultando la base de datos
+          
+          // Check if user is a client
+          const { data: clientData } = await supabase
             .from('clients')
             .select('id')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
             
           if (clientData) {
             localStorage.setItem('clientLoggedIn', 'true');
@@ -65,11 +66,11 @@ const Index = () => {
           }
           
           // Check if user is a trainer
-          const { data: trainerData, error: trainerError } = await supabase
+          const { data: trainerData } = await supabase
             .from('trainers')
             .select('id')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
             
           if (trainerData) {
             localStorage.setItem('trainerLoggedIn', 'true');
@@ -77,8 +78,12 @@ const Index = () => {
             return;
           }
           
-          // Si no es cliente ni entrenador pero tiene sesión, ir a login
+          // Si no es cliente ni entrenador pero tiene sesión,
+          // probablemente sea una sesión inválida, ir a login
           console.log("Session exists but user not identified in database");
+          // Limpiar sesión inválida
+          await supabase.auth.signOut();
+          localStorage.clear();
           navigate("/login");
         }
       } catch (error) {
@@ -88,6 +93,7 @@ const Index = () => {
       }
     };
     
+    // Siempre comenzar verificando la ruta por defecto
     checkSession();
   }, [navigate]);
 
