@@ -97,35 +97,35 @@ export const getDietById = async (dietId: string): Promise<Diet | null> => {
 };
 
 /**
- * Fetch diets by trainer ID properly, includes diets assigned to their clients.
+ * Fetch diets by trainer ID properly, including those assigned to their clients.
  */
 export const getTrainerDiets = async (trainerId: string | undefined): Promise<Diet[]> => {
   if (!trainerId) {
     console.error("Trainer ID is undefined");
     return [];
   }
-
   try {
-    // Fetch diets where trainer_id is the trainerId (direct diets)
-    const { data: trainerDiets, error: error1 } = await supabase
+    // Get diets where trainer_id matches
+    const { data: trainerDiets, error: errTrainerDiets } = await supabase
       .from('diets')
       .select('*')
       .eq('trainer_id', trainerId)
       .order('created_at', { ascending: false });
-    
-    if (error1) {
-      console.error("Error fetching diets directly assigned to trainer:", error1);
+
+    if (errTrainerDiets) {
+      console.error("Error fetching diets directly assigned to trainer:", errTrainerDiets);
       return [];
     }
 
-    // Fetch clients assigned to this trainer
-    const { data: clients, error: error2 } = await supabase
+    // Get clients assigned to trainer
+    const { data: clients, error: errClients } = await supabase
       .from('clients')
       .select('id')
       .eq('trainer_id', trainerId);
 
-    if (error2) {
-      console.error("Error fetching clients for trainer:", error2);
+    if (errClients) {
+      console.error("Error fetching clients for trainer:", errClients);
+      // Return only trainerDiets if clients not fetched
       return trainerDiets || [];
     }
 
@@ -133,36 +133,32 @@ export const getTrainerDiets = async (trainerId: string | undefined): Promise<Di
 
     if (clients && clients.length > 0) {
       const clientIds = clients.map(c => c.id);
-      // Fetch diets for these clients where trainer_id may be null for legacy reasons or set for this trainer
-      const { data: dietsForClients, error: error3 } = await supabase
+
+      // Get diets of those clients - include both diets with trainer_id null or any
+      const { data: dietsForClients, error: errClientDiets } = await supabase
         .from('diets')
         .select('*')
         .in('client_id', clientIds)
         .order('created_at', { ascending: false });
 
-      if (error3) {
-        console.error("Error fetching client diets:", error3);
-      } else {
-        clientDiets = dietsForClients || [];
+      if (errClientDiets) {
+        console.error("Error fetching diets for clients:", errClientDiets);
+      } else if (dietsForClients) {
+        clientDiets = dietsForClients;
       }
     }
 
-    // Combine and deduplicate diets by id
-    const combinedDietsMap = new Map<string, Diet>();
-    if (trainerDiets) {
-      trainerDiets.forEach(diet => combinedDietsMap.set(diet.id, diet));
-    }
-    if (clientDiets) {
-      clientDiets.forEach(diet => combinedDietsMap.set(diet.id, diet));
-    }
-    
-    const combinedDiets = Array.from(combinedDietsMap.values());
+    // Combine diets without duplicates (by diet id)
+    const dietMap = new Map<string, Diet>();
+
+    trainerDiets?.forEach(diet => dietMap.set(diet.id, diet));
+    clientDiets?.forEach(diet => dietMap.set(diet.id, diet));
+
+    const combinedDiets = Array.from(dietMap.values());
 
     // Sort combined diets by created_at descending
     combinedDiets.sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      return dateB - dateA;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
     return combinedDiets;
@@ -172,7 +168,7 @@ export const getTrainerDiets = async (trainerId: string | undefined): Promise<Di
   }
 };
 
-// Refactor saveDiet to ensure trainer_id is always saved explicitly
+// Save diet ensuring trainer_id is set correctly
 export const saveDiet = async (diet: {
   name: string;
   client_id: string;
@@ -184,7 +180,6 @@ export const saveDiet = async (diet: {
   try {
     console.log("Saving diet to Supabase:", diet);
 
-    // Enforce trainer_id presence or default to null explicitly
     const { data, error } = await supabase
       .from('diets')
       .insert({
@@ -211,7 +206,7 @@ export const saveDiet = async (diet: {
   }
 };
 
-// Refactor updateDiet similarly to explicitly handle trainer_id update
+// Update diet ensuring trainer_id is set correctly
 export const updateDiet = async (diet: {
   id: string;
   name: string;
