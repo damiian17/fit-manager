@@ -260,7 +260,7 @@ export const updateTrainerInviteCode = async (trainerId: string, newCode: string
         code: newCode.toUpperCase(),
         is_used: false,
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      }, { onConflict: ['trainer_id'] })
+      }, { onConflict: 'trainer_id' })
       .select()
       .single();
     
