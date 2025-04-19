@@ -31,7 +31,7 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
       
       const { data, error } = await supabase
         .from('trainer_invite_codes')
-        .select('trainer_id, is_used, expires_at')
+        .select('trainer_id, expires_at')
         .eq('code', code.toUpperCase())
         .single();
 
@@ -45,11 +45,6 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
 
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
         toast.error("Este código de invitación ha expirado");
-        return;
-      }
-
-      if (data.is_used) {
-        toast.error("Este código ya ha sido utilizado");
         return;
       }
 
@@ -67,16 +62,8 @@ export const InviteCodeInput = ({ onSuccess }: InviteCodeInputProps) => {
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from('trainer_invite_codes')
-        .update({ is_used: true })
-        .eq('code', code.toUpperCase());
-
-      if (updateError) {
-        console.error("Error marking code as used:", updateError);
-        toast.error("Error al verificar el código");
-        return;
-      }
+      // Ya no actualizamos is_used para que el código siga disponible para otros clientes
+      // Esto permite reutilizar el código para múltiples clientes
 
       console.log("Código verificado correctamente para el entrenador:", trainerData.name);
       onSuccess(data.trainer_id);
