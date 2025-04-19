@@ -1,85 +1,51 @@
-// src/App.tsx o archivo principal de rutas
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
-// Importa tus páginas/componentes
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
-import ClientRegisterPage from "@/pages/ClientRegisterPage";
-import Dashboard from "@/pages/Dashboard";
-import Layout from "@/components/Layout";
-import { getActiveSession } from "@/utils/authUtils";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Clients from "./pages/Clients";
+import NewClient from "./pages/NewClient";
+import WorkoutGenerator from "./pages/WorkoutGenerator";
+import DietGenerator from "./pages/DietGenerator";
+import ClientPortal from "./pages/ClientPortal";
+import ClientRegister from "./pages/ClientRegister";
+import NotFound from "./pages/NotFound";
+import Workouts from "./pages/Workouts";
+import Diets from "./pages/Diets";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null);
+const queryClient = new QueryClient();
 
-  useEffect(() => {
-    // Verificar si hay una sesión activa al cargar la aplicación
-    const checkSession = async () => {
-      setIsLoading(true);
-      try {
-        const session = await getActiveSession();
-        setUser(session?.user || null);
-      } catch (error) {
-        console.error("Error checking session:", error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkSession();
-
-    // Suscribirse a cambios en la autenticación
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user || null);
-      }
-    );
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
-
-  if (isLoading) {
-    return <div>Cargando...</div>;
-  }
-
+const App = () => {
   return (
-    <Router>
-      <Routes>
-        {/* Rutas públicas */}
-        <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/dashboard" replace />} />
-        
-        {/* Ruta de registro de cliente - solo accesible después de autenticación */}
-        <Route 
-          path="/client-register" 
-          element={
-            user ? (
-              // Verificar si el usuario necesita completar el registro
-              user.user_metadata?.needsToCompleteRegistration ? 
-                <ClientRegisterPage /> : 
-                <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
-        />
-
-        {/* Rutas protegidas */}
-        <Route path="/dashboard" element={user ? <Layout><Dashboard /></Layout> : <Navigate to="/login" replace />} />
-        
-        {/* Otras rutas protegidas... */}
-        
-        {/* Redirección por defecto */}
-        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
-      </Routes>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/clients" element={<Clients />} />
+            <Route path="/clients/new" element={<NewClient />} />
+            <Route path="/client-register" element={<ClientRegister />} />
+            <Route path="/workouts" element={<Workouts />} />
+            <Route path="/workouts/new" element={<WorkoutGenerator />} />
+            <Route path="/workouts/edit/:id" element={<WorkoutGenerator />} />
+            <Route path="/diets" element={<Diets />} />
+            <Route path="/diets/new" element={<DietGenerator />} />
+            <Route path="/diets/edit/:id" element={<DietGenerator />} />
+            <Route path="/client-portal" element={<ClientPortal />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;
