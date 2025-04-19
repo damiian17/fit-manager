@@ -30,7 +30,7 @@ const Index = () => {
             if (hasProfile) {
               navigate("/client-portal");
             } else {
-              // Si no tiene perfil, no redirigir desde aquí a client-register
+              // Ya no redirigir automáticamente a client-register
               // Mejor forzar login para completar manualmente perfil
               navigate("/login");
             }
@@ -52,7 +52,7 @@ const Index = () => {
               if (hasProfile) {
                 navigate("/client-portal");
               } else {
-                // No redirigir a client-register en este punto, usar login para seguridad
+                // Ya no redirigir a client-register en index
                 navigate("/login");
               }
               return;

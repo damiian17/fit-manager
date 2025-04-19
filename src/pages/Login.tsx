@@ -61,7 +61,7 @@ const Login = () => {
       try {
         console.log("Verificando sesión...");
         const session = await getActiveSession();
-        
+
         if (session) {
           console.log("Sesión activa encontrada:", session);
 
@@ -71,7 +71,7 @@ const Login = () => {
 
           const hasProfile = await hasClientProfile(session.user.id);
           console.log("¿El usuario tiene perfil?", hasProfile);
-          
+
           if (hasProfile) {
             navigate("/client-portal");
           } else {
@@ -129,27 +129,27 @@ const Login = () => {
       
       if (role === "client") {
         console.log("Intentando iniciar sesión con:", { email, password });
-        
+
         try {
           const { user, session } = await signInWithPassword(email, password);
 
           if (user) {
             toast.success("¡Inicio de sesión exitoso!");
-            
+
             localStorage.setItem('clientEmail', user.email || '');
             localStorage.setItem('clientLoggedIn', 'true');
             localStorage.setItem('clientUserId', user.id);
-            
+
             console.log("Información de usuario guardada en localStorage:", {
               email: user.email,
               id: user.id
             });
-            
+
             const hasProfile = await hasClientProfile(user.id);
             console.log("¿El usuario tiene perfil?", hasProfile);
-              
+
             if (!hasProfile) {
-              navigate("/client-register");
+              navigate("/client-portal");
             } else {
               navigate("/client-portal");
             }
