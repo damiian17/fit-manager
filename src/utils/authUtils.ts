@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -59,15 +58,15 @@ export const signOut = async (navigate?: (path: string) => void) => {
   try {
     // Limpiar localStorage completamente para asegurar que no queden datos de sesión
     localStorage.clear();
-    
-    // También limpiar los elementos específicos por seguridad
+
+    // También limpiar los elementos específicos por seguridad (redundante pero asegura)
     localStorage.removeItem('clientLoggedIn');
     localStorage.removeItem('clientEmail');
     localStorage.removeItem('clientUserId');
     localStorage.removeItem('trainerLoggedIn');
     localStorage.removeItem('trainerEmail');
     localStorage.removeItem('trainerName');
-    
+
     // Limpiar las cookies de Supabase
     document.cookie.split(';').forEach(cookie => {
       const [name] = cookie.trim().split('=');
@@ -75,20 +74,26 @@ export const signOut = async (navigate?: (path: string) => void) => {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
       }
     });
-    
+
     // Finalmente cerrar sesión en Supabase
     await supabase.auth.signOut();
-    
+
     console.log("Sesión cerrada y datos locales eliminados completamente");
-    
-    // Si se proporcionó la función navigate, redirigir a la página de login
+
+    // Siempre forzar la redirección a la página de login al cerrar sesión
     if (navigate) {
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
-    
+
     return true;
   } catch (error) {
     console.error("Error al cerrar sesión:", error);
+
+    // En caso de error, también redirigir a login para evitar quedarse en estado incorrecto
+    if (navigate) {
+      navigate("/login", { replace: true });
+    }
+
     return false;
   }
 };
