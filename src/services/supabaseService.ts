@@ -226,3 +226,75 @@ export const getTrainerNotifications = async (trainerId: string | undefined): Pr
   
   return data || [];
 };
+
+export const getTrainerInviteCode = async (trainerId: string): Promise<string | null> => {
+  if (!trainerId) {
+    console.error("Trainer ID is undefined");
+    return null;
+  }
+  
+  const { data, error } = await supabase
+    .from('trainer_invite_codes')
+    .select('code')
+    .eq('trainer_id', trainerId)
+    .single();
+  
+  if (error) {
+    console.error("Error fetching trainer invite code:", error);
+    return null;
+  }
+  
+  return data?.code || null;
+};
+
+export const updateTrainerInviteCode = async (trainerId: string, newCode: string) => {
+  if (!trainerId) {
+    throw new Error("Trainer ID is undefined");
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('trainer_invite_codes')
+      .upsert({
+        trainer_id: trainerId,
+        code: newCode.toUpperCase(),
+        is_used: false,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      }, { onConflict: ['trainer_id'] })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating trainer invite code:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in updateTrainerInviteCode:", error);
+    throw error;
+  }
+};
+
+export const createTrainerInviteCodeIfNotExists = async (trainerId: string): Promise<string | null> => {
+  if (!trainerId) {
+    console.error("Trainer ID is undefined");
+    return null;
+  }
+
+  const existingCode = await getTrainerInviteCode(trainerId);
+  if (existingCode) {
+    return existingCode;
+  }
+
+  const { data, error } = await supabase.rpc('create_trainer_invite_code', {
+    trainer_id: trainerId
+  });
+
+  if (error) {
+    console.error("Error generating new trainer invite code:", error);
+    return null;
+  }
+  
+  return data;
+};

@@ -232,14 +232,14 @@ export type Database = {
           {
             foreignKeyName: "trainer_invite_codes_trainer_id_fkey"
             columns: ["trainer_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "trainer_client_diets"
             referencedColumns: ["trainer_id"]
           },
           {
             foreignKeyName: "trainer_invite_codes_trainer_id_fkey"
             columns: ["trainer_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "trainers"
             referencedColumns: ["id"]
           },
