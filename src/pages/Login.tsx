@@ -75,7 +75,7 @@ const Login = () => {
           if (hasProfile) {
             navigate("/client-portal");
           } else {
-            navigate("/login");
+            navigate("/client-register");
           }
         } else {
           console.log("No hay sesión activa");
@@ -149,7 +149,7 @@ const Login = () => {
             console.log("¿El usuario tiene perfil?", hasProfile);
 
             if (!hasProfile) {
-              navigate("/client-portal");
+              navigate("/client-register");
             } else {
               navigate("/client-portal");
             }
